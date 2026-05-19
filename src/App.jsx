@@ -547,35 +547,77 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
         <ArrowLeft size={17} /> İlan listesine dön
       </button>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(280px,420px)_1fr]">
+   <div className="grid gap-5 lg:grid-cols-[minmax(280px,420px)_1fr]">
         <div>
-          <button onClick={() => !isVideoSelected && setLightboxOpen(true)} className="block w-full overflow-hidden rounded-[24px] bg-slate-100 text-left">
+          <button
+            onClick={() => !isVideoSelected && setLightboxOpen(true)}
+            className="block aspect-[4/3] w-full overflow-hidden rounded-[24px] bg-slate-100 text-left"
+          >
             {isVideoSelected ? (
-              <div className="grid h-[330px] w-full place-items-center bg-slate-950 text-white">
+              <div className="grid h-full w-full place-items-center bg-slate-950 text-white">
                 <div className="text-center">
-                  <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-red-600 shadow-lg"><Play size={26} fill="currentColor" /></div>
+                  <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-red-600 shadow-lg">
+                    <Play size={26} fill="currentColor" />
+                  </div>
                   <div className="text-lg font-black">YouTube videosu</div>
                   <p className="mt-1 max-w-xs text-sm text-slate-300">{item.youtube}</p>
                 </div>
               </div>
             ) : (
-              <img src={currentImage} alt="" className="h-[330px] w-full object-cover transition hover:scale-[1.02]" />
+              <img src={currentImage} alt="" className="h-full w-full object-cover transition hover:scale-[1.02]" />
             )}
           </button>
 
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {item.images.map((image, index) => (
-              <button key={image + index} onClick={() => setActiveImage(index)} className={"h-14 w-16 shrink-0 overflow-hidden rounded-xl border-2 " + (activeImage === index ? "border-cyan-950" : "border-transparent")}>
-                <img src={image} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-            {item.youtube && (
-              <button onClick={() => setActiveImage("video")} className={"grid h-14 w-16 shrink-0 place-items-center rounded-xl border-2 bg-slate-950 text-white " + (activeImage === "video" ? "border-cyan-950" : "border-transparent")}>
-                <Play size={18} fill="currentColor" className="text-red-500" />
-              </button>
-            )}
-          </div>
-        </div>
+        <div className="mt-3 grid grid-cols-5 gap-2">
+  {[0, 1, 2, 3, 4].map((slot) => {
+    const image = item.images[slot];
+
+    if (image) {
+      return (
+        <button
+          key={"image-slot-" + slot}
+          onClick={() => setActiveImage(slot)}
+          className={
+            "aspect-[4/3] overflow-hidden rounded-xl border-2 bg-slate-100 transition " +
+            (activeImage === slot
+              ? "border-cyan-950"
+              : "border-transparent hover:border-slate-300")
+          }
+          title={"Görsel " + (slot + 1)}
+        >
+          <img src={image} alt="" className="h-full w-full object-cover" />
+        </button>
+      );
+    }
+
+    return (
+      <div
+        key={"empty-slot-" + slot}
+        className="grid aspect-[4/3] place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-300"
+        title="Boş görsel alanı"
+      >
+        <Camera size={16} />
+      </div>
+    );
+  })}
+</div>
+
+{item.youtube && (
+  <button
+    onClick={() => setActiveImage("video")}
+    className={
+      "mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 bg-slate-950 px-3 py-2 text-xs font-black text-white transition " +
+      (activeImage === "video"
+        ? "border-cyan-950"
+        : "border-transparent hover:border-slate-300")
+    }
+    title="YouTube videosu"
+  >
+    <Play size={15} fill="currentColor" className="text-red-500" />
+    YouTube videosu
+  </button>
+)}
+</div>
 
         <div className="relative min-w-0">
           <div className="mb-3 flex items-start justify-between gap-3">

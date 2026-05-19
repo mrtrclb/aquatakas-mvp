@@ -1024,7 +1024,7 @@ function MyListingsPage({ listings, onOpen, onRemove, onPromote }) {
     <div className="mx-auto max-w-5xl p-5">
       <div className="mb-5 border-b border-slate-200 pb-4">
         <h2 className="text-2xl font-black tracking-tight">İlanlarım</h2>
-        <p className="mt-1 text-sm text-slate-500">Yayımladığın ilanları görüntüle, düzenle, öne çıkar veya yayından kaldır.</p>
+        <p className="mt-1 text-sm text-slate-500">Yayımladığın ilanları görüntüle, düzenle, öne çıkar veya yayından kaldır.İlanlar 1 ay sonunda tamamen silinir.</p>
       </div>
       <div className="grid gap-3">
         {listings.map((item) => {

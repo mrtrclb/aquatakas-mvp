@@ -754,16 +754,46 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
     ["contact", "Bize ulaşın"],
     ["terms", "Kullanım şartları"],
     ["ads", "Reklam verin"],
+    ["adpolicy", "Reklam politikası"],
+    ["warnings", "Önemli uyarılar"],
     ["privacy", "Gizlilik politikası"]
   ];
+
   const content = {
-    nedir: ["Hobiciden Hobiciye nedir?", "Akvaryum hobisine odaklanan; canlı, bitki, ekipman, yem, kimyasal ve dekor ilanlarının aynı çatı altında toplandığı niş bir ilan platformudur. Amaç genel pazar yeri kalabalığını azaltıp hobicilerin birbirini daha hızlı bulmasını sağlamaktır."],
-    contact: ["Bize ulaşın", "Destek, öneri, ilan bildirimi ve iş birliği talepleri için iletişim formu burada konumlanır. MVP aşamasında bu alan temsilidir; canlıda destek talepleri ayrı kayıt altında izlenebilir."],
-    terms: ["Kullanım şartları", "İlan veren kullanıcı, paylaştığı görsel ve metinlerden sorumludur. Canlı gönderimi, ödeme, teslimat ve iade koşulları taraflar arasında netleştirilmelidir. Platform şüpheli ilanları incelemeye alabilir."],
-    ads: ["Reklam verin", "Akvaryum hobisine doğrudan ulaşan hedefli reklam alanları sunulur. Sidebar, ilan arası reklam kartı ve ilan detay banner alanları marka görünürlüğü için kullanılabilir."],
-    privacy: ["Gizlilik politikası", "E-posta, telefon, mesajlaşma ve doğrulama bilgileri kullanıcı güvenliği için işlenir. Canlıya geçişte KVKK uyumlu açık rıza, aydınlatma metni ve veri saklama politikası gerekecektir."],
-    blog: ["Blog", "Kurulum rehberleri, tür tanıtımları, bakım notları, yeni başlayanlara öneriler ve ilan güvenliği yazıları bu bölümde yer alabilir. Blog, platforma organik trafik kazandıran güçlü bir içerik katmanı olur."]
+    nedir: [
+      "Hobiciden Hobiciye nedir?",
+      "Akvaryum hobisine odaklanan; canlı, bitki, ekipman, yem, kimyasal ve dekor ilanlarının aynı çatı altında toplandığı niş bir ilan platformudur. Amaç genel pazar yeri kalabalığını azaltıp hobicilerin birbirini daha hızlı bulmasını sağlamaktır."
+    ],
+    contact: [
+      "Bize ulaşın",
+      "Destek, öneri, ilan bildirimi ve iş birliği talepleri için iletişim formu burada konumlanır. MVP aşamasında bu alan temsilidir; canlıda destek talepleri ayrı kayıt altında izlenebilir."
+    ],
+    terms: [
+      "Kullanım şartları",
+      "İlan veren kullanıcı, paylaştığı görsel ve metinlerden sorumludur. Canlı gönderimi, ödeme, teslimat ve iade koşulları taraflar arasında netleştirilmelidir. Platform şüpheli ilanları incelemeye alabilir."
+    ],
+    ads: [
+      "Reklam verin",
+      "Akvaryum hobisine doğrudan ulaşan hedefli reklam alanları sunulur. Sidebar, ilan arası reklam kartı ve ilan detay banner alanları marka görünürlüğü için kullanılabilir."
+    ],
+    adpolicy: [
+      "Reklam politikası",
+      "Reklam görsellerinde okunabilir telefon, WhatsApp, fiyat etiketi veya yoğun kampanya metni bulunmamalıdır. Görsel sade ürün, marka veya mağaza atmosferi taşımalı; iletişim ve fiyat bilgileri reklam metni ya da hedef sayfada verilmelidir. Uygun bulunmayan reklamlar incelemede reddedilebilir veya düzenleme istenebilir."
+    ],
+    warnings: [
+      "Önemli uyarılar",
+      "Canlı satışı, canlı gönderimi, ödeme, teslimat ve iade süreçleri kullanıcıların sorumluluğundadır. Platform; yanıltıcı, yoğun metinli, fiyat odaklı, iletişim bilgisi taşıyan veya topluluk güvenliğini zedeleyen reklamları incelemeye alabilir, reddedebilir ya da yayından kaldırabilir."
+    ],
+    privacy: [
+      "Gizlilik politikası",
+      "E-posta, telefon, mesajlaşma ve doğrulama bilgileri kullanıcı güvenliği için işlenir. Canlıya geçişte KVKK uyumlu açık rıza, aydınlatma metni ve veri saklama politikası gerekecektir."
+    ],
+    blog: [
+      "Blog",
+      "Kurulum rehberleri, tür tanıtımları, bakım notları, yeni başlayanlara öneriler ve ilan güvenliği yazıları bu bölümde yer alabilir. Blog, platforma organik trafik kazandıran güçlü bir içerik katmanı olur."
+    ]
   };
+
   const current = content[activeTab] || content.nedir;
 
   return (
@@ -1065,7 +1095,18 @@ function AdsManagerPage() {
             <input className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" placeholder="Reklam başlığı" />
             <textarea rows={4} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" placeholder="Kısa açıklama" />
             <input className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" placeholder="Hedef link" />
-            <div className="rounded-2xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">Reklam konumu seçilmez. Onaylanan reklamlar havuza alınır ve sitenin uygun alanlarında otomatik döner.</div>
+            <div className="rounded-2xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">
+  Onaylanan reklamlar havuza alınır ve sitenin uygun alanlarında seçtiğiniz süre boyunca otomatik olarak gösterilir.{" "}
+  <a
+    href="https://siteadi.com/reklam-politikasi"
+    target="_blank"
+    rel="noreferrer"
+    className="font-black text-cyan-800 underline decoration-cyan-800/30 underline-offset-2 hover:text-cyan-950"
+  >
+    Reklam politikamızı
+  </a>{" "}
+  inceleyerek reklamınızın yayımlanmasını kolaylaştırabilirsiniz.
+</div>
             <button className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white hover:bg-cyan-900">İnceleme için gönder</button>
           </div>
         </div>
@@ -1143,9 +1184,39 @@ function AdRejectModal({ ad, onClose }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-[30px] bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-black">Reddedilme nedeni</h2><p className="mt-1 text-sm text-slate-500">{ad.title}</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><X size={18} /></button></div>
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">{ad.reason}</div>
-        <button onClick={onClose} className="mt-5 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white">Tamam</button>
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black">Reddedilme nedeni</h2>
+            <p className="mt-1 text-sm text-slate-500">{ad.title}</p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">
+          {ad.reason}
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button
+            onClick={onClose}
+            className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+          >
+            Tamam
+          </button>
+
+          <button
+            onClick={onClose}
+            className="rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white hover:bg-cyan-900"
+          >
+            Tekrar düzenle
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1268,7 +1339,162 @@ function PromoteListingModal({ listing, onClose }) {
 
 function AuthModal({ mode, setMode, onClose, onSuccess }) {
   const isLogin = mode === "login";
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm"><div className="grid w-full max-w-5xl overflow-hidden rounded-[34px] bg-white shadow-2xl md:grid-cols-[1.05fr_1fr]"><div className="relative hidden min-h-[640px] overflow-hidden bg-slate-950 p-8 text-white md:block" style={{ backgroundImage: "linear-gradient(135deg, rgba(8,51,68,.92), rgba(15,23,42,.68)), url(" + img.tank1 + ")", backgroundSize: "cover", backgroundPosition: "center" }}><div className="relative z-10 flex h-full flex-col justify-between"><div><div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Hobiciden Hobiciye</div><h2 className="max-w-md text-4xl font-black leading-tight tracking-tight">Akvaryum hobisine özel sade ve güvenli ilan alanı</h2><p className="mt-4 max-w-md text-[15px] leading-7 text-cyan-50/85">Canlı, bitki, ekipman ve akvaryum ilanlarını keşfet. Sat, takas et, sahiplendir veya aradığını bul.</p></div></div></div><div className="relative max-h-[90vh] overflow-y-auto p-6 sm:p-8 md:p-10"><button onClick={onClose} className="absolute right-5 top-5 rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X size={18} /></button><div className="mx-auto max-w-md"><div className="mb-6"><div className="mb-2 text-sm font-black uppercase tracking-[0.15em] text-slate-400">Hoş geldin</div><h3 className="text-3xl font-black tracking-tight text-slate-950">{isLogin ? "Giriş yap" : "Kayıt ol"}</h3><p className="mt-2 text-sm leading-relaxed text-slate-500">{isLogin ? "Hesabına giriş yaparak ilan verebilir, mesaj gönderebilir ve profilini yönetebilirsin." : "Yeni bir hesap oluşturarak topluluğa katılabilirsin."}</p></div><div className="mb-6 flex rounded-full bg-slate-100 p-1"><button onClick={() => setMode("login")} className={"flex-1 rounded-full px-4 py-2.5 text-sm font-black transition " + (isLogin ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>Giriş Yap</button><button onClick={() => setMode("register")} className={"flex-1 rounded-full px-4 py-2.5 text-sm font-black transition " + (!isLogin ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>Kayıt Ol</button></div><div className="space-y-3">{!isLogin && <label className="block"><span className="mb-1.5 block text-xs font-black text-slate-500">Kullanıcı adı</span><input className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800" placeholder="@kullaniciadi" /></label>}<label className="block"><span className="mb-1.5 block text-xs font-black text-slate-500">E-posta adresi</span><input type="email" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800" placeholder="ornek@mail.com" /></label>{!isLogin && <label className="block"><span className="mb-1.5 block text-xs font-black text-slate-500">Telefon numarası</span><input className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800" placeholder="05xx xxx xx xx" /></label>}<label className="block"><span className="mb-1.5 block text-xs font-black text-slate-500">Şifre</span><input type="password" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800" placeholder="••••••••" /></label></div><button onClick={onSuccess} className="mt-5 w-full rounded-full bg-cyan-950 px-5 py-3.5 text-sm font-black text-white transition hover:bg-cyan-900">{isLogin ? "Giriş yap" : "Hesap oluştur"}</button><div className="my-6 flex items-center gap-3"><div className="h-px flex-1 bg-slate-200" /><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">veya</span><div className="h-px flex-1 bg-slate-200" /></div><div className="space-y-3"><button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"><span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">G</span>Google ile devam et</button><button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"><span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">A</span>Apple ile devam et</button><button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"><span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">F</span>Facebook ile devam et</button></div></div></div></div></div>;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-[34px] bg-white shadow-2xl md:grid-cols-[1.05fr_1fr]">
+        <div
+          className="relative hidden min-h-[640px] overflow-hidden bg-slate-950 p-8 text-white md:block"
+          style={{
+            backgroundImage:
+              "linear-gradient(135deg, rgba(8,51,68,.92), rgba(15,23,42,.68)), url(" + img.tank1 + ")",
+            backgroundSize: "cover",
+            backgroundPosition: "center"
+          }}
+        >
+          <div className="relative z-10 flex h-full flex-col justify-between">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-cyan-100">
+                Hobiciden Hobiciye
+              </div>
+              <h2 className="max-w-md text-4xl font-black leading-tight tracking-tight">
+                Akvaryum hobisine özel sade ve güvenli ilan alanı
+              </h2>
+              <p className="mt-4 max-w-md text-[15px] leading-7 text-cyan-50/85">
+                Canlı, bitki, ekipman ve akvaryum ilanlarını keşfet. Sat, takas et, sahiplendir veya aradığını bul.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative max-h-[90vh] overflow-y-auto p-6 sm:p-8 md:p-10">
+          <button onClick={onClose} className="absolute right-5 top-5 rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200">
+            <X size={18} />
+          </button>
+
+          <div className="mx-auto max-w-md">
+            <div className="mb-6">
+              <div className="mb-2 text-sm font-black uppercase tracking-[0.15em] text-slate-400">
+                Hoş geldin
+              </div>
+              <h3 className="text-3xl font-black tracking-tight text-slate-950">
+                {isLogin ? "Giriş yap" : "Kayıt ol"}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                {isLogin
+                  ? "Hesabına giriş yaparak ilan verebilir, mesaj gönderebilir ve profilini yönetebilirsin."
+                  : "Yeni bir hesap oluşturarak topluluğa katılabilirsin."}
+              </p>
+            </div>
+
+            <div className="mb-6 flex rounded-full bg-slate-100 p-1">
+              <button
+                onClick={() => setMode("login")}
+                className={
+                  "flex-1 rounded-full px-4 py-2.5 text-sm font-black transition " +
+                  (isLogin ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")
+                }
+              >
+                Giriş Yap
+              </button>
+              <button
+                onClick={() => setMode("register")}
+                className={
+                  "flex-1 rounded-full px-4 py-2.5 text-sm font-black transition " +
+                  (!isLogin ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")
+                }
+              >
+                Kayıt Ol
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {!isLogin && (
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-black text-slate-500">Kullanıcı adı</span>
+                  <input
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800"
+                    placeholder="@kullaniciadi"
+                  />
+                </label>
+              )}
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-black text-slate-500">E-posta adresi</span>
+                <input
+                  type="email"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800"
+                  placeholder="ornek@mail.com"
+                />
+              </label>
+
+              {!isLogin && (
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-black text-slate-500">Telefon numarası</span>
+                  <input
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800"
+                    placeholder="05xx xxx xx xx"
+                  />
+                </label>
+              )}
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-black text-slate-500">Şifre</span>
+                <input
+                  type="password"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800"
+                  placeholder="••••••••"
+                />
+              </label>
+
+              {isLogin && (
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-cyan-950" />
+                    Beni hatırla
+                  </label>
+
+                  <button type="button" className="text-xs font-black text-cyan-800 hover:text-cyan-950">
+                    Şifremi unuttum
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={onSuccess}
+              className="mt-5 w-full rounded-full bg-cyan-950 px-5 py-3.5 text-sm font-black text-white transition hover:bg-cyan-900"
+            >
+              {isLogin ? "Giriş yap" : "Hesap oluştur"}
+            </button>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">veya</span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+
+            <div className="space-y-3">
+              <button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">G</span>
+                Google ile devam et
+              </button>
+
+              <button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">A</span>
+                Apple ile devam et
+              </button>
+
+              <button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">F</span>
+                Facebook ile devam et
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function AddListingModal({ onClose }) {

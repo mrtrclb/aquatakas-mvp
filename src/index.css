@@ -5,3 +5,8 @@
 body {
   margin: 0;
 }
+@media (min-width: 1024px) {
+  html {
+    font-size: 14px;
+  }
+}

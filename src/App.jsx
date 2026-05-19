@@ -285,6 +285,7 @@ export default function AquaTakasPrototype() {
   const [activeImage, setActiveImage] = useState(0);
   const [isMember, setIsMember] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
+  const [viewUser, setViewUser] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -355,14 +356,15 @@ export default function AquaTakasPrototype() {
   }
 
   const accountMode = Boolean(memberPage);
-  const detailMode = Boolean(selectedListing);
-  const currentUser = users[1];
+const userListingsMode = Boolean(viewUser);
+const detailMode = Boolean(selectedListing);
+const currentUser = users[1];
 
   return (
     <div className="min-h-screen bg-white text-slate-950">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-4">
-          <button onClick={() => { setSelectedListing(null); setMemberPage(null); }} className="flex items-center gap-3 text-left">
+          <button onClick={() => { setSelectedListing(null); setMemberPage(null); setViewUser(null); }} className="flex items-center gap-3 text-left">
             <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-cyan-950 text-sm font-black text-white">HH<span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-cyan-400" /></div>
             <div>
               <h1 className="text-xl font-black leading-tight tracking-tight">Hobiciden Hobiciye</h1>
@@ -374,7 +376,7 @@ export default function AquaTakasPrototype() {
             {isMember && (
               <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 md:flex">
                 {[["account", "Hesabım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
-                  <button key={key} onClick={() => { setMemberPage(key); setSelectedListing(null); }} className={"rounded-full px-3 py-1.5 text-xs font-black " + (memberPage === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>
+                  <button key={key} onClick={() => { setMemberPage(key); setSelectedListing(null); setViewUser(null); }} className={"rounded-full px-3 py-1.5 text-xs font-black " + (memberPage === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>
                     {label}
                   </button>
                 ))}
@@ -384,6 +386,7 @@ export default function AquaTakasPrototype() {
               if (isMember) {
                 setIsMember(false);
                 setMemberPage(null);
+                setViewUser(null);
                 setSelectedListing(null);
               } else {
                 setAuthMode("login");
@@ -399,8 +402,8 @@ export default function AquaTakasPrototype() {
         </div>
       </header>
 
-      <main className={"mx-auto grid max-w-7xl px-4 " + (accountMode ? "lg:grid-cols-[1fr]" : detailMode ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
-        {!accountMode && (
+      <main className={"mx-auto grid max-w-7xl px-4 " + ((accountMode || userListingsMode) ? "lg:grid-cols-[1fr]" : detailMode ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
+                {!accountMode && !userListingsMode && (
           <aside className="h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:h-[calc(100vh-72px)] lg:overflow-auto">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-black"><SlidersHorizontal size={17} /> Filtrele</h2>
@@ -435,13 +438,40 @@ export default function AquaTakasPrototype() {
           {!memberPage && selectedListing && (
             <ListingDetail item={selectedListing} user={users[selectedListing.userId]} activeImage={activeImage} setActiveImage={setActiveImage} isMember={isMember} onBack={() => setSelectedListing(null)} onProfile={setProfileUser} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onReport={() => setReportOpen(true)} onAuth={() => { setAuthMode("login"); setAuthOpen(true); }} />
           )}
-          {!memberPage && !selectedListing && <ListingFeed listings={filteredListings} onOpen={openListing} onProfile={setProfileUser} />}
+          {!memberPage && !selectedListing && viewUser && (
+  <UserListingsPage
+    user={viewUser}
+    onBack={() => setViewUser(null)}
+    onOpen={openListing}
+    onProfile={setProfileUser}
+  />
+)}
+
+{!memberPage && !selectedListing && !viewUser && (
+  <ListingFeed
+    listings={filteredListings}
+    onOpen={openListing}
+    onProfile={setProfileUser}
+  />
+)}
         </section>
 
-        {!detailMode && !accountMode && <RightSidebar />}
+        {!detailMode && !accountMode && !userListingsMode && <RightSidebar />}
       </main>
 
-      {profileUser && <ProfileModal user={profileUser} onClose={() => setProfileUser(null)} />}
+      {profileUser && (
+  <ProfileModal
+    user={profileUser}
+    onClose={() => setProfileUser(null)}
+    onViewListings={() => {
+      setViewUser(profileUser);
+      setProfileUser(null);
+      setSelectedListing(null);
+      setMemberPage(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }}
+  />
+)}
       {reportOpen && <ReportModal onClose={() => setReportOpen(false)} />}
       {addOpen && <AddListingModal onClose={() => setAddOpen(false)} />}
       {authOpen && <AuthModal mode={authMode} setMode={setAuthMode} onClose={() => setAuthOpen(false)} onSuccess={() => { setIsMember(true); setAuthOpen(false); setMemberPage("account"); setSelectedListing(null); }} />}
@@ -1315,11 +1345,315 @@ function MessagesPage() {
   );
 }
 
-function ProfileModal({ user, onClose }) {
+function UserListingsPage({ user, onBack, onOpen, onProfile }) {
+  const userId = Number(Object.keys(users).find((id) => users[id].username === user.username));
+  const userListings = listings.filter((item) => item.userId === userId);
+
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <button
+        onClick={onBack}
+        className="mb-4 flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-100"
+      >
+        <ArrowLeft size={17} /> İlan akışına dön
+      </button>
+
+      <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-gradient-to-br from-cyan-950 to-slate-900 p-5 text-white">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+                <UserRound size={30} />
+                {user.online && (
+                  <span
+                    title="Çevrimiçi"
+                    className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500"
+                  />
+                )}
+              </div>
+
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-black tracking-tight">{user.username}</h2>
+                  {user.verified && <VerifiedBadge />}
+                </div>
+
+                <p className="mt-1 text-sm text-cyan-50/80">
+                  {user.city} · {user.joined} üyesi · {user.online ? "Çevrimiçi" : "Son ziyaret: " + user.lastSeen}
+                </p>
+
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-cyan-50/90">
+                  {user.bio || "Bu kullanıcı henüz hakkında bilgisi eklememiş."}
+                </p>
+              </div>
+            </div>
+
+            <button className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50">
+              <MessageCircle size={16} /> Mesaj gönder
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 border-b border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-slate-950">{userListings.length}</div>
+            <div className="text-xs font-black text-slate-500">Yayındaki ilan</div>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-emerald-700">{user.reviewStats?.positive || 0}</div>
+            <div className="text-xs font-black text-slate-500">Olumlu değerlendirme</div>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-slate-950">{user.verified ? "Var" : "Yok"}</div>
+            <div className="text-xs font-black text-slate-500">Doğrulama durumu</div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+          <div>
+            <h3 className="text-lg font-black">{user.username} kullanıcısının ilanları</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Bu sayfada kullanıcının yayındaki ücretsiz ilanları listelenir.
+            </p>
+          </div>
+
+          <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+            İlanlar 30 gün yayında kalır
+          </div>
+        </div>
+
+        <div>
+          {userListings.map((item) => {
+            const isFeatured = featuredListingIds.includes(item.id);
+
+            return (
+              <article
+                key={item.id}
+                className={
+                  "relative border-b border-slate-200 p-4 transition last:border-b-0 " +
+                  (isFeatured ? "bg-cyan-50/60 hover:bg-cyan-50" : "bg-white hover:bg-slate-50")
+                }
+              >
+                {isFeatured && (
+                  <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 shadow-sm">
+                    <Pin size={12} fill="currentColor" /> Öne çıkan
+                  </div>
+                )}
+
+                <button
+                  onClick={() => onOpen(item)}
+                  className="grid w-full grid-cols-[96px_1fr] gap-4 pr-0 text-left sm:pr-24"
+                >
+                  <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-slate-100">
+                    <img src={item.images[0]} alt="" className="h-full w-full object-cover" />
+
+                    {item.youtube && (
+                      <span className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-red-600 text-white shadow">
+                        <Play size={14} fill="currentColor" />
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="mb-2 flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-cyan-950 px-2.5 py-1 text-xs font-black text-white">
+                        {item.type}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+                        {item.category}
+                      </span>
+                    </div>
+
+                    <h4 className="line-clamp-1 text-[17px] font-black leading-snug">{item.title}</h4>
+                    <p className="mt-1 line-clamp-2 text-[15px] leading-relaxed text-slate-600">
+                      {item.description}
+                    </p>
+                  </div>
+                </button>
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-[112px] text-sm">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
+                    <button onClick={() => onProfile(user)} className="font-black text-slate-700 hover:underline">
+                      <UserName user={user} />
+                    </button>
+
+                    <span className="flex items-center gap-1">
+                      <MapPin size={14} /> {item.city} / {item.district}
+                    </span>
+
+                    <span className="flex items-center gap-1">
+                      <CalendarDays size={14} /> {formatDate(item.date)}
+                    </span>
+                  </div>
+
+                  <strong className="text-base font-black text-cyan-950">{priceLabel(item)}</strong>
+                </div>
+              </article>
+            );
+          })}
+
+          {userListings.length === 0 && (
+            <div className="p-8 text-center">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+                <UserRound size={26} />
+              </div>
+              <h3 className="mt-3 text-lg font-black">Yayında ilan yok</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Bu kullanıcının şu anda yayında aktif ilanı bulunmuyor.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+function ProfileModal({ user, onClose, onViewListings }) {
   const stats = user.reviewStats || { positive: 0, neutral: 0, negative: 0 };
   const totalReviews = stats.positive + stats.neutral + stats.negative;
   const hasSocials = user.socials && (user.socials.instagram || user.socials.facebook || user.socials.x);
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-lg rounded-[32px] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-start justify-between gap-4"><div className="flex items-center gap-3"><div className="relative grid h-14 w-14 place-items-center rounded-2xl bg-cyan-950 text-white"><UserRound size={27} />{user.online && <span title="Çevrimiçi" className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />}</div><div><h2 className="flex items-center gap-1 text-xl font-black"><UserName user={user} /></h2><p className="text-sm text-slate-500">{user.city} · {user.joined} üyesi</p><p className={"mt-1 text-xs font-bold " + (user.online ? "text-emerald-600" : "text-slate-400")}>{user.online ? "Çevrimiçi" : "Son ziyaret: " + user.lastSeen}</p></div></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><div className="mb-4 rounded-2xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">{user.bio || "Bu kullanıcı henüz hakkında bilgisi eklememiş."}</div><div className="mb-4 grid gap-2 sm:grid-cols-2"><div className="rounded-2xl bg-slate-50 p-3"><div className="text-lg font-black text-slate-950">{user.listingsCount || 0}</div><div className="text-xs font-black text-slate-500">Yayındaki ilan</div></div><div className="rounded-2xl bg-slate-50 p-3"><div className="text-lg font-black text-slate-950">{totalReviews}</div><div className="text-xs font-black text-slate-500">Toplam değerlendirme</div></div></div><div className="mb-4 rounded-2xl border border-sky-100 bg-sky-50 p-3 text-sm text-sky-900"><div className="mb-1 flex items-center gap-2 font-black"><ShieldCheck size={16} /> Doğrulama durumu</div>{user.verified ? "E-posta ve telefon doğrulaması tamamlanmış." : "Tüm doğrulamalar henüz tamamlanmamış."}</div><div className="mb-4 rounded-2xl bg-slate-50 p-3"><div className="mb-2 flex items-center gap-2 text-sm font-black"><Star size={16} /> Değerlendirme özeti</div><div className="grid gap-2 sm:grid-cols-3"><div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200"><div className="text-lg font-black text-emerald-700">{stats.positive}</div><div className="text-xs font-bold text-slate-500">Olumlu</div></div><div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200"><div className="text-lg font-black text-slate-700">{stats.neutral}</div><div className="text-xs font-bold text-slate-500">Nötr</div></div><div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200"><div className="text-lg font-black text-red-700">{stats.negative}</div><div className="text-xs font-bold text-slate-500">Olumsuz</div></div></div></div><div className="mb-4 rounded-2xl bg-slate-50 p-3"><div className="mb-2 text-sm font-black">Sosyal hesaplar</div>{hasSocials ? <div className="flex flex-wrap gap-2 text-xs font-black text-slate-600">{user.socials.instagram && <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">IG {user.socials.instagram}</span>}{user.socials.facebook && <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">FB {user.socials.facebook}</span>}{user.socials.x && <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">X {user.socials.x}</span>}</div> : <p className="text-sm text-slate-500">Sosyal hesap eklenmemiş.</p>}</div><div className="rounded-2xl bg-slate-50 p-3"><div className="mb-2 text-sm font-black">Son değerlendirmeler</div>{user.reviews && user.reviews.length > 0 ? <div className="grid gap-2">{user.reviews.map((review) => <p key={review} className="rounded-xl bg-white p-2 text-sm text-slate-600 ring-1 ring-slate-200">“{review}”</p>)}</div> : <p className="rounded-xl bg-white p-2 text-sm text-slate-500 ring-1 ring-slate-200">Henüz değerlendirme yok.</p>}</div><div className="mt-4 grid gap-2 sm:grid-cols-2"><button className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white"><MessageCircle size={17} /> Mesaj gönder</button><button className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Tüm ilanlarını gör</button></div></div></div>;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-[32px] bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="relative grid h-14 w-14 place-items-center rounded-2xl bg-cyan-950 text-white">
+              <UserRound size={27} />
+              {user.online && (
+                <span
+                  title="Çevrimiçi"
+                  className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500"
+                />
+              )}
+            </div>
+
+            <div>
+              <h2 className="flex items-center gap-1 text-xl font-black">
+                <UserName user={user} />
+              </h2>
+              <p className="text-sm text-slate-500">{user.city} · {user.joined} üyesi</p>
+              <p className={"mt-1 text-xs font-bold " + (user.online ? "text-emerald-600" : "text-slate-400")}>
+                {user.online ? "Çevrimiçi" : "Son ziyaret: " + user.lastSeen}
+              </p>
+            </div>
+          </div>
+
+          <button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="mb-4 rounded-2xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">
+          {user.bio || "Bu kullanıcı henüz hakkında bilgisi eklememiş."}
+        </div>
+
+        <div className="mb-4 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <div className="text-lg font-black text-slate-950">{user.listingsCount || 0}</div>
+            <div className="text-xs font-black text-slate-500">Yayındaki ilan</div>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <div className="text-lg font-black text-slate-950">{totalReviews}</div>
+            <div className="text-xs font-black text-slate-500">Toplam değerlendirme</div>
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-2xl border border-sky-100 bg-sky-50 p-3 text-sm text-sky-900">
+          <div className="mb-1 flex items-center gap-2 font-black">
+            <ShieldCheck size={16} /> Doğrulama durumu
+          </div>
+          {user.verified ? "E-posta ve telefon doğrulaması tamamlanmış." : "Tüm doğrulamalar henüz tamamlanmamış."}
+        </div>
+
+        <div className="mb-4 rounded-2xl bg-slate-50 p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-black">
+            <Star size={16} /> Değerlendirme özeti
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200">
+              <div className="text-lg font-black text-emerald-700">{stats.positive}</div>
+              <div className="text-xs font-bold text-slate-500">Olumlu</div>
+            </div>
+
+            <div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200">
+              <div className="text-lg font-black text-slate-700">{stats.neutral}</div>
+              <div className="text-xs font-bold text-slate-500">Nötr</div>
+            </div>
+
+            <div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200">
+              <div className="text-lg font-black text-red-700">{stats.negative}</div>
+              <div className="text-xs font-bold text-slate-500">Olumsuz</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-2xl bg-slate-50 p-3">
+          <div className="mb-2 text-sm font-black">Sosyal hesaplar</div>
+
+          {hasSocials ? (
+            <div className="flex flex-wrap gap-2 text-xs font-black text-slate-600">
+              {user.socials.instagram && (
+                <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">
+                  IG {user.socials.instagram}
+                </span>
+              )}
+
+              {user.socials.facebook && (
+                <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">
+                  FB {user.socials.facebook}
+                </span>
+              )}
+
+              {user.socials.x && (
+                <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">
+                  X {user.socials.x}
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Sosyal hesap eklenmemiş.</p>
+          )}
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 p-3">
+          <div className="mb-2 text-sm font-black">Son değerlendirmeler</div>
+
+          {user.reviews && user.reviews.length > 0 ? (
+            <div className="grid gap-2">
+              {user.reviews.map((review) => (
+                <p key={review} className="rounded-xl bg-white p-2 text-sm text-slate-600 ring-1 ring-slate-200">
+                  “{review}”
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-xl bg-white p-2 text-sm text-slate-500 ring-1 ring-slate-200">
+              Henüz değerlendirme yok.
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <button className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white">
+            <MessageCircle size={17} /> Mesaj gönder
+          </button>
+
+          <button
+            onClick={onViewListings}
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+          >
+            Tüm ilanlarını gör
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 }
 
 function ReportModal({ onClose }) {

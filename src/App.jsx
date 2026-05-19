@@ -1388,19 +1388,97 @@ function MessagesPage() {
     tab === "deleted" ? message.deleted : !message.deleted
   );
 
-  const activeConversation =
-    selectedConversation && visibleConversations.find((message) => message.id === selectedConversation.id)
-      ? selectedConversation
-      : visibleConversations[0] || null;
-  const [selectedConversation, setSelectedConversation] = useState(null);
+    const [selectedConversation, setSelectedConversation] = useState(null);
+
+  const UserAvatar = ({ user, size = "md" }) => {
+    const username = user?.user || user?.from || user?.name || "Kullanıcı";
+    const initial = username.replace("@", "").trim().charAt(0).toUpperCase() || "H";
+
+    const sizeClass =
+      size === "sm"
+        ? "h-8 w-8 text-xs"
+        : size === "lg"
+        ? "h-12 w-12 text-sm"
+        : "h-10 w-10 text-xs";
+
+    return (
+      <div
+        className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-cyan-950 font-black text-white shadow-sm`}
+        title={username}
+      >
+        {initial}
+      </div>
+    );
+  };
+
   const conversations = [
-    { id: 1, user: "@kadikoytank", title: "160x40x45h akvaryum ve sehpa", last: "Merhaba, ölçüler net 160x40x45 mi?", date: "18.05.2026", unread: true, deleted: false, messages: [{ from: "@kadikoytank", body: "Merhaba, ölçüler net 160x40x45 mi?", time: "10:24" }, { from: "sen", body: "Evet net ölçü bu, sehpa da dahil.", time: "10:31" }] },
-    { id: 2, user: "@nanoankara", title: "Java fern budama paketi", last: "Takas için karides düşünebilirim.", date: "17.05.2026", unread: false, deleted: false, messages: [{ from: "sen", body: "Moss paketi hâlâ duruyor mu?", time: "18:12" }, { from: "@nanoankara", body: "Duruyor. Takas için karides düşünebilirim.", time: "18:20" }] },
-    { id: 3, user: "@izmirfiltre", title: "Oase dış filtre", last: "Hortum aparatı duruyor mu?", date: "16.05.2026", unread: false, deleted: false, messages: [{ from: "@izmirfiltre", body: "Hortum aparatı duruyor mu?", time: "14:03" }, { from: "sen", body: "Duruyor ama medya dahil değil.", time: "14:18" }] },
-    { id: 4, user: "@eskitank", title: "Bitkili tank dekorları", last: "Tamamdır, ben vazgeçtim teşekkürler.", date: "12.05.2026", unread: false, deleted: true, messages: [{ from: "@eskitank", body: "Dekorların tamamı duruyor mu?", time: "09:10" }, { from: "sen", body: "Evet duruyor.", time: "09:18" }, { from: "@eskitank", body: "Tamamdır, ben vazgeçtim teşekkürler.", time: "09:30" }] }
+    {
+      id: 1,
+      user: "@kadikoytank",
+      title: "160x40x45h akvaryum ve sehpa",
+      last: "Merhaba, ölçüler net 160x40x45 mi?",
+      date: "18.05.2026",
+      unread: true,
+      deleted: false,
+      messages: [
+        { from: "@kadikoytank", body: "Merhaba, ölçüler net 160x40x45 mi?", time: "10:24" },
+        { from: "sen", body: "Evet net ölçü bu, sehpa da dahil.", time: "10:31" }
+      ]
+    },
+    {
+      id: 2,
+      user: "@nanoankara",
+      title: "Java fern budama paketi",
+      last: "Takas için karides düşünebilirim.",
+      date: "17.05.2026",
+      unread: false,
+      deleted: false,
+      messages: [
+        { from: "sen", body: "Moss paketi hâlâ duruyor mu?", time: "18:12" },
+        { from: "@nanoankara", body: "Duruyor. Takas için karides düşünebilirim.", time: "18:20" }
+      ]
+    },
+    {
+      id: 3,
+      user: "@izmirfiltre",
+      title: "Oase dış filtre",
+      last: "Hortum aparatı duruyor mu?",
+      date: "16.05.2026",
+      unread: false,
+      deleted: false,
+      messages: [
+        { from: "@izmirfiltre", body: "Hortum aparatı duruyor mu?", time: "14:03" },
+        { from: "sen", body: "Duruyor ama medya dahil değil.", time: "14:18" }
+      ]
+    },
+    {
+      id: 4,
+      user: "@eskitank",
+      title: "Bitkili tank dekorları",
+      last: "Tamamdır, ben vazgeçtim teşekkürler.",
+      date: "12.05.2026",
+      unread: false,
+      deleted: true,
+      messages: [
+        { from: "@eskitank", body: "Dekorların tamamı duruyor mu?", time: "09:10" },
+        { from: "sen", body: "Evet duruyor.", time: "09:18" },
+        { from: "@eskitank", body: "Tamamdır, ben vazgeçtim teşekkürler.", time: "09:30" }
+      ]
+    }
   ];
-  const visibleConversations = conversations.filter((message) => tab === "deleted" ? message.deleted : !message.deleted);
-  const activeConversation = selectedConversation && visibleConversations.find((message) => message.id === selectedConversation.id) ? selectedConversation : null;
+
+  const visibleConversations = conversations.filter((message) =>
+    tab === "deleted" ? message.deleted : !message.deleted
+  );
+
+  let activeConversation = visibleConversations[0] || null;
+
+  if (
+    selectedConversation &&
+    visibleConversations.some((message) => message.id === selectedConversation.id)
+  ) {
+    activeConversation = selectedConversation;
+  }
 
    return (
     <div className="mx-auto max-w-5xl p-5">

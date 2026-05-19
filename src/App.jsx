@@ -1384,9 +1384,7 @@ function MessagesPage() {
     }
   ];
 
-  const visibleConversations = conversations.filter((message) =>
-    tab === "deleted" ? message.deleted : !message.deleted
-  );
+  const visibleConversations = conversations.filter((message) => (tab === "deleted" ? message.deleted : !message.deleted));
 
     const [selectedConversation, setSelectedConversation] = useState(null);
 

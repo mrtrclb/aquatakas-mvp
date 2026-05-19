@@ -821,19 +821,32 @@ function AdInfoModal({ onClose }) {
 
 function DetailBannerAd({ ad }) {
   return (
-    <div className="mb-5 overflow-hidden rounded-[24px] border border-amber-200 bg-amber-50">
-      <div className="grid gap-0 sm:grid-cols-[180px_1fr_auto]">
-        <div className="relative h-28 overflow-hidden sm:h-full">
+    <div className="mb-5 overflow-hidden rounded-[22px] border border-amber-200 bg-amber-50/80 shadow-sm">
+      <div className="grid min-h-[92px] gap-0 sm:grid-cols-[150px_1fr_auto]">
+        <div className="relative hidden overflow-hidden sm:block">
           <img src={ad.image} alt="" className="h-full w-full object-cover" />
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-700">Reklam</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/55 to-transparent" />
+          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-700">
+            Reklam
+          </span>
         </div>
-        <div className="p-4">
-          <div className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">{ad.brand}</div>
-          <div className="mt-1 text-lg font-black leading-tight text-slate-950">{ad.title}</div>
-          <p className="mt-1 text-sm leading-relaxed text-slate-600">{ad.text}</p>
+
+        <div className="flex min-w-0 flex-col justify-center px-4 py-3">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-700">
+            {ad.brand}
+          </div>
+          <div className="mt-0.5 line-clamp-1 text-base font-black leading-tight text-slate-950">
+            {ad.title}
+          </div>
+          <p className="mt-0.5 line-clamp-1 text-sm leading-relaxed text-slate-600">
+            {ad.text}
+          </p>
         </div>
-        <div className="flex items-center p-4 pt-0 sm:pt-4">
-          <button className="rounded-full bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600">{ad.cta}</button>
+
+        <div className="flex items-center px-4 pb-3 sm:pb-0">
+          <button className="rounded-full bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600">
+            {ad.cta}
+          </button>
         </div>
       </div>
     </div>

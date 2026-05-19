@@ -1307,15 +1307,15 @@ function MessagesPage() {
   const [tab, setTab] = useState("active");
   const [selectedConversation, setSelectedConversation] = useState(null);
 
-  const UserAvatar = ({ user, size = "md" }) => {
+  function UserAvatarBubble({ user, size = "md" }) {
     const username = user?.user || user?.from || user?.name || "Kullanıcı";
     const initial = username.replace("@", "").trim().charAt(0).toUpperCase() || "H";
 
     const sizeClass =
-      size === "sm"
-        ? "h-8 w-8 text-xs"
-        : size === "lg"
+      size === "lg"
         ? "h-12 w-12 text-sm"
+        : size === "sm"
+        ? "h-8 w-8 text-xs"
         : "h-10 w-10 text-xs";
 
     return (
@@ -1326,7 +1326,7 @@ function MessagesPage() {
         {initial}
       </div>
     );
-  };
+  }
 
   const conversations = [
     {
@@ -1384,90 +1384,13 @@ function MessagesPage() {
     }
   ];
 
-  const visibleConversations = conversations.filter((message) => (tab === "deleted" ? message.deleted : !message.deleted));
-
-    const [selectedConversation, setSelectedConversation] = useState(null);
-
-  const UserAvatar = ({ user, size = "md" }) => {
-    const username = user?.user || user?.from || user?.name || "Kullanıcı";
-    const initial = username.replace("@", "").trim().charAt(0).toUpperCase() || "H";
-
-    const sizeClass =
-      size === "sm"
-        ? "h-8 w-8 text-xs"
-        : size === "lg"
-        ? "h-12 w-12 text-sm"
-        : "h-10 w-10 text-xs";
-
-    return (
-      <div
-        className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-cyan-950 font-black text-white shadow-sm`}
-        title={username}
-      >
-        {initial}
-      </div>
-    );
-  };
-
-  const conversations = [
-    {
-      id: 1,
-      user: "@kadikoytank",
-      title: "160x40x45h akvaryum ve sehpa",
-      last: "Merhaba, ölçüler net 160x40x45 mi?",
-      date: "18.05.2026",
-      unread: true,
-      deleted: false,
-      messages: [
-        { from: "@kadikoytank", body: "Merhaba, ölçüler net 160x40x45 mi?", time: "10:24" },
-        { from: "sen", body: "Evet net ölçü bu, sehpa da dahil.", time: "10:31" }
-      ]
-    },
-    {
-      id: 2,
-      user: "@nanoankara",
-      title: "Java fern budama paketi",
-      last: "Takas için karides düşünebilirim.",
-      date: "17.05.2026",
-      unread: false,
-      deleted: false,
-      messages: [
-        { from: "sen", body: "Moss paketi hâlâ duruyor mu?", time: "18:12" },
-        { from: "@nanoankara", body: "Duruyor. Takas için karides düşünebilirim.", time: "18:20" }
-      ]
-    },
-    {
-      id: 3,
-      user: "@izmirfiltre",
-      title: "Oase dış filtre",
-      last: "Hortum aparatı duruyor mu?",
-      date: "16.05.2026",
-      unread: false,
-      deleted: false,
-      messages: [
-        { from: "@izmirfiltre", body: "Hortum aparatı duruyor mu?", time: "14:03" },
-        { from: "sen", body: "Duruyor ama medya dahil değil.", time: "14:18" }
-      ]
-    },
-    {
-      id: 4,
-      user: "@eskitank",
-      title: "Bitkili tank dekorları",
-      last: "Tamamdır, ben vazgeçtim teşekkürler.",
-      date: "12.05.2026",
-      unread: false,
-      deleted: true,
-      messages: [
-        { from: "@eskitank", body: "Dekorların tamamı duruyor mu?", time: "09:10" },
-        { from: "sen", body: "Evet duruyor.", time: "09:18" },
-        { from: "@eskitank", body: "Tamamdır, ben vazgeçtim teşekkürler.", time: "09:30" }
-      ]
+  const visibleConversations = conversations.filter((message) => {
+    if (tab === "deleted") {
+      return message.deleted;
     }
-  ];
 
-  const visibleConversations = conversations.filter((message) =>
-    tab === "deleted" ? message.deleted : !message.deleted
-  );
+    return !message.deleted;
+  });
 
   let activeConversation = visibleConversations[0] || null;
 
@@ -1478,7 +1401,7 @@ function MessagesPage() {
     activeConversation = selectedConversation;
   }
 
-   return (
+  return (
     <div className="mx-auto max-w-5xl p-5">
       <div className="mb-5 border-b border-slate-200 pb-4">
         <h2 className="text-2xl font-black tracking-tight">Mesajlarım</h2>
@@ -1527,7 +1450,7 @@ function MessagesPage() {
               }
             >
               <div className="flex gap-3">
-                <UserAvatar user={message} size="md" />
+                <UserAvatarBubble user={message} />
 
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -1564,7 +1487,7 @@ function MessagesPage() {
             <div className="flex h-full flex-col">
               <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <UserAvatar user={activeConversation} size="lg" />
+                  <UserAvatarBubble user={activeConversation} size="lg" />
 
                   <div className="min-w-0">
                     <div className="text-sm font-black text-slate-900">
@@ -1647,7 +1570,6 @@ function MessagesPage() {
     </div>
   );
 }
-
 function UserListingsPage({ user, onBack, onOpen, onProfile }) {
   const userId = Number(Object.keys(users).find((id) => users[id].username === user.username));
   const userListings = listings.filter((item) => item.userId === userId);

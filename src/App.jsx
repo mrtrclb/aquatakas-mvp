@@ -777,25 +777,51 @@ function SidebarAd({ ad }) {
 
 function FeedAdCard({ ad }) {
   const [infoOpen, setInfoOpen] = useState(false);
+
   return (
     <article className="border-b border-slate-200 bg-amber-50/55 p-4 transition hover:bg-amber-50">
-      <div className="grid grid-cols-[96px_1fr_auto] gap-4">
-        <div className="h-24 w-24 overflow-hidden rounded-2xl bg-amber-100">
+      <div className="grid grid-cols-[82px_1fr_auto] gap-4">
+        <div className="h-20 w-20 overflow-hidden rounded-2xl bg-amber-100">
           <img src={ad.image} alt="" className="h-full w-full object-cover" />
         </div>
+
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
-            <span className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">Reklam</span>
-            <span className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">{ad.brand}</span>
-            <button onClick={() => setInfoOpen(true)} className="grid h-6 w-6 place-items-center rounded-full bg-white text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100" title="Bu reklam hakkında"><Info size={13} /></button>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">
+              Reklam
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setInfoOpen(true);
+                }}
+                className="grid h-4 w-4 place-items-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200"
+                title="Bu reklam hakkında"
+              >
+                <Info size={10} />
+              </button>
+            </span>
+
+            <span className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">
+              {ad.brand}
+            </span>
           </div>
-          <h3 className="line-clamp-1 text-[17px] font-black leading-snug text-slate-950">{ad.title}</h3>
-          <p className="mt-1 line-clamp-2 text-[15px] leading-relaxed text-slate-600">{ad.text}</p>
+
+          <h3 className="line-clamp-1 text-[16px] font-black leading-snug text-slate-950">
+            {ad.title}
+          </h3>
+          <p className="mt-1 line-clamp-2 text-[14px] leading-relaxed text-slate-600">
+            {ad.text}
+          </p>
         </div>
+
         <div className="flex items-center">
-          <button className="rounded-full bg-amber-500 px-4 py-2 text-xs font-black text-white hover:bg-amber-600">{ad.cta}</button>
+          <button className="rounded-full bg-amber-500 px-4 py-2 text-xs font-black text-white hover:bg-amber-600">
+            {ad.cta}
+          </button>
         </div>
       </div>
+
       {infoOpen && <AdInfoModal onClose={() => setInfoOpen(false)} />}
     </article>
   );

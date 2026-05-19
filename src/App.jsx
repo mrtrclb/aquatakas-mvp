@@ -1654,7 +1654,6 @@ function ProfileModal({ user, onClose, onViewListings }) {
     </div>
   );
 }
-}
 
 function ReportModal({ onClose }) {
   return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-[32px] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-black">Bildir</h2><p className="text-sm text-slate-500">Bu ilanla ilgili kısa bir bildirim gönder.</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><Select label="Neden?" value="Yanıltıcı ilan" onChange={() => {}} options={["Yanıltıcı ilan", "Uygunsuz canlı / ürün", "Sahte fotoğraf", "Satıldı ama yayında", "Diğer"]} /><label className="mt-3 block"><span className="mb-1 block text-xs font-black text-slate-500">Açıklama - opsiyonel</span><textarea rows={4} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder="Kısaca açıklayın..." /></label><button onClick={onClose} className="mt-4 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white">Bildir</button></div></div>;

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   Edit3,
   Pin,
@@ -7,16 +7,21 @@ import {
   X,
   Send,
   RotateCcw,
-  Bookmark,
   BookmarkX,
   Upload,
   ImagePlus
 } from "lucide-react";
 
-function EditListingModal({ listing, mode = "edit", onClose }) {
+function safeDate(date) {
+  if (!date || typeof date !== "string") return "";
+  return date.split("-").reverse().join(".");
+}
+
+function EditListingModal({ listing, mode, onClose }) {
   if (!listing) return null;
 
   const isExpired = mode === "republish";
+  const images = Array.isArray(listing.images) ? listing.images : [];
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
@@ -30,8 +35,7 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
             <p className="mt-1 text-sm leading-6 text-slate-500">
               {isExpired
                 ? "Süresi dolmuş ilanını güncelleyip yeniden inceleme için gönderebilirsin."
-                : "İlan bilgilerinde değişiklik yapıp inceleme için tekrar gönderebilirsin."}
-              {" "}Onaylanana kadar mevcut yayın bilgileri korunabilir.
+                : "İlan bilgilerini güncelleyip yeniden inceleme için gönderebilirsin."}
             </p>
           </div>
 
@@ -47,11 +51,17 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
           <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
             <div>
               <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-slate-50">
-                <img
-                  src={listing.images?.[0]}
-                  alt=""
-                  className="aspect-square w-full object-cover"
-                />
+                {images[0] ? (
+                  <img
+                    src={images[0]}
+                    alt=""
+                    className="aspect-square w-full object-cover"
+                  />
+                ) : (
+                  <div className="grid aspect-square w-full place-items-center text-slate-300">
+                    <Upload size={28} />
+                  </div>
+                )}
               </div>
 
               <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">
@@ -60,7 +70,7 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
 
               <div className="mt-3 grid grid-cols-5 gap-2">
                 {[0, 1, 2, 3, 4].map((slot) => {
-                  const image = listing.images?.[slot];
+                  const image = images[slot];
 
                   return (
                     <div
@@ -90,7 +100,7 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
                   </span>
 
                   <select
-                    defaultValue={listing.type}
+                    defaultValue={listing.type || "Satıyorum"}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
                   >
                     <option>Satıyorum</option>
@@ -106,7 +116,7 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
                   </span>
 
                   <select
-                    defaultValue={listing.category}
+                    defaultValue={listing.category || "Canlı"}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
                   >
                     <option>Canlı</option>
@@ -126,7 +136,7 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
                 </span>
 
                 <input
-                  defaultValue={listing.title}
+                  defaultValue={listing.title || ""}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
                 />
               </label>
@@ -138,7 +148,7 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
 
                 <textarea
                   rows={5}
-                  defaultValue={listing.description}
+                  defaultValue={listing.description || ""}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 outline-none"
                 />
               </label>
@@ -150,7 +160,7 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
                   </span>
 
                   <input
-                    defaultValue={listing.price}
+                    defaultValue={listing.price || ""}
                     placeholder="Örn. 750 TL, Takas, Teklif ver"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
                   />
@@ -162,7 +172,7 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
                   </span>
 
                   <input
-                    defaultValue={`${listing.city} / ${listing.district}`}
+                    defaultValue={`${listing.city || ""} / ${listing.district || ""}`}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
                   />
                 </label>
@@ -209,23 +219,27 @@ function EditListingModal({ listing, mode = "edit", onClose }) {
 
 function ListingManageCard({
   item,
-  variant = "active",
+  variant,
   onOpen,
   onEdit,
   onRemove,
-  onPromote,
-  onDelete,
-  onUnsave
+  onPromote
 }) {
-  const dateLabel = item.date?.split("-").reverse().join(".");
+  const images = Array.isArray(item.images) ? item.images : [];
 
   return (
     <article className="grid gap-4 rounded-[28px] border border-slate-200 bg-white p-3 sm:grid-cols-[112px_1fr]">
-      <img
-        src={item.images?.[0]}
-        alt=""
-        className="h-28 w-28 rounded-2xl object-cover"
-      />
+      {images[0] ? (
+        <img
+          src={images[0]}
+          alt=""
+          className="h-28 w-28 rounded-2xl object-cover"
+        />
+      ) : (
+        <div className="grid h-28 w-28 place-items-center rounded-2xl bg-slate-50 text-slate-300">
+          <Upload size={22} />
+        </div>
+      )}
 
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -248,11 +262,11 @@ function ListingManageCard({
           )}
 
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
-            {item.type}
+            {item.type || "İlan"}
           </span>
 
           <span className="text-xs font-black text-slate-500">
-            {dateLabel}
+            {safeDate(item.date)}
           </span>
         </div>
 
@@ -307,7 +321,6 @@ function ListingManageCard({
               </button>
 
               <button
-                onClick={() => onDelete(item)}
                 className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100"
               >
                 <Trash2 size={14} /> Komple sil
@@ -317,7 +330,6 @@ function ListingManageCard({
 
           {variant === "saved" && (
             <button
-              onClick={() => onUnsave(item)}
               className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"
             >
               <BookmarkX size={14} /> Kaydedilenlerden kaldır
@@ -339,7 +351,7 @@ function EmptyState({ title, text }) {
 }
 
 export default function MyListingsPage({
-  listings,
+  listings = [],
   onOpen,
   onRemove,
   onPromote
@@ -348,34 +360,32 @@ export default function MyListingsPage({
   const [editingListing, setEditingListing] = useState(null);
   const [editingMode, setEditingMode] = useState("edit");
 
-  const expiredListings = useMemo(() => {
-    return listings.slice(0, 2).map((item, index) => ({
-      ...item,
-      id: "expired-" + item.id,
-      date: index === 0 ? "2026-03-18" : "2026-03-05"
-    }));
-  }, [listings]);
+  const activeListings = Array.isArray(listings) ? listings : [];
 
-  const savedListings = useMemo(() => {
-    return listings.slice(-2).map((item) => ({
-      ...item,
-      id: "saved-" + item.id
-    }));
-  }, [listings]);
+  const expiredListings = activeListings.slice(0, 2).map((item, index) => ({
+    ...item,
+    id: "expired-" + item.id,
+    date: index === 0 ? "2026-03-18" : "2026-03-05"
+  }));
 
-  function openEditor(item, mode) {
-    setEditingMode(mode);
-    setEditingListing(item);
-  }
+  const savedListings = activeListings.slice(-2).map((item) => ({
+    ...item,
+    id: "saved-" + item.id
+  }));
 
   const tabs = [
-    ["active", "Yayındaki ilanlarım", listings.length],
+    ["active", "Yayındaki ilanlarım", activeListings.length],
     ["expired", "Süresi dolmuş ilanlar", expiredListings.length],
     ["saved", "Kaydettiğim ilanlar", savedListings.length]
   ];
 
   const currentList =
-    tab === "expired" ? expiredListings : tab === "saved" ? savedListings : listings;
+    tab === "expired" ? expiredListings : tab === "saved" ? savedListings : activeListings;
+
+  function openEditor(item, mode) {
+    setEditingMode(mode);
+    setEditingListing(item);
+  }
 
   return (
     <div className="mx-auto max-w-5xl p-5">
@@ -418,8 +428,6 @@ export default function MyListingsPage({
               onEdit={openEditor}
               onRemove={onRemove}
               onPromote={onPromote}
-              onDelete={() => {}}
-              onUnsave={() => {}}
             />
           ))
         ) : tab === "active" ? (

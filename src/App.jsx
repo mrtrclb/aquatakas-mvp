@@ -458,18 +458,20 @@ const currentUser = users[1];
   />
 )}
 
-{!memberPage && !selectedListing && !viewUser && (
-  <ListingFeed
-    listings={filteredListings}
-    onOpen={openListing}
+{!memberPage && !selectedListing && viewUser && (
+  <UserListingsPage
+    user={viewUser}
+    onBack={() => setViewUser(null)}
+    onOpen={(item) => {
+      setViewUser(null);
+      openListing(item);
+    }}
     onProfile={setProfileUser}
     users={users}
-    featuredListingIds={featuredListingIds}
-    adPool={adPool}
-    priceLabel={priceLabel}
+    listings={listings}
     formatDate={formatDate}
+    priceLabel={priceLabel}
     UserName={UserName}
-    FeedAdCard={FeedAdCard}
   />
 )}
 

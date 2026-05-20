@@ -4,8 +4,7 @@ import {
   Phone,
   ShieldCheck,
   X,
-  Smartphone,
-  KeyRound
+  Smartphone
 } from "lucide-react";
 
 function VerificationRow({ icon, title, value, verified, onClick }) {
@@ -13,10 +12,11 @@ function VerificationRow({ icon, title, value, verified, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="mb-2 flex w-full items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 text-left text-sm transition hover:bg-slate-100"
+      className="flex w-full items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 text-left text-sm transition hover:bg-slate-100"
     >
       <div className="flex items-center gap-2 text-slate-700">
         {icon}
+
         <div>
           <div className="font-black">{title}</div>
           <div className="text-xs text-slate-500">{value}</div>
@@ -37,8 +37,9 @@ function VerificationRow({ icon, title, value, verified, onClick }) {
 
 function SocialInput({ icon, placeholder, defaultValue = "" }) {
   return (
-    <label className="mb-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+    <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
       <span className="w-6 text-xs font-black text-slate-400">{icon}</span>
+
       <input
         defaultValue={defaultValue}
         placeholder={placeholder}
@@ -59,6 +60,7 @@ function VerificationModal({ type, onClose }) {
             <h3 className="text-xl font-black">
               {isEmail ? "E-posta doğrulama" : "Telefon doğrulama"}
             </h3>
+
             <p className="mt-1 text-sm leading-6 text-slate-500">
               {isEmail
                 ? "E-posta adresine gönderilen 6 haneli kodu girerek hesabını doğrulayabilirsin."
@@ -127,6 +129,7 @@ function TwoFactorModal({ onClose }) {
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
           <div>
             <h3 className="text-xl font-black">2FA kurulumu</h3>
+
             <p className="mt-1 text-sm leading-6 text-slate-500">
               Bir doğrulama uygulaması kullanarak hesabına ekstra güvenlik katmanı ekle.
             </p>
@@ -182,7 +185,10 @@ function TwoFactorModal({ onClose }) {
             </ol>
 
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <div className="text-xs font-black text-slate-500">Manuel kurulum anahtarı</div>
+              <div className="text-xs font-black text-slate-500">
+                Manuel kurulum anahtarı
+              </div>
+
               <div className="mt-1 rounded-xl bg-white px-3 py-2 font-mono text-xs font-black text-slate-700 ring-1 ring-slate-200">
                 HOBI-CIDEN-2FA-DEMO-2026
               </div>
@@ -227,6 +233,7 @@ export default function AccountPage({ user }) {
     <div className="mx-auto max-w-5xl p-5">
       <div className="mb-5 border-b border-slate-200 pb-4">
         <h2 className="text-2xl font-black tracking-tight">Hesabım</h2>
+
         <p className="mt-1 text-sm text-slate-500">
           Profil bilgilerini, doğrulama durumunu ve sosyal hesaplarını yönet.
         </p>
@@ -262,7 +269,10 @@ export default function AccountPage({ user }) {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label>
-                <span className="mb-1 block text-xs font-black text-slate-500">Kullanıcı adı</span>
+                <span className="mb-1 block text-xs font-black text-slate-500">
+                  Kullanıcı adı
+                </span>
+
                 <input
                   defaultValue={user.username}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none"
@@ -270,7 +280,10 @@ export default function AccountPage({ user }) {
               </label>
 
               <label>
-                <span className="mb-1 block text-xs font-black text-slate-500">Şehir</span>
+                <span className="mb-1 block text-xs font-black text-slate-500">
+                  Şehir
+                </span>
+
                 <input
                   defaultValue={user.city}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none"
@@ -278,7 +291,10 @@ export default function AccountPage({ user }) {
               </label>
 
               <label className="sm:col-span-2">
-                <span className="mb-1 block text-xs font-black text-slate-500">Hakkında</span>
+                <span className="mb-1 block text-xs font-black text-slate-500">
+                  Hakkında
+                </span>
+
                 <textarea
                   rows={4}
                   defaultValue={user.bio}
@@ -292,63 +308,81 @@ export default function AccountPage({ user }) {
             </button>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[28px] border border-slate-200 bg-white p-4">
+          <div className="grid items-stretch gap-4 lg:grid-cols-2">
+            <div className="flex h-full flex-col rounded-[28px] border border-slate-200 bg-white p-4">
               <h3 className="mb-3 text-lg font-black">Doğrulama</h3>
 
-              <VerificationRow
-                icon={<Mail size={16} />}
-                title="E-posta adresi"
-                value="murat@example.com"
-                verified
-                onClick={() => setVerificationModal("email")}
-              />
+              <div className="grid flex-1 content-start gap-2">
+                <VerificationRow
+                  icon={<Mail size={16} />}
+                  title="E-posta adresi"
+                  value="murat@example.com"
+                  verified
+                  onClick={() => setVerificationModal("email")}
+                />
 
-              <VerificationRow
-                icon={<Phone size={16} />}
-                title="Telefon numarası"
-                value="05xx xxx xx xx"
-                verified
-                onClick={() => setVerificationModal("phone")}
-              />
+                <VerificationRow
+                  icon={<Phone size={16} />}
+                  title="Telefon numarası"
+                  value="05xx xxx xx xx"
+                  verified
+                  onClick={() => setVerificationModal("phone")}
+                />
 
-              <button
-                type="button"
-                onClick={() => setTwoFactorOpen(true)}
-                className="mt-3 w-full rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-left transition hover:bg-cyan-100"
-              >
-                <div className="flex items-start gap-2">
-                  <Smartphone size={17} className="mt-0.5 text-cyan-950" />
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-sm font-black text-slate-900">
-                        Doğrulama uygulaması ile 2FA
+                <button
+                  type="button"
+                  onClick={() => setTwoFactorOpen(true)}
+                  className="w-full rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-left transition hover:bg-cyan-100"
+                >
+                  <div className="flex items-start gap-2">
+                    <Smartphone size={17} className="mt-0.5 text-cyan-950" />
+
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-black text-slate-900">
+                          Doğrulama uygulaması ile 2FA
+                        </div>
+
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-200">
+                          Kapalı
+                        </span>
                       </div>
-                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-200">
-                        Kapalı
-                      </span>
+
+                      <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                        Authenticator uygulaması kullanarak hesabına ikinci güvenlik adımı ekle.
+                      </p>
                     </div>
-
-                    <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                      Authenticator uygulaması kullanarak hesabına ikinci güvenlik adımı ekle.
-                    </p>
                   </div>
-                </div>
-              </button>
-
-              <div className="mt-3 flex items-start gap-2 rounded-2xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">
-                <KeyRound size={15} className="mt-0.5 shrink-0 text-slate-400" />
-                E-posta, telefon ve 2FA doğrulamaları ileride güven rozeti ve ilan güven puanı için kullanılabilir.
+                </button>
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-slate-200 bg-white p-4">
+            <div className="flex h-full flex-col rounded-[28px] border border-slate-200 bg-white p-4">
               <h3 className="mb-3 text-lg font-black">Sosyal hesaplar</h3>
-              <SocialInput icon="IG" placeholder="Instagram kullanıcı adı" defaultValue={user.socials?.instagram || ""} />
-              <SocialInput icon="FB" placeholder="Facebook profil linki" defaultValue={user.socials?.facebook || ""} />
-              <SocialInput icon="X" placeholder="Twitter / X kullanıcı adı" defaultValue={user.socials?.x || ""} />
-              <SocialInput icon="WEB" placeholder="Web sitesi" />
-              <SocialInput icon="YT" placeholder="YouTube kanalı" />
+
+              <div className="grid flex-1 content-start gap-2">
+                <SocialInput
+                  icon="IG"
+                  placeholder="Instagram kullanıcı adı"
+                  defaultValue={user.socials?.instagram || ""}
+                />
+
+                <SocialInput
+                  icon="FB"
+                  placeholder="Facebook profil linki"
+                  defaultValue={user.socials?.facebook || ""}
+                />
+
+                <SocialInput
+                  icon="X"
+                  placeholder="Twitter / X kullanıcı adı"
+                  defaultValue={user.socials?.x || ""}
+                />
+
+                <SocialInput icon="WEB" placeholder="Web sitesi" />
+
+                <SocialInput icon="YT" placeholder="YouTube kanalı" />
+              </div>
             </div>
           </div>
         </div>

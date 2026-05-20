@@ -444,7 +444,10 @@ const currentUser = users[1];
 <UserListingsPage
   user={viewUser}
   onBack={() => setViewUser(null)}
-  onOpen={openListing}
+  onOpen={(item) => {
+    setViewUser(null);
+    openListing(item);
+  }}
   onProfile={setProfileUser}
   users={users}
   listings={listings}

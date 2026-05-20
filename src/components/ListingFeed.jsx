@@ -1,10 +1,5 @@
 import React, { useState } from "react";
-import {
-  MapPin,
-  CalendarDays,
-  Pin,
-  Play
-} from "lucide-react";
+import { MapPin, CalendarDays, Pin, Play } from "lucide-react";
 
 export default function ListingFeed({
   listings,
@@ -20,17 +15,18 @@ export default function ListingFeed({
 }) {
   const [visibleCount, setVisibleCount] = useState(8);
   const visibleListings = listings.slice(0, visibleCount);
-  const feedItems = [];
 
-  visibleListings.forEach((item, index) => {
-    feedItems.push({ kind: "listing", item });
+  const feedItems = visibleListings.flatMap((item, index) => {
+    const items = [{ kind: "listing", item }];
 
     if ((index + 1) % 5 === 0) {
-      feedItems.push({
+      items.push({
         kind: "ad",
         ad: adPool[Math.floor(index / 5) % adPool.length]
       });
     }
+
+    return items;
   });
 
   return (
@@ -119,7 +115,7 @@ export default function ListingFeed({
         );
       })}
 
-      {visibleCount < listings.length && (
+      {visibleCount < listings.length ? (
         <div className="border-b border-slate-200 p-5">
           <button
             onClick={() => setVisibleCount((count) => count + 8)}
@@ -128,7 +124,7 @@ export default function ListingFeed({
             Daha fazla göster
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

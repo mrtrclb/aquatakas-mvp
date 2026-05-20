@@ -30,11 +30,6 @@ import {
   Hourglass,
   BarChart3
 } from "lucide-react";
-import MessagesPage from "./components/MessagesPage";
-import UserListingsPage from "./components/UserListingsPage";
-import ListingFeed from "./components/ListingFeed";
-import AccountPage from "./components/AccountPage";
-import MyListingsPage from "./components/MyListingsPage";
 
 const locations = {
   Gaziantep: { Şehitkamil: ["Batıkent", "Emek", "Merveşehir"], Şahinbey: ["Karataş", "Güneykent", "Binevler"] },
@@ -377,50 +372,16 @@ const currentUser = users[1];
             </div>
           </button>
 
-       <div className="flex items-center gap-2">
-  {isMember && (
-    <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 md:flex">
-      {[
-        ["home", "Ana sayfa"],
-        ["account", "Hesabım"],
-        ["listings", "İlanlarım"],
-        ["messages", "Mesajlarım"],
-        ["ads", "Reklamlarım"]
-      ].map(([key, label]) => (
-        <button
-          key={key}
-          onClick={() => {
-            if (key === "home") {
-              setMemberPage(null);
-              setSelectedListing(null);
-              setViewUser(null);
-              setProfileUser(null);
-              setMenuOpen(false);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-              return;
-            }
-
-            setMemberPage(key);
-            setSelectedListing(null);
-            setViewUser(null);
-            setProfileUser(null);
-            setMenuOpen(false);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className={
-            "rounded-full px-3 py-1.5 text-xs font-black " +
-            ((key === "home" && !memberPage && !selectedListing && !viewUser)
-              ? "bg-cyan-950 text-white"
-              : memberPage === key
-              ? "bg-cyan-950 text-white"
-              : "text-slate-600 hover:bg-white")
-          }
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  )}
+          <div className="flex items-center gap-2">
+            {isMember && (
+              <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 md:flex">
+                {[["account", "Hesabım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
+                  <button key={key} onClick={() => { setMemberPage(key); setSelectedListing(null); setViewUser(null); }} className={"rounded-full px-3 py-1.5 text-xs font-black " + (memberPage === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             <button onClick={() => {
               if (isMember) {
                 setIsMember(false);
@@ -441,7 +402,7 @@ const currentUser = users[1];
         </div>
       </header>
 
-     <main className={"mx-auto grid max-w-7xl px-4 " + (memberPage || viewUser ? "lg:grid-cols-[1fr]" : selectedListing ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
+      <main className={"mx-auto grid max-w-7xl px-4 " + ((accountMode || userListingsMode) ? "lg:grid-cols-[1fr]" : detailMode ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
                 {!accountMode && !userListingsMode && (
           <aside className="h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:h-[calc(100vh-72px)] lg:overflow-auto">
             <div className="mb-4 flex items-center justify-between">
@@ -469,67 +430,31 @@ const currentUser = users[1];
           </aside>
         )}
 
-       <section className={"min-w-0 bg-white " + (memberPage || viewUser ? "border-x border-slate-200" : "border-r border-slate-200")}>
-  {memberPage === "account" ? (
-    <AccountPage user={currentUser} />
-  ) : memberPage === "listings" ? (
-    <MyListingsPage
-      listings={listings.filter((item) => item.userId === 1)}
-      onOpen={openListing}
-      onRemove={setRemoveListing}
-      onPromote={setPromoteListing}
-    />
-  ) : memberPage === "messages" ? (
-    <MessagesPage />
-  ) : memberPage === "ads" ? (
-    <AdsManagerPage />
-  ) : selectedListing ? (
-    <ListingDetail
-      item={selectedListing}
-      user={users[selectedListing.userId]}
-      activeImage={activeImage}
-      setActiveImage={setActiveImage}
-      isMember={isMember}
-      onBack={() => setSelectedListing(null)}
-      onProfile={setProfileUser}
-      menuOpen={menuOpen}
-      setMenuOpen={setMenuOpen}
-      onReport={() => setReportOpen(true)}
-      onAuth={() => {
-        setAuthMode("login");
-        setAuthOpen(true);
-      }}
-    />
-  ) : viewUser ? (
-    <UserListingsPage
-      user={viewUser}
-      onBack={() => setViewUser(null)}
-      onOpen={(item) => {
-        setViewUser(null);
-        openListing(item);
-      }}
-      onProfile={setProfileUser}
-      users={users}
-      listings={listings}
-      formatDate={formatDate}
-      priceLabel={priceLabel}
-      UserName={UserName}
-    />
-  ) : (
-    <ListingFeed
-      listings={filteredListings}
-      onOpen={openListing}
-      onProfile={setProfileUser}
-      users={users}
-      featuredListingIds={featuredListingIds}
-      adPool={adPool}
-      priceLabel={priceLabel}
-      formatDate={formatDate}
-      UserName={UserName}
-      FeedAdCard={FeedAdCard}
-    />
-  )}
-</section>
+        <section className={"min-w-0 bg-white " + (accountMode ? "border-x border-slate-200" : "border-r border-slate-200")}>
+          {memberPage === "account" && <AccountPage user={currentUser} />}
+          {memberPage === "listings" && <MyListingsPage listings={listings.filter((item) => item.userId === 1)} onOpen={openListing} onRemove={setRemoveListing} onPromote={setPromoteListing} />}
+          {memberPage === "messages" && <MessagesPage />}
+          {memberPage === "ads" && <AdsManagerPage />}
+          {!memberPage && selectedListing && (
+            <ListingDetail item={selectedListing} user={users[selectedListing.userId]} activeImage={activeImage} setActiveImage={setActiveImage} isMember={isMember} onBack={() => setSelectedListing(null)} onProfile={setProfileUser} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onReport={() => setReportOpen(true)} onAuth={() => { setAuthMode("login"); setAuthOpen(true); }} />
+          )}
+          {!memberPage && !selectedListing && viewUser && (
+  <UserListingsPage
+    user={viewUser}
+    onBack={() => setViewUser(null)}
+    onOpen={openListing}
+    onProfile={setProfileUser}
+  />
+)}
+
+{!memberPage && !selectedListing && !viewUser && (
+  <ListingFeed
+    listings={filteredListings}
+    onOpen={openListing}
+    onProfile={setProfileUser}
+  />
+)}
+        </section>
 
         {!detailMode && !accountMode && !userListingsMode && <RightSidebar />}
       </main>
@@ -556,7 +481,87 @@ const currentUser = users[1];
   );
 }
 
+function ListingFeed({ listings, onOpen, onProfile }) {
+  const [visibleCount, setVisibleCount] = useState(8);
+  const visibleListings = listings.slice(0, visibleCount);
+  const feedItems = [];
 
+  visibleListings.forEach((item, index) => {
+    feedItems.push({ kind: "listing", item });
+    if ((index + 1) % 5 === 0) {
+      feedItems.push({ kind: "ad", ad: adPool[Math.floor(index / 5) % adPool.length] });
+    }
+  });
+
+  return (
+    <div>
+      {feedItems.map((entry, entryIndex) => {
+        if (entry.kind === "ad") {
+          return <FeedAdCard key={entry.ad.id + "-" + entryIndex} ad={entry.ad} />;
+        }
+
+        const item = entry.item;
+        const user = users[item.userId];
+        const isFeatured = featuredListingIds.includes(item.id);
+
+        return (
+          <article
+            key={item.id}
+            className={
+              "relative border-b border-slate-200 p-4 transition " +
+              (isFeatured ? "bg-cyan-50/60 hover:bg-cyan-50" : "bg-white hover:bg-slate-50")
+            }
+          >
+            {isFeatured && (
+              <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 shadow-sm">
+                <Pin size={12} fill="currentColor" /> Öne çıkan
+              </div>
+            )}
+
+            <button onClick={() => onOpen(item)} className="grid w-full grid-cols-[96px_1fr] gap-4 pr-0 text-left sm:pr-24">
+              <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-slate-100">
+                <img src={item.images[0]} alt="" className="h-full w-full object-cover" />
+                {item.youtube && (
+                  <span className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-red-600 text-white shadow">
+                    <Play size={14} fill="currentColor" />
+                  </span>
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-cyan-950 px-2.5 py-1 text-xs font-black text-white">{item.type}</span>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">{item.category}</span>
+                </div>
+                <h3 className="line-clamp-1 text-[17px] font-black leading-snug">{item.title}</h3>
+                <p className="mt-1 line-clamp-2 text-[15px] leading-relaxed text-slate-600">{item.description}</p>
+              </div>
+            </button>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-[112px] text-sm">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
+                <button onClick={() => onProfile(user)} className="font-black text-slate-700 hover:underline">
+                  <UserName user={user} />
+                </button>
+                <span className="flex items-center gap-1"><MapPin size={14} /> {item.city} / {item.district}</span>
+                <span className="flex items-center gap-1"><CalendarDays size={14} /> {formatDate(item.date)}</span>
+              </div>
+              <strong className="text-base font-black text-cyan-950">{priceLabel(item)}</strong>
+            </div>
+          </article>
+        );
+      })}
+
+      {visibleCount < listings.length && (
+        <div className="border-b border-slate-200 p-5">
+          <button onClick={() => setVisibleCount((count) => count + 8)} className="w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+            Daha fazla göster
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBack, onProfile, menuOpen, setMenuOpen, onReport, onAuth }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -976,8 +981,112 @@ function DetailBannerAd({ ad }) {
   );
 }
 
+function AccountPage({ user }) {
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <div className="mb-5 border-b border-slate-200 pb-4">
+        <h2 className="text-2xl font-black tracking-tight">Hesabım</h2>
+        <p className="mt-1 text-sm text-slate-500">Profil bilgilerini, doğrulama durumunu ve sosyal hesaplarını yönet.</p>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-4">
+          <div className="grid place-items-center rounded-[24px] bg-slate-50 p-5 text-center">
+            <div className="grid h-24 w-24 place-items-center rounded-full bg-cyan-950 text-2xl font-black text-white">HH</div>
+            <button className="mt-4 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">Profil resmi ekle</button>
+          </div>
+          <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-900">
+            <div className="mb-1 flex items-center gap-2 font-black"><ShieldCheck size={17} /> Güven profili</div>
+            Telefon ve e-posta doğrulaması tamamlandığında kullanıcı adının yanında mavi tik görünür.
+          </div>
+          <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100"><Trash2 size={16} /> Hesabımı sil</button>
+        </div>
+        <div className="grid gap-4">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-4">
+            <h3 className="mb-3 text-lg font-black">Profil bilgileri</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label><span className="mb-1 block text-xs font-black text-slate-500">Kullanıcı adı</span><input defaultValue={user.username} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" /></label>
+              <label><span className="mb-1 block text-xs font-black text-slate-500">Şehir</span><input defaultValue={user.city} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" /></label>
+              <label className="sm:col-span-2"><span className="mb-1 block text-xs font-black text-slate-500">Hakkında</span><textarea rows={4} defaultValue={user.bio} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" /></label>
+            </div>
+            <button className="mt-4 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white">Bilgileri kaydet</button>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-[28px] border border-slate-200 bg-white p-4">
+              <h3 className="mb-3 text-lg font-black">Doğrulama</h3>
+              <VerificationRow icon={<Mail size={16} />} title="E-posta adresi" value="murat@example.com" verified />
+              <VerificationRow icon={<Phone size={16} />} title="Telefon numarası" value="05xx xxx xx xx" verified />
+            </div>
+            <div className="rounded-[28px] border border-slate-200 bg-white p-4">
+              <h3 className="mb-3 text-lg font-black">Sosyal hesaplar</h3>
+              <SocialInput icon="IG" placeholder="Instagram kullanıcı adı" />
+              <SocialInput icon="FB" placeholder="Facebook profil linki" />
+              <SocialInput icon="X" placeholder="Twitter / X kullanıcı adı" />
+              <SocialInput icon="WEB" placeholder="Web sitesi" />
+              <SocialInput icon="YT" placeholder="YouTube kanalı" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
+function VerificationRow({ icon, title, value, verified }) {
+  return (
+    <div className="mb-2 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 text-sm">
+      <div className="flex items-center gap-2 text-slate-700">{icon}<div><div className="font-black">{title}</div><div className="text-xs text-slate-500">{value}</div></div></div>
+      <span className={"rounded-full px-2.5 py-1 text-xs font-black " + (verified ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-500")}>{verified ? "Doğrulandı" : "Bekliyor"}</span>
+    </div>
+  );
+}
 
+function SocialInput({ icon, placeholder }) {
+  return (
+    <label className="mb-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+      <span className="w-6 text-xs font-black text-slate-400">{icon}</span>
+      <input placeholder={placeholder} className="w-full bg-transparent text-sm outline-none" />
+    </label>
+  );
+}
+
+function MyListingsPage({ listings, onOpen, onRemove, onPromote }) {
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <div className="mb-5 border-b border-slate-200 pb-4">
+        <h2 className="text-2xl font-black tracking-tight">İlanlarım</h2>
+        <p className="mt-1 text-sm text-slate-500">Yayımladığın ilanları görüntüle, düzenle, öne çıkar veya yayından kaldır.İlanlar 1 ay sonunda tamamen silinir.</p>
+      </div>
+      <div className="grid gap-3">
+        {listings.map((item) => {
+          const isFeatured = featuredListingIds.includes(item.id);
+          return (
+            <div key={item.id} className={"grid gap-4 rounded-[26px] border p-3 sm:grid-cols-[96px_1fr] " + (isFeatured ? "border-cyan-200 bg-cyan-50/60" : "border-slate-200 bg-white")}>
+              <button onClick={() => onOpen(item)} className="relative h-24 w-24 overflow-hidden rounded-2xl bg-slate-100">
+                <img src={item.images[0]} alt="" className="h-full w-full object-cover" />
+                {isFeatured && <span className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-amber-500 text-white"><Pin size={13} fill="currentColor" /></span>}
+              </button>
+              <div className="min-w-0">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">Yayında</span>
+                  {isFeatured && <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-800"><Pin size={12} className="mr-1 inline" fill="currentColor" /> Öne çıkan</span>}
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">{item.type}</span>
+                  <span className="text-xs font-bold text-slate-500">{formatDate(item.date)}</span>
+                </div>
+                <h3 className="line-clamp-1 text-lg font-black">{item.title}</h3>
+                <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-600">{item.description}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button onClick={() => onOpen(item)} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><Edit3 size={13} className="mr-1 inline" /> Görüntüle / düzenle</button>
+                  <button onClick={() => onPromote(item)} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800 hover:bg-amber-100"><Pin size={13} className="mr-1 inline" fill="currentColor" /> Öne çıkar</button>
+                  <button onClick={() => onRemove(item)} className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100">Yayından kaldır</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function AdsManagerPage() {
   const [statsAd, setStatsAd] = useState(null);
@@ -1194,8 +1303,438 @@ function AdStatsModal({ ad, onClose }) {
   );
 }
 
+function MessagesPage() {
+  const [tab, setTab] = useState("active");
+  const [selectedConversation, setSelectedConversation] = useState(null);
 
+  function UserAvatarBubble({ user, size = "md" }) {
+    const username = user?.user || user?.from || user?.name || "Kullanıcı";
+    const initial = username.replace("@", "").trim().charAt(0).toUpperCase() || "H";
 
+    const sizeClass =
+      size === "lg"
+        ? "h-12 w-12 text-sm"
+        : size === "sm"
+        ? "h-8 w-8 text-xs"
+        : "h-10 w-10 text-xs";
+
+    return (
+      <div
+        className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-cyan-950 font-black text-white shadow-sm`}
+        title={username}
+      >
+        {initial}
+      </div>
+    );
+  }
+
+  const conversations = [
+    {
+      id: 1,
+      user: "@kadikoytank",
+      title: "160x40x45h akvaryum ve sehpa",
+      last: "Merhaba, ölçüler net 160x40x45 mi?",
+      date: "18.05.2026",
+      unread: true,
+      deleted: false,
+      messages: [
+        { from: "@kadikoytank", body: "Merhaba, ölçüler net 160x40x45 mi?", time: "10:24" },
+        { from: "sen", body: "Evet net ölçü bu, sehpa da dahil.", time: "10:31" }
+      ]
+    },
+    {
+      id: 2,
+      user: "@nanoankara",
+      title: "Java fern budama paketi",
+      last: "Takas için karides düşünebilirim.",
+      date: "17.05.2026",
+      unread: false,
+      deleted: false,
+      messages: [
+        { from: "sen", body: "Moss paketi hâlâ duruyor mu?", time: "18:12" },
+        { from: "@nanoankara", body: "Duruyor. Takas için karides düşünebilirim.", time: "18:20" }
+      ]
+    },
+    {
+      id: 3,
+      user: "@izmirfiltre",
+      title: "Oase dış filtre",
+      last: "Hortum aparatı duruyor mu?",
+      date: "16.05.2026",
+      unread: false,
+      deleted: false,
+      messages: [
+        { from: "@izmirfiltre", body: "Hortum aparatı duruyor mu?", time: "14:03" },
+        { from: "sen", body: "Duruyor ama medya dahil değil.", time: "14:18" }
+      ]
+    },
+    {
+      id: 4,
+      user: "@eskitank",
+      title: "Bitkili tank dekorları",
+      last: "Tamamdır, ben vazgeçtim teşekkürler.",
+      date: "12.05.2026",
+      unread: false,
+      deleted: true,
+      messages: [
+        { from: "@eskitank", body: "Dekorların tamamı duruyor mu?", time: "09:10" },
+        { from: "sen", body: "Evet duruyor.", time: "09:18" },
+        { from: "@eskitank", body: "Tamamdır, ben vazgeçtim teşekkürler.", time: "09:30" }
+      ]
+    }
+  ];
+
+  const visibleConversations = conversations.filter((message) => {
+    if (tab === "deleted") {
+      return message.deleted;
+    }
+
+    return !message.deleted;
+  });
+
+  let activeConversation = visibleConversations[0] || null;
+
+  if (
+    selectedConversation &&
+    visibleConversations.some((message) => message.id === selectedConversation.id)
+  ) {
+    activeConversation = selectedConversation;
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <div className="mb-5 border-b border-slate-200 pb-4">
+        <h2 className="text-2xl font-black tracking-tight">Mesajlarım</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          İlanlarla ilgili konuşmaları görüntüle, bildir, engelle veya sil.
+        </p>
+      </div>
+
+      <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1">
+        <button
+          onClick={() => {
+            setTab("active");
+            setSelectedConversation(null);
+          }}
+          className={
+            "rounded-full px-4 py-2 text-xs font-black " +
+            (tab === "active" ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")
+          }
+        >
+          Gelen kutusu
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("deleted");
+            setSelectedConversation(null);
+          }}
+          className={
+            "rounded-full px-4 py-2 text-xs font-black " +
+            (tab === "deleted" ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")
+          }
+        >
+          Silinmiş mesajlar
+        </button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white">
+          {visibleConversations.map((message) => (
+            <button
+              key={message.id}
+              onClick={() => setSelectedConversation(message)}
+              className={
+                "block w-full border-b border-slate-100 p-4 text-left last:border-b-0 hover:bg-slate-50 " +
+                (activeConversation?.id === message.id ? "bg-slate-50" : "")
+              }
+            >
+              <div className="flex gap-3">
+                <UserAvatarBubble user={message} />
+
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className="truncate font-black text-slate-900">{message.user}</span>
+
+                    {message.unread && (
+                      <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[11px] font-black text-white">
+                        Yeni
+                      </span>
+                    )}
+
+                    {message.deleted && (
+                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-black text-red-700">
+                        Silindi
+                      </span>
+                    )}
+
+                    <span className="text-xs text-slate-500">{message.date}</span>
+                  </div>
+
+                  <div className="line-clamp-1 text-sm font-black text-slate-700">
+                    {message.title}
+                  </div>
+
+                  <p className="mt-1 line-clamp-1 text-sm text-slate-500">{message.last}</p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="min-h-[360px] rounded-[28px] border border-slate-200 bg-white p-4">
+          {activeConversation ? (
+            <div className="flex h-full flex-col">
+              <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <UserAvatarBubble user={activeConversation} size="lg" />
+
+                  <div className="min-w-0">
+                    <div className="text-sm font-black text-slate-900">
+                      {activeConversation.user}
+                    </div>
+
+                    <div className="line-clamp-1 text-base font-black text-slate-800">
+                      {activeConversation.title}
+                    </div>
+
+                    <div className="text-xs text-slate-500">{activeConversation.date}</div>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                  <button className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700">
+                    <Flag size={13} className="mr-1 inline" /> Şikayet et
+                  </button>
+
+                  <button className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700">
+                    Engelle
+                  </button>
+
+                  <button className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">
+                    <Trash2 size={13} className="mr-1 inline" /> Sil
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid flex-1 content-start gap-3">
+                {activeConversation.messages.map((item, index) => {
+                  const mine = item.from === "sen";
+
+                  return (
+                    <div
+                      key={index}
+                      className={
+                        "max-w-[78%] rounded-2xl px-3 py-2 text-sm " +
+                        (mine ? "ml-auto bg-cyan-950 text-white" : "bg-slate-100 text-slate-700")
+                      }
+                    >
+                      <div className="mb-1 text-[11px] font-black opacity-70">
+                        {item.from} · {item.time}
+                      </div>
+
+                      <div>{item.body}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {tab !== "deleted" ? (
+                <div className="mt-4 flex gap-2 border-t border-slate-100 pt-3">
+                  <input
+                    className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
+                    placeholder="Mesaj yaz..."
+                  />
+
+                  <button className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white">
+                    Gönder
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">
+                  Bu konuşma silinmiş mesajlar içinde görünüyor. İstersen ileride “geri al”
+                  aksiyonu da eklenebilir.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid h-full place-items-center rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500">
+              <div>
+                <MessageCircle className="mx-auto mb-3 text-slate-300" size={36} />
+                Bir konuşma seçerek mesajları burada görüntüleyebilirsin.
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+function UserListingsPage({ user, onBack, onOpen, onProfile }) {
+  const userId = Number(Object.keys(users).find((id) => users[id].username === user.username));
+  const userListings = listings.filter((item) => item.userId === userId);
+
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <button
+        onClick={onBack}
+        className="mb-4 flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-100"
+      >
+        <ArrowLeft size={17} /> İlan akışına dön
+      </button>
+
+      <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-gradient-to-br from-cyan-950 to-slate-900 p-5 text-white">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+                <UserRound size={30} />
+                {user.online && (
+                  <span
+                    title="Çevrimiçi"
+                    className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500"
+                  />
+                )}
+              </div>
+
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-black tracking-tight">{user.username}</h2>
+                  {user.verified && <VerifiedBadge />}
+                </div>
+
+                <p className="mt-1 text-sm text-cyan-50/80">
+                  {user.city} · {user.joined} üyesi · {user.online ? "Çevrimiçi" : "Son ziyaret: " + user.lastSeen}
+                </p>
+
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-cyan-50/90">
+                  {user.bio || "Bu kullanıcı henüz hakkında bilgisi eklememiş."}
+                </p>
+              </div>
+            </div>
+
+            <button className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50">
+              <MessageCircle size={16} /> Mesaj gönder
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 border-b border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-slate-950">{userListings.length}</div>
+            <div className="text-xs font-black text-slate-500">Yayındaki ilan</div>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-emerald-700">{user.reviewStats?.positive || 0}</div>
+            <div className="text-xs font-black text-slate-500">Olumlu değerlendirme</div>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-slate-950">{user.verified ? "Var" : "Yok"}</div>
+            <div className="text-xs font-black text-slate-500">Doğrulama durumu</div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+          <div>
+            <h3 className="text-lg font-black">{user.username} kullanıcısının ilanları</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Bu sayfada kullanıcının yayındaki ücretsiz ilanları listelenir.
+            </p>
+          </div>
+
+          <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+            İlanlar 30 gün yayında kalır
+          </div>
+        </div>
+
+        <div>
+          {userListings.map((item) => {
+            const isFeatured = featuredListingIds.includes(item.id);
+
+            return (
+              <article
+                key={item.id}
+                className={
+                  "relative border-b border-slate-200 p-4 transition last:border-b-0 " +
+                  (isFeatured ? "bg-cyan-50/60 hover:bg-cyan-50" : "bg-white hover:bg-slate-50")
+                }
+              >
+                {isFeatured && (
+                  <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 shadow-sm">
+                    <Pin size={12} fill="currentColor" /> Öne çıkan
+                  </div>
+                )}
+
+                <button
+                  onClick={() => onOpen(item)}
+                  className="grid w-full grid-cols-[96px_1fr] gap-4 pr-0 text-left sm:pr-24"
+                >
+                  <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-slate-100">
+                    <img src={item.images[0]} alt="" className="h-full w-full object-cover" />
+
+                    {item.youtube && (
+                      <span className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-red-600 text-white shadow">
+                        <Play size={14} fill="currentColor" />
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="mb-2 flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-cyan-950 px-2.5 py-1 text-xs font-black text-white">
+                        {item.type}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+                        {item.category}
+                      </span>
+                    </div>
+
+                    <h4 className="line-clamp-1 text-[17px] font-black leading-snug">{item.title}</h4>
+                    <p className="mt-1 line-clamp-2 text-[15px] leading-relaxed text-slate-600">
+                      {item.description}
+                    </p>
+                  </div>
+                </button>
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-[112px] text-sm">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
+                    <button onClick={() => onProfile(user)} className="font-black text-slate-700 hover:underline">
+                      <UserName user={user} />
+                    </button>
+
+                    <span className="flex items-center gap-1">
+                      <MapPin size={14} /> {item.city} / {item.district}
+                    </span>
+
+                    <span className="flex items-center gap-1">
+                      <CalendarDays size={14} /> {formatDate(item.date)}
+                    </span>
+                  </div>
+
+                  <strong className="text-base font-black text-cyan-950">{priceLabel(item)}</strong>
+                </div>
+              </article>
+            );
+          })}
+
+          {userListings.length === 0 && (
+            <div className="p-8 text-center">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+                <UserRound size={26} />
+              </div>
+              <h3 className="mt-3 text-lg font-black">Yayında ilan yok</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Bu kullanıcının şu anda yayında aktif ilanı bulunmuyor.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
 function ProfileModal({ user, onClose, onViewListings }) {
   const stats = user.reviewStats || { positive: 0, neutral: 0, negative: 0 };
   const totalReviews = stats.positive + stats.neutral + stats.negative;

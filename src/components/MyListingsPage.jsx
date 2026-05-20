@@ -1,18 +1,7 @@
 import React, { useState } from "react";
-import {
-  Edit3,
-  Pin,
-  Trash2,
-  Eye,
-  X,
-  Send,
-  RotateCcw,
-  BookmarkX,
-  Upload,
-  ImagePlus
-} from "lucide-react";
+import { Edit3, Pin, Trash2, Eye, X, Send } from "lucide-react";
 
-function safeDate(date) {
+function formatLocalDate(date) {
   if (!date || typeof date !== "string") return "";
   return date.split("-").reverse().join(".");
 }
@@ -20,7 +9,7 @@ function safeDate(date) {
 function EditListingModal({ listing, mode, onClose }) {
   if (!listing) return null;
 
-  const isExpired = mode === "republish";
+  const isRepublish = mode === "republish";
   const images = Array.isArray(listing.images) ? listing.images : [];
 
   return (
@@ -29,13 +18,10 @@ function EditListingModal({ listing, mode, onClose }) {
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
           <div>
             <h3 className="text-2xl font-black tracking-tight">
-              {isExpired ? "İlanı güncelle ve tekrar yayımla" : "İlanı düzenle"}
+              {isRepublish ? "İlanı güncelle ve tekrar yayımla" : "İlanı düzenle"}
             </h3>
-
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              {isExpired
-                ? "Süresi dolmuş ilanını güncelleyip yeniden inceleme için gönderebilirsin."
-                : "İlan bilgilerini güncelleyip yeniden inceleme için gönderebilirsin."}
+              İlan bilgilerini güncelleyip inceleme için gönderebilirsin. Canlı sürümde bu işlem moderasyon kuyruğuna düşer.
             </p>
           </div>
 
@@ -58,14 +44,14 @@ function EditListingModal({ listing, mode, onClose }) {
                     className="aspect-square w-full object-cover"
                   />
                 ) : (
-                  <div className="grid aspect-square w-full place-items-center text-slate-300">
-                    <Upload size={28} />
+                  <div className="grid aspect-square w-full place-items-center text-sm font-black text-slate-300">
+                    Görsel yok
                   </div>
                 )}
               </div>
 
-              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">
-                <ImagePlus size={16} /> Görselleri güncelle
+              <button className="mt-3 w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">
+                Görselleri güncelle
               </button>
 
               <div className="mt-3 grid grid-cols-5 gap-2">
@@ -75,20 +61,16 @@ function EditListingModal({ listing, mode, onClose }) {
                   return (
                     <div
                       key={slot}
-                      className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-300"
+                      className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-black text-slate-300"
                     >
                       {image ? (
                         <img src={image} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <Upload size={15} />
+                        slot + 1
                       )}
                     </div>
                   );
                 })}
-              </div>
-
-              <div className="mt-3 rounded-2xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
-                Görsel, fiyat, açıklama veya kategori değişiklikleri yeniden incelemeye gönderilir.
               </div>
             </div>
 
@@ -98,7 +80,6 @@ function EditListingModal({ listing, mode, onClose }) {
                   <span className="mb-1 block text-xs font-black text-slate-500">
                     İlan tipi
                   </span>
-
                   <select
                     defaultValue={listing.type || "Satıyorum"}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
@@ -114,7 +95,6 @@ function EditListingModal({ listing, mode, onClose }) {
                   <span className="mb-1 block text-xs font-black text-slate-500">
                     Kategori
                   </span>
-
                   <select
                     defaultValue={listing.category || "Canlı"}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
@@ -134,7 +114,6 @@ function EditListingModal({ listing, mode, onClose }) {
                 <span className="mb-1 block text-xs font-black text-slate-500">
                   İlan başlığı
                 </span>
-
                 <input
                   defaultValue={listing.title || ""}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
@@ -145,7 +124,6 @@ function EditListingModal({ listing, mode, onClose }) {
                 <span className="mb-1 block text-xs font-black text-slate-500">
                   Açıklama
                 </span>
-
                 <textarea
                   rows={5}
                   defaultValue={listing.description || ""}
@@ -158,7 +136,6 @@ function EditListingModal({ listing, mode, onClose }) {
                   <span className="mb-1 block text-xs font-black text-slate-500">
                     Fiyat / teklif
                   </span>
-
                   <input
                     defaultValue={listing.price || ""}
                     placeholder="Örn. 750 TL, Takas, Teklif ver"
@@ -170,7 +147,6 @@ function EditListingModal({ listing, mode, onClose }) {
                   <span className="mb-1 block text-xs font-black text-slate-500">
                     Konum
                   </span>
-
                   <input
                     defaultValue={`${listing.city || ""} / ${listing.district || ""}`}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
@@ -182,7 +158,6 @@ function EditListingModal({ listing, mode, onClose }) {
                 <span className="mb-1 block text-xs font-black text-slate-500">
                   Etiketler
                 </span>
-
                 <input
                   defaultValue={(listing.tags || []).join(", ")}
                   placeholder="Örn. kendi üretimim, yavru, gönderim yapılır"
@@ -191,7 +166,7 @@ function EditListingModal({ listing, mode, onClose }) {
               </label>
 
               <div className="rounded-2xl bg-cyan-50 p-3 text-xs leading-relaxed text-cyan-900">
-                Bu MVP akışında değişiklikler temsilidir. Canlı sürümde bu işlem moderasyon kuyruğuna düşer; onaylanınca yeni bilgiler yayına geçer.
+                Değişiklikler doğrudan yayına alınmaz; inceleme sonrası yeni bilgiler yayına geçer.
               </div>
 
               <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
@@ -217,14 +192,7 @@ function EditListingModal({ listing, mode, onClose }) {
   );
 }
 
-function ListingManageCard({
-  item,
-  variant,
-  onOpen,
-  onEdit,
-  onRemove,
-  onPromote
-}) {
+function ListingCard({ item, tab, onOpen, onEdit, onRemove, onPromote }) {
   const images = Array.isArray(item.images) ? item.images : [];
 
   return (
@@ -236,26 +204,26 @@ function ListingManageCard({
           className="h-28 w-28 rounded-2xl object-cover"
         />
       ) : (
-        <div className="grid h-28 w-28 place-items-center rounded-2xl bg-slate-50 text-slate-300">
-          <Upload size={22} />
+        <div className="grid h-28 w-28 place-items-center rounded-2xl bg-slate-50 text-xs font-black text-slate-300">
+          Görsel yok
         </div>
       )}
 
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          {variant === "active" && (
+          {tab === "active" && (
             <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
               Yayında
             </span>
           )}
 
-          {variant === "expired" && (
+          {tab === "expired" && (
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
               Süresi doldu
             </span>
           )}
 
-          {variant === "saved" && (
+          {tab === "saved" && (
             <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-800">
               Kaydedildi
             </span>
@@ -266,7 +234,7 @@ function ListingManageCard({
           </span>
 
           <span className="text-xs font-black text-slate-500">
-            {safeDate(item.date)}
+            {formatLocalDate(item.date)}
           </span>
         </div>
 
@@ -286,7 +254,7 @@ function ListingManageCard({
             <Eye size={14} /> Görüntüle
           </button>
 
-          {variant === "active" && (
+          {tab === "active" && (
             <>
               <button
                 onClick={() => onEdit(item, "edit")}
@@ -311,28 +279,28 @@ function ListingManageCard({
             </>
           )}
 
-          {variant === "expired" && (
+          {tab === "expired" && (
             <>
               <button
                 onClick={() => onEdit(item, "republish")}
                 className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-800 hover:bg-cyan-100"
               >
-                <RotateCcw size={14} /> Güncelle ve tekrar yayımla
+                Güncelle ve tekrar yayımla
               </button>
 
               <button
                 className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100"
               >
-                <Trash2 size={14} /> Komple sil
+                Komple sil
               </button>
             </>
           )}
 
-          {variant === "saved" && (
+          {tab === "saved" && (
             <button
               className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"
             >
-              <BookmarkX size={14} /> Kaydedilenlerden kaldır
+              Kaydedilenlerden kaldır
             </button>
           )}
         </div>
@@ -380,7 +348,11 @@ export default function MyListingsPage({
   ];
 
   const currentList =
-    tab === "expired" ? expiredListings : tab === "saved" ? savedListings : activeListings;
+    tab === "expired"
+      ? expiredListings
+      : tab === "saved"
+      ? savedListings
+      : activeListings;
 
   function openEditor(item, mode) {
     setEditingMode(mode);
@@ -391,7 +363,6 @@ export default function MyListingsPage({
     <div className="mx-auto max-w-5xl p-5">
       <div className="mb-5 border-b border-slate-200 pb-4">
         <h2 className="text-2xl font-black tracking-tight">İlanlarım</h2>
-
         <p className="mt-1 text-sm text-slate-500">
           Yayındaki, süresi dolmuş ve kaydettiğin ilanları buradan yönetebilirsin.
         </p>
@@ -420,10 +391,10 @@ export default function MyListingsPage({
       <div className="grid gap-3">
         {currentList.length > 0 ? (
           currentList.map((item) => (
-            <ListingManageCard
+            <ListingCard
               key={item.id}
               item={item}
-              variant={tab}
+              tab={tab}
               onOpen={onOpen}
               onEdit={openEditor}
               onRemove={onRemove}

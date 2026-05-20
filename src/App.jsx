@@ -458,18 +458,36 @@ const currentUser = users[1];
 />
 )}
 
-<ListingFeed
-  listings={filteredListings}
-  onOpen={openListing}
-  onProfile={setProfileUser}
-  users={users}
-  featuredListingIds={featuredListingIds}
-  adPool={adPool}
-  priceLabel={priceLabel}
-  formatDate={formatDate}
-  UserName={UserName}
-  FeedAdCard={FeedAdCard}
-/>
+{!memberPage && !selectedListing && viewUser && (
+  <UserListingsPage
+    user={viewUser}
+    onBack={() => setViewUser(null)}
+    onOpen={(item) => {
+      setViewUser(null);
+      openListing(item);
+    }}
+    onProfile={setProfileUser}
+    users={users}
+    listings={listings}
+    formatDate={formatDate}
+    priceLabel={priceLabel}
+    UserName={UserName}
+  />
+)}
+
+{!memberPage && !selectedListing && !viewUser && (
+  <ListingFeed
+    listings={filteredListings}
+    onOpen={openListing}
+    onProfile={setProfileUser}
+    users={users}
+    featuredListingIds={featuredListingIds}
+    adPool={adPool}
+    priceLabel={priceLabel}
+    formatDate={formatDate}
+    UserName={UserName}
+    FeedAdCard={FeedAdCard}
+  />
 )}
         </section>
 

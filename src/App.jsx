@@ -377,16 +377,50 @@ const currentUser = users[1];
             </div>
           </button>
 
-          <div className="flex items-center gap-2">
-            {isMember && (
-              <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 md:flex">
-                {[["account", "Hesabım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
-                  <button key={key} onClick={() => { setMemberPage(key); setSelectedListing(null); setViewUser(null); }} className={"rounded-full px-3 py-1.5 text-xs font-black " + (memberPage === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
+       <div className="flex items-center gap-2">
+  {isMember && (
+    <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 md:flex">
+      {[
+        ["home", "Ana sayfa"],
+        ["account", "Hesabım"],
+        ["listings", "İlanlarım"],
+        ["messages", "Mesajlarım"],
+        ["ads", "Reklamlarım"]
+      ].map(([key, label]) => (
+        <button
+          key={key}
+          onClick={() => {
+            if (key === "home") {
+              setMemberPage(null);
+              setSelectedListing(null);
+              setViewUser(null);
+              setProfileUser(null);
+              setMenuOpen(false);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              return;
+            }
+
+            setMemberPage(key);
+            setSelectedListing(null);
+            setViewUser(null);
+            setProfileUser(null);
+            setMenuOpen(false);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className={
+            "rounded-full px-3 py-1.5 text-xs font-black " +
+            ((key === "home" && !memberPage && !selectedListing && !viewUser)
+              ? "bg-cyan-950 text-white"
+              : memberPage === key
+              ? "bg-cyan-950 text-white"
+              : "text-slate-600 hover:bg-white")
+          }
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )}
             <button onClick={() => {
               if (isMember) {
                 setIsMember(false);
@@ -407,7 +441,7 @@ const currentUser = users[1];
         </div>
       </header>
 
-      <main className={"mx-auto grid max-w-7xl px-4 " + ((accountMode || userListingsMode) ? "lg:grid-cols-[1fr]" : detailMode ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
+     <main className={"mx-auto grid max-w-7xl px-4 " + (memberPage || viewUser ? "lg:grid-cols-[1fr]" : selectedListing ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
                 {!accountMode && !userListingsMode && (
           <aside className="h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:h-[calc(100vh-72px)] lg:overflow-auto">
             <div className="mb-4 flex items-center justify-between">

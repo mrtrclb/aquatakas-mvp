@@ -30,6 +30,10 @@ import {
   Hourglass,
   BarChart3
 } from "lucide-react";
+import AccountPage from "./components/AccountPage";
+import MessagesPage from "./components/MessagesPage";
+import UserListingsPage from "./components/UserListingsPage";
+import MyListingsPage from "./components/MyListingsPage";
 
 const locations = {
   Gaziantep: { Şehitkamil: ["Batıkent", "Emek", "Merveşehir"], Şahinbey: ["Karataş", "Güneykent", "Binevler"] },

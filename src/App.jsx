@@ -434,61 +434,65 @@ const currentUser = users[1];
         )}
 
         <section className={"min-w-0 bg-white " + (accountMode ? "border-x border-slate-200" : "border-r border-slate-200")}>
-          {memberPage === "account" && <AccountPage user={currentUser} />}
-          {memberPage === "listings" && <MyListingsPage listings={listings.filter((item) => item.userId === 1)} onOpen={openListing} onRemove={setRemoveListing} onPromote={setPromoteListing} />}
-          {memberPage === "messages" && <MessagesPage />}
-          {memberPage === "ads" && <AdsManagerPage />}
-          {!memberPage && selectedListing && (
-            <ListingDetail item={selectedListing} user={users[selectedListing.userId]} activeImage={activeImage} setActiveImage={setActiveImage} isMember={isMember} onBack={() => setSelectedListing(null)} onProfile={setProfileUser} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onReport={() => setReportOpen(true)} onAuth={() => { setAuthMode("login"); setAuthOpen(true); }} />
+                    {memberPage === "account" ? (
+            <AccountPage user={currentUser} />
+          ) : memberPage === "listings" ? (
+            <MyListingsPage
+              listings={listings.filter((item) => item.userId === 1)}
+              onOpen={openListing}
+              onRemove={setRemoveListing}
+              onPromote={setPromoteListing}
+            />
+          ) : memberPage === "messages" ? (
+            <MessagesPage />
+          ) : memberPage === "ads" ? (
+            <AdsManagerPage />
+          ) : selectedListing ? (
+            <ListingDetail
+              item={selectedListing}
+              user={users[selectedListing.userId]}
+              activeImage={activeImage}
+              setActiveImage={setActiveImage}
+              isMember={isMember}
+              onBack={() => setSelectedListing(null)}
+              onProfile={setProfileUser}
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
+              onReport={() => setReportOpen(true)}
+              onAuth={() => {
+                setAuthMode("login");
+                setAuthOpen(true);
+              }}
+            />
+          ) : viewUser ? (
+            <UserListingsPage
+              user={viewUser}
+              onBack={() => setViewUser(null)}
+              onOpen={(item) => {
+                setViewUser(null);
+                openListing(item);
+              }}
+              onProfile={setProfileUser}
+              users={users}
+              listings={listings}
+              formatDate={formatDate}
+              priceLabel={priceLabel}
+              UserName={UserName}
+            />
+          ) : (
+            <ListingFeed
+              listings={filteredListings}
+              onOpen={openListing}
+              onProfile={setProfileUser}
+              users={users}
+              featuredListingIds={featuredListingIds}
+              adPool={adPool}
+              priceLabel={priceLabel}
+              formatDate={formatDate}
+              UserName={UserName}
+              FeedAdCard={FeedAdCard}
+            />
           )}
-          {!memberPage && !selectedListing && viewUser && (
-  <UserListingsPage
-    user={viewUser}
-    onBack={() => setViewUser(null)}
-    onOpen={(item) => {
-      setViewUser(null);
-      openListing(item);
-    }}
-    onProfile={setProfileUser}
-    users={users}
-    listings={listings}
-    formatDate={formatDate}
-    priceLabel={priceLabel}
-    UserName={UserName}
-  />
-)}
-
-{!memberPage && !selectedListing && viewUser && (
-  <UserListingsPage
-    user={viewUser}
-    onBack={() => setViewUser(null)}
-    onOpen={(item) => {
-      setViewUser(null);
-      openListing(item);
-    }}
-    onProfile={setProfileUser}
-    users={users}
-    listings={listings}
-    formatDate={formatDate}
-    priceLabel={priceLabel}
-    UserName={UserName}
-  />
-)}
-
-{!memberPage && !selectedListing && !viewUser && (
-  <ListingFeed
-    listings={filteredListings}
-    onOpen={openListing}
-    onProfile={setProfileUser}
-    users={users}
-    featuredListingIds={featuredListingIds}
-    adPool={adPool}
-    priceLabel={priceLabel}
-    formatDate={formatDate}
-    UserName={UserName}
-    FeedAdCard={FeedAdCard}
-  />
-)}
         </section>
 
         {!detailMode && !accountMode && !userListingsMode && <RightSidebar />}

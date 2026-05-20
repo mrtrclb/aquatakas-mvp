@@ -24,16 +24,16 @@ import {
   Mail,
   Phone,
   Edit3,
+  Eye,
+  Send,
+  RotateCcw,
+  BookmarkX,
   ShieldCheck,
   Info,
   Upload,
   Hourglass,
   BarChart3
 } from "lucide-react";
-import AccountPage from "./components/AccountPage";
-import MessagesPage from "./components/MessagesPage";
-import UserListingsPage from "./components/UserListingsPage";
-import MyListingsPage from "./components/MyListingsPage";
 
 const locations = {
   Gaziantep: { Şehitkamil: ["Batıkent", "Emek", "Merveşehir"], Şahinbey: ["Karataş", "Güneykent", "Binevler"] },
@@ -359,16 +359,27 @@ export default function AquaTakasPrototype() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const accountMode = Boolean(memberPage);
-const userListingsMode = Boolean(viewUser);
-const detailMode = Boolean(selectedListing);
-const currentUser = users[1];
+  function goHome() {
+    setSelectedListing(null);
+    setMemberPage(null);
+    setViewUser(null);
+    setProfileUser(null);
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const effectiveMemberPage = isMember ? memberPage : null;
+  const accountMode = Boolean(effectiveMemberPage);
+  const userListingsMode = Boolean(viewUser);
+  const detailMode = Boolean(selectedListing);
+  const currentUserId = 1;
+  const currentUser = users[currentUserId];
 
   return (
     <div className="min-h-screen bg-white text-slate-950">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-4">
-          <button onClick={() => { setSelectedListing(null); setMemberPage(null); setViewUser(null); }} className="flex items-center gap-3 text-left">
+          <button onClick={goHome} className="flex items-center gap-3 text-left">
             <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-cyan-950 text-sm font-black text-white">HH<span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-cyan-400" /></div>
             <div>
               <h1 className="text-xl font-black leading-tight tracking-tight">Hobiciden Hobiciye</h1>
@@ -379,8 +390,30 @@ const currentUser = users[1];
           <div className="flex items-center gap-2">
             {isMember && (
               <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 md:flex">
-                {[["account", "Hesabım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
-                  <button key={key} onClick={() => { setMemberPage(key); setSelectedListing(null); setViewUser(null); }} className={"rounded-full px-3 py-1.5 text-xs font-black " + (memberPage === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>
+                {[["home", "Ana sayfa"], ["account", "Hesabım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      if (key === "home") {
+                        goHome();
+                        return;
+                      }
+                      setMemberPage(key);
+                      setSelectedListing(null);
+                      setViewUser(null);
+                      setProfileUser(null);
+                      setMenuOpen(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className={
+                      "rounded-full px-3 py-1.5 text-xs font-black " +
+                      ((key === "home" && !effectiveMemberPage && !selectedListing && !viewUser)
+                        ? "bg-cyan-950 text-white"
+                        : effectiveMemberPage === key
+                        ? "bg-cyan-950 text-white"
+                        : "text-slate-600 hover:bg-white")
+                    }
+                  >
                     {label}
                   </button>
                 ))}
@@ -392,6 +425,8 @@ const currentUser = users[1];
                 setMemberPage(null);
                 setViewUser(null);
                 setSelectedListing(null);
+                setProfileUser(null);
+                setMenuOpen(false);
               } else {
                 setAuthMode("login");
                 setAuthOpen(true);
@@ -434,30 +469,54 @@ const currentUser = users[1];
           </aside>
         )}
 
-        <section className={"min-w-0 bg-white " + (accountMode ? "border-x border-slate-200" : "border-r border-slate-200")}>
-          {memberPage === "account" && <AccountPage user={currentUser} />}
-          {memberPage === "listings" && <MyListingsPage listings={listings.filter((item) => item.userId === 1)} onOpen={openListing} onRemove={setRemoveListing} onPromote={setPromoteListing} />}
-          {memberPage === "messages" && <MessagesPage />}
-          {memberPage === "ads" && <AdsManagerPage />}
-          {!memberPage && selectedListing && (
-            <ListingDetail item={selectedListing} user={users[selectedListing.userId]} activeImage={activeImage} setActiveImage={setActiveImage} isMember={isMember} onBack={() => setSelectedListing(null)} onProfile={setProfileUser} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onReport={() => setReportOpen(true)} onAuth={() => { setAuthMode("login"); setAuthOpen(true); }} />
+        <section className={"min-w-0 bg-white " + (accountMode || userListingsMode ? "border-x border-slate-200" : "border-r border-slate-200")}>
+          {effectiveMemberPage === "account" ? (
+            <AccountPage user={currentUser} />
+          ) : effectiveMemberPage === "listings" ? (
+            <MyListingsPage
+              listings={listings.filter((item) => item.userId === currentUserId)}
+              onOpen={openListing}
+              onRemove={setRemoveListing}
+              onPromote={setPromoteListing}
+            />
+          ) : effectiveMemberPage === "messages" ? (
+            <MessagesPage />
+          ) : effectiveMemberPage === "ads" ? (
+            <AdsManagerPage />
+          ) : selectedListing ? (
+            <ListingDetail
+              item={selectedListing}
+              user={users[selectedListing.userId]}
+              activeImage={activeImage}
+              setActiveImage={setActiveImage}
+              isMember={isMember}
+              onBack={() => setSelectedListing(null)}
+              onProfile={setProfileUser}
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
+              onReport={() => setReportOpen(true)}
+              onAuth={() => {
+                setAuthMode("login");
+                setAuthOpen(true);
+              }}
+            />
+          ) : viewUser ? (
+            <UserListingsPage
+              user={viewUser}
+              onBack={() => setViewUser(null)}
+              onOpen={(item) => {
+                setViewUser(null);
+                openListing(item);
+              }}
+              onProfile={setProfileUser}
+            />
+          ) : (
+            <ListingFeed
+              listings={filteredListings}
+              onOpen={openListing}
+              onProfile={setProfileUser}
+            />
           )}
-          {!memberPage && !selectedListing && viewUser && (
-  <UserListingsPage
-    user={viewUser}
-    onBack={() => setViewUser(null)}
-    onOpen={openListing}
-    onProfile={setProfileUser}
-  />
-)}
-
-{!memberPage && !selectedListing && !viewUser && (
-  <ListingFeed
-    listings={filteredListings}
-    onOpen={openListing}
-    onProfile={setProfileUser}
-  />
-)}
         </section>
 
         {!detailMode && !accountMode && !userListingsMode && <RightSidebar />}
@@ -478,7 +537,23 @@ const currentUser = users[1];
 )}
       {reportOpen && <ReportModal onClose={() => setReportOpen(false)} />}
       {addOpen && <AddListingModal onClose={() => setAddOpen(false)} />}
-      {authOpen && <AuthModal mode={authMode} setMode={setAuthMode} onClose={() => setAuthOpen(false)} onSuccess={() => { setIsMember(true); setAuthOpen(false); setMemberPage("account"); setSelectedListing(null); }} />}
+      {authOpen && (
+        <AuthModal
+          mode={authMode}
+          setMode={setAuthMode}
+          onClose={() => setAuthOpen(false)}
+          onSuccess={() => {
+            setIsMember(true);
+            setAuthOpen(false);
+            setMemberPage("account");
+            setSelectedListing(null);
+            setViewUser(null);
+            setProfileUser(null);
+            setMenuOpen(false);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      )}
       {removeListing && <RemoveListingModal listing={removeListing} onClose={() => setRemoveListing(null)} />}
       {promoteListing && <PromoteListingModal listing={promoteListing} onClose={() => setPromoteListing(null)} />}
     </div>
@@ -1053,6 +1128,342 @@ function SocialInput({ icon, placeholder }) {
   );
 }
 
+function MyListingsPage({ listings = [], onOpen, onRemove, onPromote }) {
+  const [tab, setTab] = useState("active");
+  const [editingListing, setEditingListing] = useState(null);
+  const [editingMode, setEditingMode] = useState("edit");
+
+  const activeListings = Array.isArray(listings) ? listings : [];
+
+  const expiredListings = activeListings.slice(0, 2).map((item, index) => ({
+    ...item,
+    id: "expired-" + item.id,
+    date: index === 0 ? "2026-03-18" : "2026-03-05"
+  }));
+
+  const savedListings = activeListings.slice(-2).map((item) => ({
+    ...item,
+    id: "saved-" + item.id
+  }));
+
+  const tabs = [
+    ["active", "Yayındaki ilanlarım", activeListings.length],
+    ["expired", "Süresi dolmuş ilanlar", expiredListings.length],
+    ["saved", "Kaydettiğim ilanlar", savedListings.length]
+  ];
+
+  const currentList =
+    tab === "expired" ? expiredListings : tab === "saved" ? savedListings : activeListings;
+
+  function openEditor(item, mode) {
+    setEditingMode(mode);
+    setEditingListing(item);
+  }
+
+  function safeDate(date) {
+    if (!date || typeof date !== "string") return "";
+    return date.split("-").reverse().join(".");
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <div className="mb-5 border-b border-slate-200 pb-4">
+        <h2 className="text-2xl font-black tracking-tight">İlanlarım</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Yayındaki, süresi dolmuş ve kaydettiğin ilanları buradan yönetebilirsin.
+        </p>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2 rounded-[24px] bg-slate-100 p-1">
+        {tabs.map(([key, label, count]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={
+              "rounded-full px-4 py-2 text-xs font-black transition " +
+              (tab === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")
+            }
+          >
+            {label}
+            <span className={tab === key ? "ml-2 text-cyan-100" : "ml-2 text-slate-400"}>
+              {count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-3">
+        {currentList.length > 0 ? (
+          currentList.map((item) => (
+            <article
+              key={item.id}
+              className="grid gap-4 rounded-[28px] border border-slate-200 bg-white p-3 sm:grid-cols-[112px_1fr]"
+            >
+              {item.images?.[0] ? (
+                <img
+                  src={item.images[0]}
+                  alt=""
+                  className="h-28 w-28 rounded-2xl object-cover"
+                />
+              ) : (
+                <div className="grid h-28 w-28 place-items-center rounded-2xl bg-slate-50 text-xs font-black text-slate-300">
+                  Görsel yok
+                </div>
+              )}
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  {tab === "active" && (
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+                      Yayında
+                    </span>
+                  )}
+
+                  {tab === "expired" && (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+                      Süresi doldu
+                    </span>
+                  )}
+
+                  {tab === "saved" && (
+                    <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-800">
+                      Kaydedildi
+                    </span>
+                  )}
+
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+                    {item.type || "İlan"}
+                  </span>
+
+                  <span className="text-xs font-black text-slate-500">
+                    {safeDate(item.date)}
+                  </span>
+                </div>
+
+                <h3 className="line-clamp-1 text-lg font-black text-slate-950">
+                  {item.title}
+                </h3>
+
+                <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">
+                  {item.description}
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => onOpen(item)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                  >
+                    <Eye size={14} /> Görüntüle
+                  </button>
+
+                  {tab === "active" && (
+                    <>
+                      <button
+                        onClick={() => openEditor(item, "edit")}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                      >
+                        <Edit3 size={14} /> Düzenle
+                      </button>
+
+                      <button
+                        onClick={() => onPromote(item)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 hover:bg-amber-100"
+                      >
+                        <Pin size={14} /> Öne çıkar
+                      </button>
+
+                      <button
+                        onClick={() => onRemove(item)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100"
+                      >
+                        <Trash2 size={14} /> Yayından kaldır
+                      </button>
+                    </>
+                  )}
+
+                  {tab === "expired" && (
+                    <>
+                      <button
+                        onClick={() => openEditor(item, "republish")}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-800 hover:bg-cyan-100"
+                      >
+                        <RotateCcw size={14} /> Güncelle ve tekrar yayımla
+                      </button>
+
+                      <button className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100">
+                        <Trash2 size={14} /> Komple sil
+                      </button>
+                    </>
+                  )}
+
+                  {tab === "saved" && (
+                    <button className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100">
+                      <BookmarkX size={14} /> Kaydedilenlerden kaldır
+                    </button>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))
+        ) : tab === "active" ? (
+          <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+            <div className="text-lg font-black text-slate-800">Yayında ilanın yok</div>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Yeni bir ilan eklediğinde burada görünecek.</p>
+          </div>
+        ) : tab === "expired" ? (
+          <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+            <div className="text-lg font-black text-slate-800">Süresi dolmuş ilanın yok</div>
+            <p className="mt-2 text-sm leading-6 text-slate-500">30 günlük yayın süresi biten ilanlar burada listelenir.</p>
+          </div>
+        ) : (
+          <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+            <div className="text-lg font-black text-slate-800">Kaydettiğin ilan yok</div>
+            <p className="mt-2 text-sm leading-6 text-slate-500">İlan detayındaki Kaydet butonunu kullandığında ilanlar burada görünecek.</p>
+          </div>
+        )}
+      </div>
+
+      {editingListing && (
+        <EditListingModal
+          listing={editingListing}
+          mode={editingMode}
+          onClose={() => setEditingListing(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditListingModal({ listing, mode, onClose }) {
+  if (!listing) return null;
+
+  const isRepublish = mode === "republish";
+  const images = Array.isArray(listing.images) ? listing.images : [];
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
+          <div>
+            <h3 className="text-2xl font-black tracking-tight">
+              {isRepublish ? "İlanı güncelle ve tekrar yayımla" : "İlanı düzenle"}
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              İlan bilgilerini güncelleyip inceleme için gönderebilirsin. Canlı sürümde bu işlem moderasyon kuyruğuna düşer.
+            </p>
+          </div>
+
+          <button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="max-h-[calc(88vh-96px)] overflow-y-auto p-5">
+          <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+            <div>
+              <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-slate-50">
+                {images[0] ? (
+                  <img src={images[0]} alt="" className="aspect-square w-full object-cover" />
+                ) : (
+                  <div className="grid aspect-square w-full place-items-center text-sm font-black text-slate-300">
+                    Görsel yok
+                  </div>
+                )}
+              </div>
+
+              <button className="mt-3 w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">
+                Görselleri güncelle
+              </button>
+
+              <div className="mt-3 grid grid-cols-5 gap-2">
+                {[0, 1, 2, 3, 4].map((slot) => {
+                  const image = images[slot];
+
+                  return (
+                    <div
+                      key={slot}
+                      className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-black text-slate-300"
+                    >
+                      {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : slot + 1}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">İlan tipi</span>
+                  <select defaultValue={listing.type || "Satıyorum"} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none">
+                    <option>Satıyorum</option>
+                    <option>Takas</option>
+                    <option>Ücretsiz / Sahiplendirme</option>
+                    <option>Arıyorum</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">Kategori</span>
+                  <select defaultValue={listing.category || "Canlı"} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none">
+                    <option>Canlı</option>
+                    <option>Bitki</option>
+                    <option>Yem</option>
+                    <option>Kimyasal</option>
+                    <option>Akvaryum</option>
+                    <option>Ekipman</option>
+                    <option>Dekor</option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                <span className="mb-1 block text-xs font-black text-slate-500">İlan başlığı</span>
+                <input defaultValue={listing.title || ""} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" />
+              </label>
+
+              <label>
+                <span className="mb-1 block text-xs font-black text-slate-500">Açıklama</span>
+                <textarea rows={5} defaultValue={listing.description || ""} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 outline-none" />
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">Fiyat / teklif</span>
+                  <input defaultValue={listing.price || ""} placeholder="Örn. 750 TL, Takas, Teklif ver" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">Konum</span>
+                  <input defaultValue={`${listing.city || ""} / ${listing.district || ""}`} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" />
+                </label>
+              </div>
+
+              <label>
+                <span className="mb-1 block text-xs font-black text-slate-500">Etiketler</span>
+                <input defaultValue={(listing.tags || []).join(", ")} placeholder="Örn. kendi üretimim, yavru, gönderim yapılır" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" />
+              </label>
+
+              <div className="rounded-2xl bg-cyan-50 p-3 text-xs leading-relaxed text-cyan-900">
+                Değişiklikler doğrudan yayına alınmaz; inceleme sonrası yeni bilgiler yayına geçer.
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+                <button onClick={onClose} className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">
+                  Vazgeç
+                </button>
+
+                <button onClick={onClose} className="inline-flex items-center gap-2 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white hover:bg-cyan-900">
+                  <Send size={16} /> İnceleme için gönder
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 function AdsManagerPage() {
@@ -1270,7 +1681,30 @@ function AdStatsModal({ ad, onClose }) {
   );
 }
 
+function MessagesPage() {
+  const [tab, setTab] = useState("active");
+  const [selectedConversation, setSelectedConversation] = useState(null);
 
+  function UserAvatarBubble({ user, size = "md" }) {
+    const username = user?.user || user?.from || user?.name || "Kullanıcı";
+    const initial = username.replace("@", "").trim().charAt(0).toUpperCase() || "H";
+
+    const sizeClass =
+      size === "lg"
+        ? "h-12 w-12 text-sm"
+        : size === "sm"
+        ? "h-8 w-8 text-xs"
+        : "h-10 w-10 text-xs";
+
+    return (
+      <div
+        className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-cyan-950 font-black text-white shadow-sm`}
+        title={username}
+      >
+        {initial}
+      </div>
+    );
+  }
 
   const conversations = [
     {
@@ -1514,7 +1948,96 @@ function AdStatsModal({ ad, onClose }) {
     </div>
   );
 }
+function UserListingsPage({ user, onBack, onOpen, onProfile }) {
+  const userId = Number(Object.keys(users).find((id) => users[id].username === user.username));
+  const userListings = listings.filter((item) => item.userId === userId);
 
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <button
+        onClick={onBack}
+        className="mb-4 flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-100"
+      >
+        <ArrowLeft size={17} /> İlan akışına dön
+      </button>
+
+      <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-gradient-to-br from-cyan-950 to-slate-900 p-5 text-white">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+                <UserRound size={30} />
+                {user.online && (
+                  <span
+                    title="Çevrimiçi"
+                    className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500"
+                  />
+                )}
+              </div>
+
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-black tracking-tight">{user.username}</h2>
+                  {user.verified && <VerifiedBadge />}
+                </div>
+
+                <p className="mt-1 text-sm text-cyan-50/80">
+                  {user.city} · {user.joined} üyesi · {user.online ? "Çevrimiçi" : "Son ziyaret: " + user.lastSeen}
+                </p>
+
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-cyan-50/90">
+                  {user.bio || "Bu kullanıcı henüz hakkında bilgisi eklememiş."}
+                </p>
+              </div>
+            </div>
+
+            <button className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50">
+              <MessageCircle size={16} /> Mesaj gönder
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 border-b border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-slate-950">{userListings.length}</div>
+            <div className="text-xs font-black text-slate-500">Yayındaki ilan</div>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-emerald-700">{user.reviewStats?.positive || 0}</div>
+            <div className="text-xs font-black text-slate-500">Olumlu değerlendirme</div>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="text-2xl font-black text-slate-950">{user.verified ? "Var" : "Yok"}</div>
+            <div className="text-xs font-black text-slate-500">Doğrulama durumu</div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+          <div>
+            <h3 className="text-lg font-black">{user.username} kullanıcısının ilanları</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Bu sayfada kullanıcının yayındaki ücretsiz ilanları listelenir.
+            </p>
+          </div>
+
+          <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+            İlanlar 30 gün yayında kalır
+          </div>
+        </div>
+
+        <div>
+          {userListings.map((item) => {
+            const isFeatured = featuredListingIds.includes(item.id);
+
+            return (
+              <article
+                key={item.id}
+                className={
+                  "relative border-b border-slate-200 p-4 transition last:border-b-0 " +
+                  (isFeatured ? "bg-cyan-50/60 hover:bg-cyan-50" : "bg-white hover:bg-slate-50")
+                }
               >
                 {isFeatured && (
                   <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 shadow-sm">

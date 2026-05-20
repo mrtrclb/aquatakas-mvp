@@ -298,7 +298,41 @@ export default function AquaTakasPrototype() {
   const [authMode, setAuthMode] = useState("login");
   const [removeListing, setRemoveListing] = useState(null);
   const [promoteListing, setPromoteListing] = useState(null);
-
+const [communityPosts, setCommunityPosts] = useState([
+  {
+    id: 1,
+    userId: 1,
+    tag: "Üretim",
+    text: "Brichardi kolonisinde yavrular iyice görünür oldu. Kayaların arasından çıkıp yem kovalamaya başladılar. Sizce bu aşamada ekstra yemleme yapmalı mıyım?",
+    image: img.fish1,
+    date: "12 dk önce",
+    comments: 8,
+    helpful: 4,
+    solved: false
+  },
+  {
+    id: 2,
+    userId: 2,
+    tag: "Kurulum",
+    text: "160x40x45 bitkili tankı yeniden düzenledim. Kökleri sağa aldım, sol tarafı biraz daha boş bıraktım. Sizce kompozisyon dengeli mi?",
+    image: img.tank1,
+    date: "1 saat önce",
+    comments: 14,
+    helpful: 7,
+    solved: false
+  },
+  {
+    id: 3,
+    userId: 3,
+    tag: "Soru",
+    text: "Yeni kurduğum karides tankında pH 7.4 civarında. Neocaridina için sorun olur mu, yoksa bu değerle devam edebilir miyim?",
+    image: null,
+    date: "3 saat önce",
+    comments: 5,
+    helpful: 2,
+    solved: true
+  }
+]);
   const cityNames = Object.keys(locations);
   const districtNames = selectedCities.length > 0
     ? selectedCities.flatMap((cityName) => Object.keys(locations[cityName] || {}))
@@ -388,6 +422,24 @@ export default function AquaTakasPrototype() {
           </button>
 
           <div className="flex items-center gap-2">
+            <button
+  onClick={() => {
+    setMemberPage("community");
+    setSelectedListing(null);
+    setViewUser(null);
+    setProfileUser(null);
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }}
+  className={
+    "rounded-full px-3 py-1.5 text-xs font-black " +
+    (memberPage === "community"
+      ? "bg-cyan-950 text-white"
+      : "bg-slate-100 text-slate-600 hover:bg-slate-200")
+  }
+>
+  Topluluk
+</button>
             {isMember && (
               <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 md:flex">
                 {[["home", "Ana sayfa"], ["account", "Hesabım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
@@ -470,54 +522,77 @@ export default function AquaTakasPrototype() {
         )}
 
         <section className={"min-w-0 bg-white " + (accountMode || userListingsMode ? "border-x border-slate-200" : "border-r border-slate-200")}>
-          {effectiveMemberPage === "account" ? (
-            <AccountPage user={currentUser} />
-          ) : effectiveMemberPage === "listings" ? (
-            <MyListingsPage
-              listings={listings.filter((item) => item.userId === currentUserId)}
-              onOpen={openListing}
-              onRemove={setRemoveListing}
-              onPromote={setPromoteListing}
-            />
-          ) : effectiveMemberPage === "messages" ? (
-            <MessagesPage />
-          ) : effectiveMemberPage === "ads" ? (
-            <AdsManagerPage />
-          ) : selectedListing ? (
-            <ListingDetail
-              item={selectedListing}
-              user={users[selectedListing.userId]}
-              activeImage={activeImage}
-              setActiveImage={setActiveImage}
-              isMember={isMember}
-              onBack={() => setSelectedListing(null)}
-              onProfile={setProfileUser}
-              menuOpen={menuOpen}
-              setMenuOpen={setMenuOpen}
-              onReport={() => setReportOpen(true)}
-              onAuth={() => {
-                setAuthMode("login");
-                setAuthOpen(true);
-              }}
-            />
-          ) : viewUser ? (
-            <UserListingsPage
-              user={viewUser}
-              onBack={() => setViewUser(null)}
-              onOpen={(item) => {
-                setViewUser(null);
-                openListing(item);
-              }}
-              onProfile={setProfileUser}
-            />
-          ) : (
-            <ListingFeed
-              listings={filteredListings}
-              onOpen={openListing}
-              onProfile={setProfileUser}
-            />
-          )}
-        </section>
+  {memberPage === "community" ? (
+    <CommunityPage
+      posts={communityPosts}
+      setPosts={setCommunityPosts}
+      isMember={isMember}
+      currentUser={currentUser}
+      onAuth={() => {
+        setAuthMode("login");
+        setAuthOpen(true);
+      }}
+    />
+  ) : effectiveMemberPage === "account" ? (
+    <AccountPage user={currentUser} />
+  ) : effectiveMemberPage === "listings" ? (
+    <MyListingsPage
+      listings={listings.filter((item) => item.userId === currentUserId)}
+      onOpen={openListing}
+      onRemove={setRemoveListing}
+      onPromote={setPromoteListing}
+    />
+  ) : effectiveMemberPage === "messages" ? (
+    <MessagesPage />
+  ) : effectiveMemberPage === "ads" ? (
+    <AdsManagerPage />
+  ) : selectedListing ? (
+    <ListingDetail
+      item={selectedListing}
+      user={users[selectedListing.userId]}
+      activeImage={activeImage}
+      setActiveImage={setActiveImage}
+      isMember={isMember}
+      onBack={() => setSelectedListing(null)}
+      onProfile={setProfileUser}
+      menuOpen={menuOpen}
+      setMenuOpen={setMenuOpen}
+      onReport={() => setReportOpen(true)}
+      onAuth={() => {
+        setAuthMode("login");
+        setAuthOpen(true);
+      }}
+    />
+  ) : viewUser ? (
+    <UserListingsPage
+      user={viewUser}
+      onBack={() => setViewUser(null)}
+      onOpen={(item) => {
+        setViewUser(null);
+        openListing(item);
+      }}
+      onProfile={setProfileUser}
+      users={users}
+      listings={listings}
+      formatDate={formatDate}
+      priceLabel={priceLabel}
+      UserName={UserName}
+    />
+  ) : (
+    <ListingFeed
+      listings={filteredListings}
+      onOpen={openListing}
+      onProfile={setProfileUser}
+      users={users}
+      featuredListingIds={featuredListingIds}
+      adPool={adPool}
+      priceLabel={priceLabel}
+      formatDate={formatDate}
+      UserName={UserName}
+      FeedAdCard={FeedAdCard}
+    />
+  )}
+</section>
 
         {!detailMode && !accountMode && !userListingsMode && <RightSidebar />}
       </main>
@@ -559,7 +634,246 @@ export default function AquaTakasPrototype() {
     </div>
   );
 }
+function CommunityPage({ posts, setPosts, isMember, currentUser, onAuth }) {
+  const [draft, setDraft] = useState("");
+  const [selectedTag, setSelectedTag] = useState("Soru");
+  const [imageAttached, setImageAttached] = useState(false);
+  const [filter, setFilter] = useState("Tümü");
 
+  const tags = ["Soru", "Kurulum", "Hastalık", "Üretim", "Bitki", "Ekipman", "Genel"];
+  const visiblePosts = filter === "Tümü" ? posts : posts.filter((post) => post.tag === filter);
+
+  function submitPost() {
+    const text = draft.trim();
+    if (!text) return;
+
+    const newPost = {
+      id: Date.now(),
+      userId: 1,
+      tag: selectedTag,
+      text,
+      image: imageAttached ? img.tank2 : null,
+      date: "az önce",
+      comments: 0,
+      helpful: 0,
+      solved: false
+    };
+
+    setPosts([newPost, ...posts]);
+    setDraft("");
+    setImageAttached(false);
+    setSelectedTag("Soru");
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <div className="mb-5 border-b border-slate-200 pb-4">
+        <h2 className="text-2xl font-black tracking-tight">Topluluk</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Soru sor, kurulum paylaş, deneyim aktar. Satış ilanları için “İlan ekle” alanını kullan.
+        </p>
+      </div>
+
+      <div className="mb-4 overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
+        {isMember ? (
+          <div className="p-4">
+            <div className="flex gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-950 text-sm font-black text-white">
+                HH
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 text-sm font-black text-slate-800">
+                  {currentUser.username}
+                </div>
+
+                <textarea
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  rows={4}
+                  placeholder="Bugün akvaryumunda neler oluyor? Soru sor, deneyim paylaş, kurulumunu göster..."
+                  className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 outline-none transition focus:border-cyan-800"
+                />
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setSelectedTag(tag)}
+                      className={
+                        "rounded-full border px-3 py-1.5 text-xs font-black transition " +
+                        (selectedTag === tag
+                          ? "border-cyan-950 bg-cyan-950 text-white"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")
+                      }
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+
+                {imageAttached && (
+                  <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                    <img src={img.tank2} alt="" className="h-48 w-full object-cover" />
+                  </div>
+                )}
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setImageAttached((value) => !value)}
+                      className={
+                        "rounded-full border px-3 py-2 text-xs font-black transition " +
+                        (imageAttached
+                          ? "border-cyan-200 bg-cyan-50 text-cyan-800"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")
+                      }
+                    >
+                      <Camera size={14} className="mr-1 inline" />
+                      Fotoğraf
+                    </button>
+
+                    <div className="rounded-full bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+                      Toplulukta doğrudan satış ilanı paylaşma.
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={submitPost}
+                    className="rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900 disabled:opacity-50"
+                    disabled={!draft.trim()}
+                  >
+                    Paylaş
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-3 bg-slate-50 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div>
+              <div className="font-black text-slate-900">Topluluğa katıl</div>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Paylaşım yapmak, soru sormak ve cevap yazmak için üye girişi yapmalısın.
+                Topluluğu okumak herkese açık.
+              </p>
+            </div>
+
+            <button
+              onClick={onAuth}
+              className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white hover:bg-cyan-900"
+            >
+              Üye ol / Giriş yap
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2 rounded-[24px] bg-slate-100 p-1">
+        {["Tümü", ...tags].map((tag) => (
+          <button
+            key={tag}
+            onClick={() => setFilter(tag)}
+            className={
+              "rounded-full px-4 py-2 text-xs font-black transition " +
+              (filter === tag
+                ? "bg-cyan-950 text-white"
+                : "text-slate-600 hover:bg-white")
+            }
+          >
+            {tag}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-3">
+        {visiblePosts.map((post) => {
+          const user = users[post.userId] || currentUser;
+
+          return (
+            <article
+              key={post.id}
+              className="overflow-hidden rounded-[28px] border border-slate-200 bg-white p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-500">
+                  <UserRound size={21} />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button className="font-black text-slate-900 hover:underline">
+                      <UserName user={user} />
+                    </button>
+
+                    <span className="text-xs font-bold text-slate-400">· {post.date}</span>
+
+                    <span
+                      className={
+                        "rounded-full px-2.5 py-1 text-[11px] font-black " +
+                        (post.tag === "Soru"
+                          ? "bg-cyan-50 text-cyan-800"
+                          : post.tag === "Hastalık"
+                          ? "bg-red-50 text-red-700"
+                          : post.tag === "Üretim"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-slate-100 text-slate-600")
+                      }
+                    >
+                      {post.tag}
+                    </span>
+
+                    {post.solved && (
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                        <CheckCircle2 size={12} className="mr-1 inline" />
+                        Çözüldü
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="mt-2 whitespace-pre-line text-[15px] leading-7 text-slate-700">
+                    {post.text}
+                  </p>
+
+                  {post.image && (
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                      <img src={post.image} alt="" className="max-h-[360px] w-full object-cover" />
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                    <button className="rounded-full px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">
+                      <MessageCircle size={14} className="mr-1 inline" />
+                      {post.comments} yanıt
+                    </button>
+
+                    <button className="rounded-full px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">
+                      <Star size={14} className="mr-1 inline" />
+                      {post.helpful} faydalı
+                    </button>
+
+                    <button className="rounded-full px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">
+                      <Bookmark size={14} className="mr-1 inline" />
+                      Kaydet
+                    </button>
+
+                    <button className="rounded-full px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">
+                      <Share2 size={14} className="mr-1 inline" />
+                      Paylaş
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 function ListingFeed({ listings, onOpen, onProfile }) {
   const [visibleCount, setVisibleCount] = useState(8);
   const visibleListings = listings.slice(0, visibleCount);

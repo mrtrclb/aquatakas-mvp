@@ -29,6 +29,7 @@ import {
   Phone,
   Edit3,
   Eye,
+  EyeOff,
   Send,
   RotateCcw,
   BookmarkX,
@@ -36,7 +37,9 @@ import {
   Info,
   Upload,
   Hourglass,
-  BarChart3
+  BarChart3,
+  Home,
+  LogOut
 } from "lucide-react";
 import {
   ComposerModal,
@@ -47,12 +50,17 @@ import {
   PostNotFound,
   UserPostsPage,
   buildInitialPosts,
+  commentSnippet,
+  extractTags,
+  mediaLabel,
   newMemberUsers,
   postSnippet,
   postUrl,
   timeAgo,
   userIdOf
 } from "./community.jsx";
+import { GroupFormModal, GroupPage, GroupsPage, TagsPage, buildDefaultGroups } from "./groups.jsx";
+import { HomeAside, HomeFeed, HomeTopBar, HomeWidgets, loadHomeFilter, saveHomeFilter } from "./home.jsx";
 
 const locations = {
   Gaziantep: { Şehitkamil: ["Batıkent", "Emek", "Merveşehir"], Şahinbey: ["Karataş", "Güneykent", "Binevler"] },
@@ -310,7 +318,7 @@ export default function AquaTakasPrototype() {
   const [isMember, setIsMember] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
   const [viewUser, setViewUser] = useState(null);
-  const [reportOpen, setReportOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [memberPage, setMemberPage] = useState(null);
@@ -325,15 +333,32 @@ export default function AquaTakasPrototype() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [communitySearch, setCommunitySearch] = useState("");
+  const [groups, setGroups] = useState(() => buildDefaultGroups());
+  const [groupSlug, setGroupSlug] = useState(null);
+  const [communityPage, setCommunityPage] = useState(null); // "tags" | "groups" | null
+  const [composerGroupId, setComposerGroupId] = useState(null);
+  const [groupForm, setGroupForm] = useState(null); // { group } — group null ise yeni grup
+  const [tagSeed] = useState(() => Math.random()); // her sayfa yenilemede farklı etiketler
+  const [listingsOpen, setListingsOpen] = useState(false); // "İlanlar" sayfası
+  const [homeFilter, setHomeFilter] = useState(loadHomeFilter);
+  const [homeTab, setHomeTab] = useState("foryou");
+  const [homeLocation, setHomeLocation] = useState("");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const shareMenuRef = useRef(null);
   const cameFromApp = useRef(false);
   const currentUserId = 1;
 
-  // Detay bağlantısı: #/paylasim/<sayı>-<ilk-kelimeler>
+  // Bağlantılar: #/paylasim/<sayı>-<ilk-kelimeler>, #/gruplar, #/grup/<ad>, #/etiketler
   useEffect(() => {
     function syncFromHash() {
-      const match = window.location.hash.match(/^#\/paylasim\/(.+)$/);
-      setPostSlug(match ? decodeURIComponent(match[1]) : null);
+      const hash = window.location.hash;
+      const post = hash.match(/^#\/paylasim\/(.+)$/);
+      const group = hash.match(/^#\/grup\/([^/]+)$/);
+      setPostSlug(post ? decodeURIComponent(post[1]) : null);
+      setGroupSlug(group ? decodeURIComponent(group[1]) : null);
+      setCommunityPage(hash === "#/gruplar" ? "groups" : hash === "#/etiketler" ? "tags" : null);
     }
     syncFromHash();
     window.addEventListener("hashchange", syncFromHash);
@@ -350,6 +375,15 @@ export default function AquaTakasPrototype() {
   }, [shareMenuOpen]);
 
   useEffect(() => {
+    if (!userMenuOpen) return undefined;
+    function onDown(event) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) setUserMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [userMenuOpen]);
+
+  useEffect(() => {
     if (!toast) return undefined;
     const timer = setTimeout(() => setToast(""), 2600);
     return () => clearTimeout(timer);
@@ -358,6 +392,8 @@ export default function AquaTakasPrototype() {
   function clearPostHash() {
     if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     setPostSlug(null);
+    setGroupSlug(null);
+    setCommunityPage(null);
   }
 
   function clearViews() {
@@ -378,8 +414,33 @@ export default function AquaTakasPrototype() {
 
   function openCommunity() {
     clearViews();
+    setListingsOpen(false);
+    setCommunitySearch("");
     setCommunityOpen(true);
     scrollTop();
+  }
+
+  function openHashPage(path) {
+    clearViews();
+    window.location.hash = path;
+    scrollTop();
+  }
+
+  function openGroup(group) {
+    setCommunitySearch("");
+    openHashPage("/grup/" + group.slug);
+  }
+
+  // Arama akışta sonuç gösterir; bir grubun içindeyken o grupta arar
+  function searchCommunity(value) {
+    setCommunitySearch(value);
+    if (groupSlug && !postSlug) return;
+    const onFeed = communityOpen && !postSlug && !communityPage && !postsUser && !memberPage;
+    if (value && !onFeed) {
+      clearViews();
+      setCommunityOpen(true);
+      scrollTop();
+    }
   }
 
   function openPost(post) {
@@ -404,20 +465,22 @@ export default function AquaTakasPrototype() {
     setAuthOpen(true);
   }
 
-  function openComposer() {
+  function openComposer(groupId = null) {
     setShareMenuOpen(false);
     if (!isMember) {
       requireLogin();
       return;
     }
+    setComposerGroupId(typeof groupId === "string" ? groupId : null);
     setComposerOpen(true);
   }
 
   function publishPost(post) {
     setPosts((prev) => [post, ...prev]);
     setComposerOpen(false);
-    setToast("Paylaşımın yayında 🎉");
-    if (!communityOpen && memberPage !== "posts" && !postsUser) {
+    const target = post.groupId ? groups.find((group) => group.id === post.groupId) : null;
+    setToast(target ? target.name + " grubunda paylaşıldı 🎉" : "Paylaşımın yayında 🎉");
+    if (!communityOpen && memberPage !== "posts" && !postsUser && !groupSlug) {
       clearViews();
       setCommunityOpen(true);
     }
@@ -426,6 +489,43 @@ export default function AquaTakasPrototype() {
 
   function updatePost(postId, updater) {
     setPosts((prev) => prev.map((post) => (post.id === postId ? updater(post) : post)));
+  }
+
+  function toggleJoin(groupId) {
+    if (!isMember) {
+      requireLogin();
+      return;
+    }
+    const group = groups.find((item) => item.id === groupId);
+    if (!group || group.ownerId === currentUserId) return;
+    const joined = group.memberIds.includes(currentUserId);
+    if (joined && !window.confirm(group.name + " grubundan ayrılmak istediğine emin misin?")) return;
+    setGroups((prev) => prev.map((item) => (item.id !== groupId ? item : {
+      ...item,
+      memberIds: joined ? item.memberIds.filter((id) => id !== currentUserId) : [...item.memberIds, currentUserId],
+      moderatorIds: joined ? item.moderatorIds.filter((id) => id !== currentUserId) : item.moderatorIds
+    })));
+    setToast(joined ? group.name + " grubundan ayrıldın" : group.name + " grubuna katıldın 👋");
+  }
+
+  function openGroupForm(group = null) {
+    if (!isMember) {
+      requireLogin();
+      return;
+    }
+    if (!group && groups.some((item) => item.ownerId === currentUserId)) {
+      setToast("Her üye en fazla 1 grup oluşturabilir");
+      return;
+    }
+    setGroupForm({ group });
+  }
+
+  function saveGroup(group) {
+    const isNew = !groups.some((item) => item.id === group.id);
+    setGroups((prev) => (isNew ? [...prev, group] : prev.map((item) => (item.id === group.id ? group : item))));
+    setGroupForm(null);
+    setToast(isNew ? group.name + " grubu oluşturuldu 🎉" : "Grup bilgileri güncellendi");
+    if (isNew || group.slug !== groupSlug) openGroup(group);
   }
 
   const communityCtx = {
@@ -463,15 +563,62 @@ export default function AquaTakasPrototype() {
           }
         };
       }),
-    onReply: (postId, text) =>
+    onReply: (postId, { text, images = [], video = null }) =>
       updatePost(postId, (post) => ({
         ...post,
-        comments: [...post.comments, { id: "c" + Date.now(), userId: currentUserId, text, createdAt: Date.now(), likes: 0, likedByMe: false }]
+        comments: [...post.comments, { id: "c" + Date.now(), userId: currentUserId, text, images, video, createdAt: Date.now(), likes: 0, likedByMe: false }]
       })),
-    onDelete: (post) => {
-      if (!window.confirm("Bu paylaşımı silmek istediğine emin misin?")) return;
+    onDeleteComment: (postId, commentId) => {
+      if (!window.confirm("Bu yorumu silmek istediğine emin misin?")) return;
+      updatePost(postId, (post) => ({ ...post, comments: post.comments.filter((comment) => comment.id !== commentId) }));
+      setToast("Yorum silindi");
+    },
+    onSave: (postId) => {
+      const target = posts.find((post) => post.id === postId);
+      if (!target) return;
+      updatePost(postId, (post) => ({ ...post, savedByMe: !post.savedByMe }));
+      setToast(target.savedByMe ? "Kayıtlardan çıkarıldı" : "Kaydedildi · Paylaşımlarım > Kaydettiklerim");
+    },
+    onReport: setReportTarget,
+    onSearch: searchCommunity,
+    onEditComment: (postId, commentId, text) => {
+      updatePost(postId, (post) => ({
+        ...post,
+        comments: post.comments.map((comment) => (comment.id === commentId ? { ...comment, text, editedAt: Date.now() } : comment))
+      }));
+      setToast("Yorum güncellendi");
+    },
+    groupById: (id) => groups.find((group) => group.id === id),
+    canModerate: (post) => {
+      if (!isMember || !post.groupId) return false;
+      const group = groups.find((item) => item.id === post.groupId);
+      return Boolean(group) && (group.ownerId === currentUserId || group.moderatorIds.includes(currentUserId));
+    },
+    onOpenGroup: openGroup,
+    onOpenListing: (item) => openListing(item),
+    featuredListingIds,
+    priceLabel,
+    formatDate,
+    onJoinGroup: (groupId) =>
+      setGroups((prev) => prev.map((item) => (item.id === groupId && !item.memberIds.includes(currentUserId) ? { ...item, memberIds: [...item.memberIds, currentUserId] } : item))),
+    onMyPosts: () => openMemberPage("posts"),
+    onMyListings: () => openMemberPage("listings"),
+    onMessages: () => openMemberPage("messages"),
+    onOpenGroups: () => openHashPage("/gruplar"),
+    onOpenTags: () => openHashPage("/etiketler"),
+    onOpenFeed: openCommunity,
+    onToggleJoin: toggleJoin,
+    onCreateGroup: () => openGroupForm(null),
+    onEditGroup: (group) => openGroupForm(group),
+    onShareGroup: (group) => {
+      const url = window.location.origin + window.location.pathname + "#/grup/" + group.slug;
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => setToast("Grup bağlantısı kopyalandı"), () => setToast(url));
+      else setToast(url);
+    },
+    onDelete: (post, moderated = false) => {
+      if (!window.confirm(moderated ? "Bu paylaşımı moderatör olarak gruptan kaldırmak istediğine emin misin?" : "Bu paylaşımı silmek istediğine emin misin?")) return;
       setPosts((prev) => prev.filter((item) => item.id !== post.id));
-      setToast("Paylaşım silindi");
+      setToast(moderated ? "Paylaşım gruptan kaldırıldı" : "Paylaşım silindi");
       if (postSlug === post.slug) closePost();
     },
     onShare: (post) => {
@@ -545,18 +692,77 @@ export default function AquaTakasPrototype() {
 
   function goHome() {
     clearViews();
+    setListingsOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function openListingsPage() {
+    clearViews();
+    setListingsOpen(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openMemberPage(key) {
+    setUserMenuOpen(false);
+    if (!isMember) {
+      requireLogin();
+      return;
+    }
+    clearViews();
+    setMemberPage(key);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function changeHomeFilter(value) {
+    setHomeFilter(value);
+    saveHomeFilter(value);
+    scrollTop();
+  }
+
   const postMode = Boolean(postSlug);
-  const effectiveMemberPage = isMember && !postMode ? memberPage : null;
+  const currentGroup = groupSlug ? groups.find((group) => group.slug === groupSlug) : null;
+  const groupMode = Boolean(groupSlug) && !postMode;
+  const hashMode = postMode || groupMode || Boolean(communityPage);
+  const effectiveMemberPage = isMember && !hashMode ? memberPage : null;
   const accountMode = Boolean(effectiveMemberPage) && effectiveMemberPage !== "posts";
-  const userListingsMode = Boolean(viewUser) && !postMode;
-  const detailMode = Boolean(selectedListing) && !postMode;
-  const communityMode = postMode || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
+  const userListingsMode = Boolean(viewUser) && !hashMode;
+  const detailMode = Boolean(selectedListing) && !hashMode;
+  const communityMode = hashMode || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
   const currentUser = users[currentUserId];
   const currentPost = postSlug ? posts.find((post) => post.slug === postSlug) : null;
   const newMembers = Object.values(users).filter((user) => user.newMember);
+  const allTags = useMemo(() => extractTags(posts), [posts]);
+  // Sol menüde her yenilemede rastgele 3 etiket
+  const asideTags = useMemo(() => {
+    const score = (tag) => {
+      let h = 0;
+      for (let i = 0; i < tag.length; i += 1) h = (h * 31 + tag.charCodeAt(i)) | 0;
+      const x = Math.sin(h * 0.0001 + tagSeed * 1000) * 10000;
+      return x - Math.floor(x);
+    };
+    return allTags.slice().sort((a, b) => score(a.tag) - score(b.tag)).slice(0, 3);
+  }, [allTags, tagSeed]);
+  const asideView = postMode ? "post" : groupMode ? "group" : communityPage || (communityOpen && !postsUser && !effectiveMemberPage ? "feed" : "other");
+  const joinedGroups = isMember ? groups.filter((group) => group.memberIds.includes(currentUserId)) : [];
+  // Ana sayfa: İlanlar + İçerikler karışık akış; "İlanlar"/"İçerikler" seçimi hatırlanır ve o görünüme döner
+  const homeMode = !communityMode && !accountMode && !userListingsMode && !detailMode && !listingsOpen && !effectiveMemberPage;
+  const homeView = homeMode ? (homeFilter === "listings" ? "listings" : homeFilter === "posts" ? "posts" : "mixed") : null;
+  const showListingFilters = !accountMode && !userListingsMode && !communityMode && homeView !== "mixed" && homeView !== "posts";
+  const navActive = communityMode ? "community" : homeMode ? "home" : listingsOpen && !accountMode && !effectiveMemberPage && !userListingsMode ? "listings" : null;
+  const homeTopBar = (
+    <HomeTopBar
+      filter={homeFilter}
+      onFilter={changeHomeFilter}
+      tab={homeTab}
+      onTab={setHomeTab}
+      location={homeLocation}
+      onLocation={setHomeLocation}
+      cities={Object.keys(locations)}
+      myCity={isMember ? currentUser.city : null}
+      showTabs={homeView === "mixed"}
+      showLocation={homeView === "mixed"}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-white text-slate-950">
@@ -572,54 +778,54 @@ export default function AquaTakasPrototype() {
 
           <div className="flex items-center gap-2">
             
-            {isMember && (
-              <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 md:flex">
-                {[["home", "Ana sayfa"], ["account", "Hesabım"], ["posts", "Paylaşımlarım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      if (key === "home") {
-                        goHome();
-                        return;
-                      }
-                      clearViews();
-                      setMemberPage(key);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className={
-                      "rounded-full px-3 py-1.5 text-xs font-black " +
-                      ((key === "home" && !effectiveMemberPage && !selectedListing && !viewUser && !communityMode)
-                        ? "bg-cyan-950 text-white"
-                        : effectiveMemberPage === key
-                        ? "bg-cyan-950 text-white"
-                        : "text-slate-600 hover:bg-white")
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
+            <nav className="flex items-center gap-1 rounded-full bg-slate-100 p-1">
+              {[["home", "Ana sayfa", Home, goHome], ["listings", "İlanlar", Tag, openListingsPage], ["community", "Topluluk", Users, openCommunity]].map(([key, label, Icon, onClick]) => (
+                <button
+                  key={key}
+                  onClick={onClick}
+                  title={label}
+                  className={"flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-black transition " + (navActive === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}
+                >
+                  <Icon size={16} /> <span className="hidden md:inline">{label}</span>
+                </button>
+              ))}
+            </nav>
+            {isMember ? (
+              <div ref={userMenuRef} className="relative">
+                <button
+                  onClick={() => setUserMenuOpen((open) => !open)}
+                  className={"flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-sm font-black transition " + (effectiveMemberPage ? "border-cyan-950 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50")}
+                >
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-cyan-950 text-white"><UserRound size={16} /></span>
+                  <span className="hidden xl:inline">{currentUser.username}</span>
+                  <ChevronDown size={14} className={"transition " + (userMenuOpen ? "rotate-180" : "")} />
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                    {[["account", "Hesabım"], ["posts", "Paylaşımlarım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => openMemberPage(key)}
+                        className={"flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-black " + (effectiveMemberPage === key ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-50")}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <div className="my-1 border-t border-slate-100" />
+                    <button
+                      onClick={() => { setUserMenuOpen(false); setIsMember(false); clearViews(); }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-black text-slate-500 hover:bg-slate-50"
+                    >
+                      <LogOut size={15} /> Çıkış yap
+                    </button>
+                  </div>
+                )}
               </div>
+            ) : (
+              <button onClick={requireLogin} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                Üye ol / Giriş yap
+              </button>
             )}
-            <button
-              onClick={openCommunity}
-              className={
-                "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-bold " +
-                (communityMode ? "border-cyan-950 bg-cyan-950 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50")
-              }
-            >
-              <Users size={16} /> <span className="hidden lg:inline">Topluluk</span>
-            </button>
-            <button onClick={() => {
-              if (isMember) {
-                setIsMember(false);
-                clearViews();
-              } else {
-                setAuthMode("login");
-                setAuthOpen(true);
-              }
-            }} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-              {isMember ? "Çıkış yap" : "Üye ol / Giriş yap"}
-            </button>
             <div ref={shareMenuRef} className="relative">
               <button onClick={() => setShareMenuOpen((open) => !open)} className="flex items-center gap-2 rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white hover:bg-cyan-900">
                 <Plus size={17} /> Paylaş <ChevronDown size={15} className={"transition " + (shareMenuOpen ? "rotate-180" : "")} />
@@ -654,8 +860,10 @@ export default function AquaTakasPrototype() {
       </header>
 
       <main className={"mx-auto grid max-w-7xl px-4 " + ((accountMode || userListingsMode) ? "lg:grid-cols-[1fr]" : detailMode ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
-                {communityMode && <CommunityAside onCompose={openComposer} />}
-                {!accountMode && !userListingsMode && !communityMode && (
+                {communityMode && <CommunityAside ctx={communityCtx} view={asideView} group={groupMode ? currentGroup : null} search={communitySearch} tags={asideTags} groups={groups} />}
+                {homeView === "posts" && <CommunityAside ctx={communityCtx} view="feed" search={communitySearch} tags={asideTags} groups={groups} />}
+                {homeView === "mixed" && <HomeAside ctx={communityCtx} groups={groups} posts={posts} listingCount={listings.filter((item) => item.userId === currentUserId).length} />}
+                {showListingFilters && (
           <aside className="h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:h-[calc(100vh-72px)] lg:overflow-auto">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-black"><SlidersHorizontal size={17} /> Filtrele</h2>
@@ -689,6 +897,20 @@ export default function AquaTakasPrototype() {
   ) : (
     <PostNotFound onBack={() => { clearViews(); setCommunityOpen(true); }} />
   )
+) : groupMode ? (
+  currentGroup ? (
+    <GroupPage group={currentGroup} posts={posts} ctx={communityCtx} search={communitySearch} />
+  ) : (
+    <div className="p-10 text-center">
+      <h2 className="text-xl font-black">Grup bulunamadı</h2>
+      <p className="mt-2 text-sm text-slate-500">Bu grup kaldırılmış ya da bağlantı hatalı olabilir.</p>
+      <button onClick={communityCtx.onOpenGroups} className="mt-5 rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">Gruplara dön</button>
+    </div>
+  )
+) : communityPage === "groups" ? (
+  <GroupsPage groups={groups} posts={posts} ctx={communityCtx} />
+) : communityPage === "tags" ? (
+  <TagsPage posts={posts} ctx={communityCtx} />
 ) : effectiveMemberPage === "posts" ? (
   <MyPostsPage posts={posts} ctx={communityCtx} />
 ) : postsUser && !selectedListing && !viewUser && !effectiveMemberPage ? (
@@ -705,7 +927,7 @@ export default function AquaTakasPrototype() {
     }}
   />
 ) : communityOpen && !selectedListing && !viewUser && !effectiveMemberPage ? (
-  <CommunityFeed posts={posts} members={newMembers} ctx={communityCtx} />
+  <CommunityFeed posts={posts} members={newMembers} ctx={communityCtx} search={communitySearch} />
 ) : effectiveMemberPage === "account" ? (
   <AccountPage user={currentUser} />
 ) : effectiveMemberPage === "listings" ? (
@@ -730,7 +952,7 @@ export default function AquaTakasPrototype() {
     onProfile={setProfileUser}
     menuOpen={menuOpen}
     setMenuOpen={setMenuOpen}
-    onReport={() => setReportOpen(true)}
+    onReport={() => { setMenuOpen(false); setReportTarget({ kind: "listing", listing: selectedListing }); }}
     onAuth={() => {
       setAuthMode("login");
       setAuthOpen(true);
@@ -751,28 +973,52 @@ export default function AquaTakasPrototype() {
     priceLabel={priceLabel}
     UserName={UserName}
   />
+) : homeView === "mixed" ? (
+  <>
+    {homeTopBar}
+    <HomeFeed posts={posts} listings={listings} groups={groups} ctx={communityCtx} filter={homeFilter} tab={homeTab} location={homeLocation} />
+  </>
+) : homeView === "posts" ? (
+  <>
+    {homeTopBar}
+    <CommunityFeed posts={posts} members={newMembers} ctx={communityCtx} search={communitySearch} embedded />
+  </>
 ) : (
-  <ListingFeed
-    listings={filteredListings}
-    onOpen={openListing}
-    onProfile={setProfileUser}
-    users={users}
-    featuredListingIds={featuredListingIds}
-    adPool={adPool}
-    priceLabel={priceLabel}
-    formatDate={formatDate}
-    UserName={UserName}
-    FeedAdCard={FeedAdCard}
-  />
+  <>
+    {homeView === "listings" ? homeTopBar : (
+      <div className="sticky top-[72px] z-20 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
+        <h2 className="text-xl font-black text-slate-950">İlanlar</h2>
+        <p className="text-xs font-semibold text-slate-500">{filteredListings.length} ilan · soldan filtreleyebilirsin</p>
+      </div>
+    )}
+    <ListingFeed
+      listings={filteredListings}
+      onOpen={openListing}
+      onProfile={setProfileUser}
+      users={users}
+      featuredListingIds={featuredListingIds}
+      adPool={adPool}
+      priceLabel={priceLabel}
+      formatDate={formatDate}
+      UserName={UserName}
+      FeedAdCard={FeedAdCard}
+    />
+  </>
+)}
 )}
 </section>
-        {!detailMode && !accountMode && !userListingsMode && <RightSidebar />}
+        {!detailMode && !accountMode && !userListingsMode && (
+          <RightSidebar>{homeMode && <HomeWidgets posts={posts} groups={groups} ctx={communityCtx} />}</RightSidebar>
+        )}
       </main>
 
       {profileUser && (
   <ProfileModal
     user={profileUser}
     userPosts={posts.filter((post) => post.userId === userIdOf(users, profileUser))}
+    allPosts={posts}
+    groups={groups}
+    onOpenGroup={openGroup}
     onClose={() => setProfileUser(null)}
     onOpenPost={openPost}
     onViewPosts={() => {
@@ -789,9 +1035,37 @@ export default function AquaTakasPrototype() {
     }}
   />
 )}
-      {reportOpen && <ReportModal onClose={() => setReportOpen(false)} />}
+      {reportTarget && (
+        <ReportModal
+          target={reportTarget}
+          onClose={() => setReportTarget(null)}
+          onSubmit={() => {
+            setReportTarget(null);
+            setToast("Bildirimin alındı, ekibimiz inceleyecek. Teşekkürler!");
+          }}
+        />
+      )}
       {addOpen && <AddListingModal onClose={() => setAddOpen(false)} />}
-      {composerOpen && <ComposerModal user={currentUser} userId={currentUserId} onClose={() => setComposerOpen(false)} onPublish={publishPost} />}
+      {composerOpen && (
+        <ComposerModal
+          user={currentUser}
+          userId={currentUserId}
+          groups={joinedGroups}
+          defaultGroupId={composerGroupId && joinedGroups.some((group) => group.id === composerGroupId) ? composerGroupId : null}
+          onClose={() => setComposerOpen(false)}
+          onPublish={publishPost}
+        />
+      )}
+      {groupForm && (
+        <GroupFormModal
+          group={groupForm.group}
+          users={users}
+          groups={groups}
+          currentUserId={currentUserId}
+          onClose={() => setGroupForm(null)}
+          onSave={saveGroup}
+        />
+      )}
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-[80] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-black text-white shadow-xl">{toast}</div>
       )}
@@ -1063,7 +1337,7 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
   );
 }
 
-function RightSidebar() {
+function RightSidebar({ children }) {
   const [activeSlide, setActiveSlide] = useState(0);
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoTab, setInfoTab] = useState("nedir");
@@ -1087,6 +1361,7 @@ function RightSidebar() {
 
   return (
     <aside className="h-fit border-r border-slate-200 bg-white p-4 lg:sticky lg:top-[72px]">
+      {children}
       <SidebarAd ad={adPool[0]} />
       <div className="mt-4 overflow-hidden rounded-[28px] border border-slate-200 bg-white">
         <div className="relative h-52 overflow-hidden bg-slate-900 p-5 text-white" style={{ backgroundImage: "linear-gradient(120deg, rgba(8,51,68,.92), rgba(15,23,42,.62)), url(" + slide.image + ")", backgroundSize: "cover", backgroundPosition: "center" }}>
@@ -1321,6 +1596,7 @@ function DetailBannerAd({ ad }) {
 }
 
 function AccountPage({ user }) {
+  const [hideFromSearch, setHideFromSearch] = useState(false);
   return (
     <div className="mx-auto max-w-5xl p-5">
       <div className="mb-5 border-b border-slate-200 pb-4">
@@ -1336,6 +1612,31 @@ function AccountPage({ user }) {
           <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-900">
             <div className="mb-1 flex items-center gap-2 font-black"><ShieldCheck size={17} /> Güven profili</div>
             Telefon ve e-posta doğrulaması tamamlandığında kullanıcı adının yanında mavi tik görünür.
+          </div>
+          <div className="mt-4 rounded-2xl border border-slate-200 p-3">
+            <div className="mb-2 text-sm font-black text-slate-800">Gizlilik</div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={hideFromSearch}
+              onClick={() => setHideFromSearch((value) => !value)}
+              className="flex w-full items-start justify-between gap-3 text-left"
+            >
+              <span className="flex gap-2">
+                <span className={"mt-0.5 shrink-0 " + (hideFromSearch ? "text-cyan-800" : "text-slate-400")}>{hideFromSearch ? <EyeOff size={17} /> : <Eye size={17} />}</span>
+                <span>
+                  <span className="block text-sm font-black text-slate-800">Profilimi arama motorlarından gizle</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
+                    {hideFromSearch
+                      ? "Profilin ve paylaşımların Google gibi arama motorlarında listelenmez. Site üyeleri seni görmeye devam eder."
+                      : "Profilin ve paylaşımların arama motorlarında görünebilir."}
+                  </span>
+                </span>
+              </span>
+              <span className={"relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition " + (hideFromSearch ? "bg-cyan-950" : "bg-slate-300")}>
+                <span className={"absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all " + (hideFromSearch ? "left-[22px]" : "left-0.5")} />
+              </span>
+            </button>
           </div>
           <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100"><Trash2 size={16} /> Hesabımı sil</button>
         </div>
@@ -2373,15 +2674,37 @@ function UserListingsPage({ user, onBack, onOpen, onProfile }) {
     </div>
   );
 }
-function ProfileModal({ user, userPosts = [], onClose, onViewListings, onViewPosts, onOpenPost }) {
+// Görsel / video / anket içeriklerde metin yerine küçük önizleme + açıklama
+function MediaThumb({ item, size = "h-11 w-11" }) {
+  if (item.images && item.images.length) {
+    return (
+      <span className={"relative shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-cyan-800 to-teal-500 " + size}>
+        <img src={item.images[0]} alt="" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+        {item.images.length > 1 && <span className="absolute bottom-0.5 right-0.5 rounded bg-slate-950/70 px-1 text-[9px] font-black text-white">+{item.images.length - 1}</span>}
+      </span>
+    );
+  }
+  if (item.video) return <span className={"grid shrink-0 place-items-center rounded-lg bg-slate-900 text-white " + size}><Play size={14} fill="currentColor" /></span>;
+  if (item.poll) return <span className={"grid shrink-0 place-items-center rounded-lg bg-cyan-50 text-cyan-800 " + size}><BarChart3 size={15} /></span>;
+  return null;
+}
+
+function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], onClose, onViewListings, onViewPosts, onOpenPost, onOpenGroup }) {
   const stats = user.reviewStats || { positive: 0, neutral: 0, negative: 0 };
   const totalReviews = stats.positive + stats.neutral + stats.negative;
   const hasSocials = user.socials && (user.socials.instagram || user.socials.facebook || user.socials.x);
   const recentPosts = userPosts.slice(0, 3);
+  const profileUserId = userIdOf(users, user);
+  // Kullanıcının başkalarının (ve kendi) içeriklerine yaptığı en yeni yorumlar
+  const recentComments = allPosts
+    .flatMap((post) => post.comments.filter((comment) => comment.userId === profileUserId).map((comment) => ({ comment, post })))
+    .sort((a, b) => b.comment.createdAt - a.comment.createdAt)
+    .slice(0, 3);
+  const userGroups = groups.filter((group) => group.memberIds.includes(profileUserId));
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-[32px] bg-white p-5 shadow-2xl">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="max-h-[92vh] w-full min-w-0 max-w-lg overflow-y-auto overflow-x-hidden rounded-[32px] bg-white p-5 shadow-2xl">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="relative grid h-14 w-14 place-items-center rounded-2xl bg-cyan-950 text-white">
@@ -2461,6 +2784,21 @@ function ProfileModal({ user, userPosts = [], onClose, onViewListings, onViewPos
           </div>
         </div>
 
+        {userGroups.length > 0 && (
+          <div className="mb-4 rounded-2xl bg-slate-50 p-3">
+            <div className="mb-2 text-sm font-black">Gruplar</div>
+            <div className="flex flex-wrap gap-1.5">
+              {userGroups.map((group) => (
+                <button key={group.id} type="button" onClick={() => onOpenGroup(group)} className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-cyan-50">
+                  <span>{group.emoji}</span> {group.name}
+                  {group.ownerId === profileUserId && <span className="text-amber-700">· kurucu</span>}
+                  {group.ownerId !== profileUserId && group.moderatorIds.includes(profileUserId) && <span className="text-cyan-700">· mod</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mb-4 rounded-2xl bg-slate-50 p-3">
           <div className="mb-2 text-sm font-black">Sosyal hesaplar</div>
 
@@ -2499,19 +2837,56 @@ function ProfileModal({ user, userPosts = [], onClose, onViewListings, onViewPos
                   key={post.id}
                   type="button"
                   onClick={() => onOpenPost(post)}
-                  className="rounded-xl bg-white p-2.5 text-left ring-1 ring-slate-200 transition hover:bg-cyan-50/50 hover:ring-cyan-200"
+                  className="flex w-full min-w-0 items-start gap-2.5 rounded-xl bg-white p-2.5 text-left ring-1 ring-slate-200 transition hover:bg-cyan-50/50 hover:ring-cyan-200"
                 >
-                  <p className="line-clamp-2 text-sm text-slate-700">{postSnippet(post)}</p>
-                  <div className="mt-1.5 flex items-center gap-3 text-xs font-semibold text-slate-400">
-                    <span>{timeAgo(post.createdAt)}</span>
-                    <span>♥ {post.likes}</span>
-                    <span>💬 {post.comments.length}</span>
-                  </div>
+                  <MediaThumb item={post} />
+                  <span className="min-w-0 flex-1">
+                    <span className={"line-clamp-2 break-words text-sm " + (post.text ? "text-slate-700" : "font-bold text-slate-500")}>{post.text || mediaLabel(post)}</span>
+                    <span className="mt-1.5 flex items-center gap-3 text-xs font-semibold text-slate-400">
+                      <span>{timeAgo(post.createdAt)}</span>
+                      <span>♥ {post.likes}</span>
+                      <span>💬 {post.comments.length}</span>
+                    </span>
+                  </span>
                 </button>
               ))}
             </div>
           ) : (
             <p className="rounded-xl bg-white p-2 text-sm text-slate-500 ring-1 ring-slate-200">Henüz paylaşım yok.</p>
+          )}
+        </div>
+
+        <div className="mb-4 rounded-2xl bg-slate-50 p-3">
+          <div className="mb-2 text-sm font-black">Son yorumlar</div>
+
+          {recentComments.length > 0 ? (
+            <div className="grid gap-2">
+              {recentComments.map(({ comment, post }) => (
+                <button
+                  key={comment.id}
+                  type="button"
+                  onClick={() => onOpenPost(post)}
+                  className="block w-full min-w-0 rounded-xl bg-white p-2.5 text-left ring-1 ring-slate-200 transition hover:bg-cyan-50/50 hover:ring-cyan-200"
+                >
+                  <span className="flex min-w-0 items-start gap-2.5">
+                    {(comment.images && comment.images.length > 0) || comment.video ? <MediaThumb item={comment} size="h-10 w-10" /> : null}
+                    <span className={"line-clamp-2 min-w-0 flex-1 break-words text-sm " + (comment.text ? "text-slate-700" : "font-bold text-slate-500")}>{comment.text || commentSnippet(comment)}</span>
+                  </span>
+                  <span className="mt-1.5 flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 p-1.5 text-xs text-slate-500">
+                    <MediaThumb item={post} size="h-7 w-7" />
+                    {!(post.images && post.images.length) && !post.video && !post.poll && <MessageCircle size={12} className="ml-0.5 shrink-0" />}
+                    <span className="shrink-0 font-black text-slate-600">{users[post.userId].username}</span>
+                    <span className="min-w-0 truncate">{post.text || mediaLabel(post)}</span>
+                  </span>
+                  <span className="mt-1.5 flex items-center gap-3 text-xs font-semibold text-slate-400">
+                    <span>{timeAgo(comment.createdAt)}</span>
+                    <span>♥ {comment.likes}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-xl bg-white p-2 text-sm text-slate-500 ring-1 ring-slate-200">Henüz yorum yok.</p>
           )}
         </div>
 
@@ -2557,8 +2932,71 @@ function ProfileModal({ user, userPosts = [], onClose, onViewListings, onViewPos
   );
 }
 
-function ReportModal({ onClose }) {
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-[32px] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-black">Bildir</h2><p className="text-sm text-slate-500">Bu ilanla ilgili kısa bir bildirim gönder.</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><Select label="Neden?" value="Yanıltıcı ilan" onChange={() => {}} options={["Yanıltıcı ilan", "Uygunsuz canlı / ürün", "Sahte fotoğraf", "Satıldı ama yayında", "Diğer"]} /><label className="mt-3 block"><span className="mb-1 block text-xs font-black text-slate-500">Açıklama - opsiyonel</span><textarea rows={4} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder="Kısaca açıklayın..." /></label><button onClick={onClose} className="mt-4 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white">Bildir</button></div></div>;
+const reportReasons = {
+  listing: ["Yanıltıcı ilan", "Uygunsuz canlı / ürün", "Sahte fotoğraf", "Satıldı ama yayında", "Diğer"],
+  post: ["Spam veya reklam", "Hakaret, taciz ya da nefret söylemi", "Yanıltıcı veya tehlikeli bilgi", "Uygunsuz görsel / video", "Topluluk akışında satış yapılıyor", "Hayvan refahına aykırı içerik", "Diğer"],
+  comment: ["Spam veya reklam", "Hakaret, taciz ya da nefret söylemi", "Yanıltıcı veya tehlikeli bilgi", "Uygunsuz görsel / video", "Diğer"]
+};
+
+const reportCopy = {
+  listing: { title: "İlanı bildir", text: "Bu ilanla ilgili kısa bir bildirim gönder." },
+  post: { title: "Paylaşımı bildir", text: "Topluluk kurallarına aykırı içerikleri ekibimize ilet." },
+  comment: { title: "Yorumu bildir", text: "Topluluk kurallarına aykırı yorumları ekibimize ilet." }
+};
+
+function ReportModal({ target, onClose, onSubmit }) {
+  const kind = target.kind || "listing";
+  const reasons = reportReasons[kind];
+  const copy = reportCopy[kind];
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
+  const author = kind === "post" ? users[target.post.userId] : kind === "comment" ? users[target.comment.userId] : null;
+  const preview = kind === "post" ? postSnippet(target.post) : kind === "comment" ? commentSnippet(target.comment) : target.listing && target.listing.title;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-[32px] bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-black"><Flag size={18} /> {copy.title}</h2>
+            <p className="text-sm text-slate-500">{copy.text}</p>
+          </div>
+          <button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button>
+        </div>
+
+        {preview && (
+          <div className="mb-4 rounded-2xl bg-slate-50 p-3 text-sm ring-1 ring-slate-200">
+            {author && <div className="mb-1 text-xs font-black text-slate-500">{author.username}</div>}
+            <p className="line-clamp-3 text-slate-700">{preview}</p>
+          </div>
+        )}
+
+        <div className="mb-1 text-xs font-black text-slate-500">Neden bildiriyorsun?</div>
+        <div className="grid gap-1.5">
+          {reasons.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setReason(option)}
+              className={"flex items-center justify-between rounded-2xl border px-3 py-2.5 text-left text-sm font-bold transition " + (reason === option ? "border-cyan-950 bg-cyan-50 text-cyan-950" : "border-slate-200 text-slate-700 hover:bg-slate-50")}
+            >
+              {option}
+              <span className={"grid h-4 w-4 place-items-center rounded-full border-2 " + (reason === option ? "border-cyan-950" : "border-slate-300")}>
+                {reason === option && <span className="h-1.5 w-1.5 rounded-full bg-cyan-950" />}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <label className="mt-3 block">
+          <span className="mb-1 block text-xs font-black text-slate-500">Açıklama - opsiyonel</span>
+          <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={300} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700" placeholder="Kısaca açıklayın..." />
+        </label>
+        <p className="mt-2 text-xs leading-relaxed text-slate-400">Bildirimler gizlidir; içerik sahibi kimin bildirdiğini görmez.</p>
+        <button onClick={onSubmit} disabled={!reason} className="mt-4 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Bildir</button>
+      </div>
+    </div>
+  );
 }
 
 function RemoveListingModal({ listing, onClose }) {

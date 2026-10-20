@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# Yayın iş akışı npm install kullanıyor; kilit dosyası tutulmuyor
+package-lock.json

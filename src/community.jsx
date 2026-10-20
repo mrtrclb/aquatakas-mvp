@@ -2,14 +2,20 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   BarChart3,
+  Bookmark,
   ChevronLeft,
   ChevronRight,
+  Flag,
+  Hash,
   Heart,
   Image as ImageIcon,
   Link2,
   MapPin,
   MessageCircle,
+  MoreHorizontal,
+  Pencil,
   Play,
+  Search,
   Share2,
   Trash2,
   UserRound,
@@ -80,6 +86,70 @@ function avatarColor(username) {
   return AVATAR_COLORS[sum % AVATAR_COLORS.length];
 }
 
+// Yüklenen videonun süresini kontrol eder (en fazla 1 dk)
+export const MAX_VIDEO_SECONDS = 60;
+function probeVideo(file, onOk, onError) {
+  const url = URL.createObjectURL(file);
+  const probe = document.createElement("video");
+  probe.preload = "metadata";
+  probe.onloadedmetadata = () => {
+    if (probe.duration > MAX_VIDEO_SECONDS + 0.5) {
+      URL.revokeObjectURL(url);
+      const total = Math.round(probe.duration);
+      onError("Bu video " + Math.floor(total / 60) + " dk " + (total % 60) + " sn. Doğrudan yüklenen videolar en fazla 1 dakika olabilir; daha uzunsa bağlantı olarak ekleyebilirsin.");
+      return;
+    }
+    onOk({ kind: "file", url, name: file.name });
+  };
+  probe.onerror = () => {
+    URL.revokeObjectURL(url);
+    onError("Video dosyası okunamadı. Farklı bir dosya dene.");
+  };
+  probe.src = url;
+}
+
+function parseVideoLink(value) {
+  const parsed = new URL(value.trim());
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("protokol");
+  return { kind: "link", url: value.trim(), ytId: parseYouTubeId(value) };
+}
+
+export function normalizeTr(text) {
+  return (text || "").toLocaleLowerCase("tr");
+}
+
+const TAG_RE = /#[\p{L}\p{N}_]+/gu;
+
+// Paylaşım metinlerindeki etiketleri sayar: [{ tag, count }] (çoktan aza)
+export function extractTags(posts) {
+  const counts = {};
+  posts.forEach((post) => {
+    const seen = new Set((post.text || "").match(TAG_RE) || []);
+    seen.forEach((raw) => {
+      const tag = normalizeTr(raw);
+      counts[tag] = (counts[tag] || 0) + 1;
+    });
+  });
+  return Object.entries(counts)
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag, "tr"));
+}
+
+// Bir paylaşımın kısa tanımı (görsel/video/anket içerikler için de anlamlı)
+export function mediaLabel(post) {
+  if (post.poll) return "Anket";
+  if (post.video) return "Video paylaşımı";
+  if (post.images && post.images.length) return post.images.length > 1 ? post.images.length + " fotoğraflı paylaşım" : "Fotoğraf paylaşımı";
+  return "Paylaşım";
+}
+
+export function commentSnippet(comment) {
+  if (comment.text) return comment.text;
+  if (comment.video) return "🎬 Video";
+  if (comment.images && comment.images.length) return "📷 " + comment.images.length + " fotoğraf";
+  return "Yorum";
+}
+
 function mulberry32(seed) {
   let a = seed >>> 0;
   return function next() {
@@ -122,85 +192,119 @@ export const newMemberUsers = {
 const seedPosts = [
   {
     userId: 2, ago: 14,
-    text: "Bu hafta bitkili tankta CO2'yi ışıktan bir saat önce açıp erken kapattım, yosun baskısı gözle görülür azaldı. Sizde ışık / CO2 zamanlaması nasıl? #bitkilitank",
+    text: "Bu hafta bitkili tankta CO2'yi ışıktan bir saat önce açıp erken kapattım, yosun baskısı gözle görülür azaldı. Sizde ışık / CO2 zamanlaması nasıl? #bitkilitank #co2", group: "bitkili",
     comments: [[3, "Ben de aynı düzene geçtim, 2 haftada fark ettim. Işık süresi kaç saat sende?", 6], [5, "Damlalık yerine ölçülü verince daha stabil oluyor, tavsiye ederim.", 9], [1, "Deneyeceğim, sonucu paylaşırsan sevinirim.", 12]]
   },
   {
     userId: 1, ago: 32,
-    text: "Brichardi yavruları kayaların arasından çıkmaya başladı. Koloni davranışı beklediğimden çok daha keyifli 🐟 #tanganyika",
+    text: "Brichardi yavruları kayaların arasından çıkmaya başladı. Koloni davranışı beklediğimden çok daha keyifli 🐟 #tanganyika #yavru", group: "tanganyika",
     images: [IMG.fish1],
     comments: [[7, "Ne kadar güzel! Kaç çift var kolonide?", 4], [2, "Yavrular için ekstra yemleme yapıyor musun?", 8]]
   },
   {
     userId: 3, ago: 50,
-    text: "Nano tankta moss duvarı yaparken en zor kısım ipi gizlemek. Siz hangi yöntemi kullanıyorsunuz? Misina mı, pamuk ip mi?",
+    text: "Nano tankta moss duvarı yaparken en zor kısım ipi gizlemek. Siz hangi yöntemi kullanıyorsunuz? Misina mı, pamuk ip mi? #nanotank #moss", group: "nano",
     comments: [[5, "Pamuk ip bir süre sonra çözülüyor, misina daha temiz görünüyor.", 5], [9, "Ben cyanoacrylate jel yapıştırıcıyla denedim, sorunsuz oldu.", 14], [6, "Ağ üzerine sarmak da pratik bir çözüm.", 20]]
   },
   {
     userId: 4, ago: 70,
-    text: "Dış filtre bakım günü: öncesi, bakım sırası ve sonrası. Medyalar yıkanınca akış farkı çok net. #ekipman",
+    text: "Dış filtre bakım günü: öncesi, bakım sırası ve sonrası. Medyalar yıkanınca akış farkı çok net. #ekipman #filtre",
     images: [IMG.equip1, IMG.bottle, IMG.chem1],
     comments: [[2, "Bakımı hangi sıklıkla yapıyorsun?", 7], [1, "Önceki hali gerçekten çok kirliymiş 😅", 11]]
   },
   {
     userId: 5, ago: 120,
-    text: "Low-tech bitkili tankta hangi taban malzemesini tercih edersiniz? #bitkilitank",
+    text: "Low-tech bitkili tankta hangi taban malzemesini tercih edersiniz? #bitkilitank #lowtech", group: "bitkili",
     poll: { days: 2, options: [["Normal çakıl", 18], ["Besleyici taban toprağı", 41], ["Kum", 12], ["Karışık düzen", 9]] },
     comments: [[3, "Toprak ilk aylarda zor ama sonrasında bitkiler çok mutlu oluyor.", 15], [8, "Kum bence en rahat bakım, ben ona oy verdim.", 25]]
   },
   {
     userId: 6, ago: 160,
-    text: "Merhaba herkese! Guppy üretimine yeni başladım. İlk doğumda 20 yavru çıktı, ayrı tankta büyütmek için hangi yemlerle başlamanızı önerirsiniz?",
+    text: "Merhaba herkese! Guppy üretimine yeni başladım. İlk doğumda 20 yavru çıktı, ayrı tankta büyütmek için hangi yemlerle başlamanızı önerirsiniz? #guppy #yavru",
     comments: [[3, "Hoş geldin! İlk günler artemia nauplii çok iyi, yoksa toz yem de olur.", 10], [4, "Yavru tankında hafif bir filtre ve bol saklanma alanı koy.", 18], [1, "Aramıza hoş geldin, bu platformda çok bilgili hobici var.", 25]]
   },
   {
     userId: 1, ago: 190,
-    text: "Hafta sonu tank bakımı tamam: sifon, kısmi su değişimi ve cam temizliği 🧽",
+    text: "Hafta sonu tank bakımı tamam: sifon, kısmi su değişimi ve cam temizliği 🧽 #bakım",
     images: [IMG.tank1, IMG.tank2, IMG.plant1, IMG.plant2],
     comments: [[2, "Cam çok parlak olmuş, hangi sünger?", 8], [5, "Bitkiler de harika görünüyor 👏", 14], [4, "Su değişimi yüzdesini paylaşır mısın?", 22]]
   },
   {
     userId: 2, ago: 240,
-    text: "Yeni aldığım rimless tank sonunda yerine oturdu. Cam kalitesi gerçekten fark yaratıyor.",
+    text: "Yeni aldığım rimless tank sonunda yerine oturdu. Cam kalitesi gerçekten fark yaratıyor. #rimless",
     images: [IMG.tank2],
     comments: [[4, "Silikon kenarları temiz mi? İthal olanlarda hep merak ederim.", 12], [3, "Hayırlı olsun! Bitkilendirme planı var mı?", 30]]
   },
   {
     userId: 7, ago: 300,
-    text: "Tanganyika kurulumunda ilk hafta pH'ı kaç tutuyorsunuz? Kum ve kaya sonrası 8.2'ye çıktı, ilk günler bekleme önerenler var.",
+    text: "Tanganyika kurulumunda ilk hafta pH'ı kaç tutuyorsunuz? Kum ve kaya sonrası 8.2'ye çıktı, ilk günler bekleme önerenler var. #tanganyika #suparametreleri", group: "tanganyika",
     comments: [[1, "8.2 gayet normal, balıkları yavaş yavaş ekle yeter.", 9], [4, "Düzenli kısmi su değişimi stabilite sağlar.", 16], [2, "KH değerine de bakmanı öneririm.", 24]]
   },
   {
     userId: 3, ago: 420,
-    text: "Bu ayki budama paketi hazır: java fern, anubias ve moss. Takas için mesaj atabilirsiniz! #bitkilitank",
+    text: "Bu ayki budama paketi hazır: java fern, anubias ve moss. Takas için mesaj atabilirsiniz! #bitkilitank #takas",
     images: [IMG.plant1, IMG.plant2, IMG.decor1],
     comments: [[5, "Karides takası olur mu? Mesaj attım.", 5], [9, "Anubias için sıra bende 🙋", 11]]
   },
   {
     userId: 5, ago: 540,
-    text: "Bucephalandra koleksiyonu güncellemesi: 6 farklı tür bir arada. Kök üstü bağlamaları bu hafta bitirdim, sonuçlar çok iyi. #bitkilitank",
+    text: "Bucephalandra koleksiyonu güncellemesi: 6 farklı tür bir arada. Kök üstü bağlamaları bu hafta bitirdim, sonuçlar çok iyi. #bitkilitank #bucephalandra", group: "bitkili",
     images: [IMG.plant2, IMG.plant1, IMG.decor1, IMG.tank1, IMG.tank2, IMG.culture],
     comments: [[3, "Koleksiyon harika! Türlerin isimlerini yazabilir misin?", 10], [2, "Fotoğraf serisi çok güzel olmuş.", 20], [8, "Takas listen var mı?", 35]]
   },
   {
     userId: 9, ago: 660,
-    text: "Betta için hangi tank hacmini minimum görüyorsunuz? 20 litrelik tankta düşük akımlı iç filtre yeterli mi?",
+    text: "Betta için hangi tank hacmini minimum görüyorsunuz? 20 litrelik tankta düşük akımlı iç filtre yeterli mi? #betta #nanotank", group: "nano",
     comments: [[1, "Bence 20 litre alt sınır, ısıtıcı da şart.", 12], [3, "Düşük akım için sünger filtre en güvenlisi.", 20]]
   },
   {
     userId: 1, ago: 1560,
-    text: "Calvus çiftimde yumurta gördüm! Heyecandan üç saattir tanka bakıyorum 😄 Daha önce deneyimi olanlar yavru çıkışına kadar nelere dikkat etmeli?",
+    text: "Calvus çiftimde yumurta gördüm! Heyecandan üç saattir tanka bakıyorum 😄 Daha önce deneyimi olanlar yavru çıkışına kadar nelere dikkat etmeli? #tanganyika #yavru", group: "tanganyika",
     comments: [[7, "Işıkları kısmak ve bölgeyi rahat bırakmak önemli.", 8], [4, "Tebrikler! Çiftin stresini artıracak bakımlardan uzak dur.", 18], [2, "Yavru çıkınca artemia hazır olsun 👌", 40]]
   },
   {
     userId: 4, ago: 1800,
-    text: "Filtre sesinden rahatsız olanlara küçük ipucu: pervane ve motor yuvasını silikon yağıyla hafifçe yağlayınca ses neredeyse bitti.",
+    text: "Filtre sesinden rahatsız olanlara küçük ipucu: pervane ve motor yuvasını silikon yağıyla hafifçe yağlayınca ses neredeyse bitti. #ekipman #filtre",
     comments: [[2, "Gıda onaylı silikon yağı mı kullandın?", 14], [5, "Bunu hiç denememiştim, teşekkürler!", 28]]
   },
   {
     userId: 10, ago: 1740,
-    text: "Deniz akvaryumuna ilk adım: 60 litrelik nano ile başlamak mantıklı mı, yoksa direkt daha büyük tank mı almalıyım?",
+    text: "Deniz akvaryumuna ilk adım: 60 litrelik nano ile başlamak mantıklı mı, yoksa direkt daha büyük tank mı almalıyım? #denizakvaryumu", group: "deniz",
     comments: [[2, "Başlangıç için 100 litre civarı daha stabil, ama nano da olur.", 20], [4, "Önce sistemin döngüsünü bitirip sabırlı olmak şart.", 35]]
+  },
+  {
+    userId: 4, ago: 95, group: "malawi",
+    text: "Malawi tankında mbuna ve haplochromis karışık stok yapanlar var mı? Saldırganlığı azaltmak için kalabalık stok mu, bol kaya mı daha etkili oldu? #malawi #mbuna",
+    comments: [[2, "Ben bol kaya ve hafif kalabalık stokla çözdüm.", 12], [9, "Erkek / dişi oranı da çok önemli, 1'e 3 dene.", 30]]
+  },
+  {
+    userId: 5, ago: 380, group: "guney-amerika",
+    text: "Apistogramma çiftim için siyah su kurulumu: badem yaprağı ve kozalakla pH 6.4'te sabitlendi. #apistogramma #siyahsu",
+    images: [IMG.plant2],
+    comments: [[3, "Renkler harika çıkmıştır, fotoğraf bekliyoruz!", 20]]
+  },
+  {
+    userId: 8, ago: 480, group: "nano",
+    text: "Neocaridina renk hatlarında blue dream seçilimine başladım, 3. nesilde renk oturmaya başladı 🦐 #karides #nanotank",
+    images: [IMG.culture],
+    comments: [[3, "3. nesilde bu renk çok iyi!", 18]]
+  },
+  {
+    userId: 7, ago: 900, group: "monster",
+    text: "Tiger oscar'ım 28 cm'yi geçti. 400 litre tank dar gelmeye başladı; monster sahipleri tank büyütmede hangi ölçüye geçti? #monster #oscar",
+    images: [IMG.fish2],
+    comments: [[4, "Oscar için 150x60 taban alanı rahat ettirir.", 25], [1, "Filtrasyonu da ikiye katla, çok kirletiyorlar.", 40]]
+  },
+  {
+    userId: 10, ago: 1200, group: "deniz",
+    text: "İlk mercan fragım geldi: zoanthus! Işık ve akıntı ayarı için önerisi olan? #denizakvaryumu #mercan",
+    comments: [[2, "Zoalar dayanıklı, orta ışıkla başla.", 15]]
+  },
+  {
+    userId: 1, ago: 2600,
+    text: "",
+    images: [IMG.tank1],
+    comments: [[5, "Kaya düzeni çok doğal görünüyor 👏", 30], [2, "Bu tank kaç litre?", 55]]
   }
 ];
 
@@ -214,6 +318,7 @@ export function buildInitialPosts() {
         id: "p" + (i + 1),
         slug: makeSlug(p.text, 10000 + Math.floor(rand() * 89999)),
         userId: p.userId,
+        groupId: p.group || null,
         text: p.text,
         images: p.images || [],
         video: null,
@@ -222,6 +327,7 @@ export function buildInitialPosts() {
           : null,
         likes: 6 + Math.floor(rand() * 140),
         likedByMe: false,
+        savedByMe: false,
         createdAt,
         comments: p.comments.map((c, k) => ({
           id: "c" + (i + 1) + "-" + k,
@@ -253,7 +359,7 @@ export function postSnippet(post) {
 /* Küçük parçalar                                                      */
 /* ------------------------------------------------------------------ */
 
-function Avatar({ user, size = 44, onClick }) {
+export function Avatar({ user, size = 44, onClick }) {
   return (
     <button
       type="button"
@@ -273,11 +379,18 @@ function Avatar({ user, size = 44, onClick }) {
   );
 }
 
-function RichText({ text }) {
+function RichText({ text, onTag }) {
   const parts = text.split(/(#[\p{L}\p{N}_]+)/u);
   return parts.map((part, index) =>
     part.startsWith("#") ? (
-      <span key={index} className="font-semibold text-cyan-700">{part}</span>
+      <button
+        key={index}
+        type="button"
+        onClick={(event) => { event.stopPropagation(); if (onTag) onTag(part); }}
+        className="font-semibold text-cyan-700 hover:underline"
+      >
+        {part}
+      </button>
     ) : (
       <React.Fragment key={index}>{part}</React.Fragment>
     )
@@ -483,7 +596,52 @@ function PollBlock({ post, ctx }) {
 /* Paylaşım kartı                                                      */
 /* ------------------------------------------------------------------ */
 
-export function PostCard({ post, ctx, detail = false }) {
+// İlan detayındaki "..." menüsünün içerik/yorum karşılığı
+function MoreMenu({ items, size = 19 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    function onDown(event) {
+      if (ref.current && !ref.current.contains(event.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative ml-auto" onClick={(event) => event.stopPropagation()}>
+      <button
+        type="button"
+        title="Diğer"
+        onClick={() => setOpen((value) => !value)}
+        className={"grid h-8 w-8 place-items-center rounded-full transition " + (open ? "bg-slate-100 text-slate-800" : "text-slate-400 hover:bg-slate-100 hover:text-slate-700")}
+      >
+        <MoreHorizontal size={size} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 z-30 min-w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => { setOpen(false); item.onClick(); }}
+                className={"flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold " + (item.danger ? "text-red-600 hover:bg-red-50" : "text-slate-600 hover:bg-slate-50")}
+              >
+                <Icon size={15} fill={item.filled ? "currentColor" : "none"} /> {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function PostCard({ post, ctx, detail = false, hideGroup = false }) {
   const [lightbox, setLightbox] = useState(null);
   const user = ctx.users[post.userId];
   const UserName = ctx.UserName;
@@ -493,6 +651,16 @@ export function PostCard({ post, ctx, detail = false }) {
     if (!ctx.isMember) return ctx.onAuth();
     return fn();
   };
+  const requireMember = (fn) => () => (ctx.isMember ? fn() : ctx.onAuth());
+
+  const menuItems = [
+    !isMine && { label: "Bildir", icon: Flag, onClick: requireMember(() => ctx.onReport({ kind: "post", post })) },
+    { label: "Paylaş", icon: Share2, onClick: () => ctx.onShare(post) },
+    { label: post.savedByMe ? "Kaydedildi" : "Kaydet", icon: Bookmark, filled: post.savedByMe, onClick: requireMember(() => ctx.onSave(post.id)) },
+    isMine && { label: "Sil", icon: Trash2, danger: true, onClick: () => ctx.onDelete(post) },
+    !isMine && ctx.canModerate && ctx.canModerate(post) && { label: "Gruptan kaldır", icon: Trash2, danger: true, onClick: () => ctx.onDelete(post, true) }
+  ].filter(Boolean);
+  const group = post.groupId && ctx.groupById ? ctx.groupById(post.groupId) : null;
 
   return (
     <article
@@ -502,26 +670,26 @@ export function PostCard({ post, ctx, detail = false }) {
       <Avatar user={user} onClick={() => ctx.onProfile(user)} />
 
       <div className="min-w-0 flex-1">
+        {group && !hideGroup && (
+          <button
+            type="button"
+            onClick={(event) => { event.stopPropagation(); ctx.onOpenGroup(group); }}
+            className="mb-0.5 inline-flex items-center gap-1.5 rounded-full text-xs font-black text-cyan-800 hover:underline"
+          >
+            <span className="text-sm leading-none">{group.emoji}</span> {group.name}
+          </button>
+        )}
         <div className="flex items-center gap-1.5 text-sm">
           <button type="button" onClick={(event) => { event.stopPropagation(); ctx.onProfile(user); }} className="font-black text-slate-900 hover:underline">
             <UserName user={user} />
           </button>
           <span className="text-slate-400">· {timeAgo(post.createdAt)}</span>
-          {isMine && (
-            <button
-              type="button"
-              title="Paylaşımı sil"
-              onClick={(event) => { event.stopPropagation(); ctx.onDelete(post); }}
-              className="ml-auto rounded-full p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
+          <MoreMenu items={menuItems} />
         </div>
 
         {post.text && (
           <p className={"mt-1 whitespace-pre-wrap break-words leading-relaxed text-slate-900 " + (detail ? "text-[18px]" : "text-[15px]")}>
-            <RichText text={post.text} />
+            <RichText text={post.text} onTag={ctx.onSearch} />
           </p>
         )}
 
@@ -548,6 +716,15 @@ export function PostCard({ post, ctx, detail = false }) {
             title="Beğen"
           >
             <Heart size={18} fill={post.likedByMe ? "currentColor" : "none"} /> {post.likes}
+          </button>
+
+          <button
+            type="button"
+            onClick={gated(() => ctx.onSave(post.id))}
+            className={"flex items-center gap-1.5 rounded-full text-sm font-semibold " + (post.savedByMe ? "text-cyan-700" : "hover:text-cyan-700")}
+            title={post.savedByMe ? "Kayıtlardan çıkar" : "Kaydet"}
+          >
+            <Bookmark size={17} fill={post.savedByMe ? "currentColor" : "none"} />
           </button>
 
           <button
@@ -628,8 +805,20 @@ function NewMembersCard({ members, ctx }) {
 /* Paylaşım kutusu (sayfa içi) ve yan menü                             */
 /* ------------------------------------------------------------------ */
 
-function ComposerPrompt({ ctx }) {
+export function ComposerPrompt({ ctx, group = null }) {
   const me = ctx.isMember ? ctx.users[ctx.currentUserId] : null;
+  const joined = group ? ctx.isMember && group.memberIds.includes(ctx.currentUserId) : true;
+  const compose = () => ctx.onCompose(group ? group.id : null);
+
+  if (me && !joined) {
+    return (
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3.5">
+        <p className="text-sm font-semibold text-slate-600">Bu grupta paylaşım yapmak için gruba katıl.</p>
+        <button onClick={() => ctx.onToggleJoin(group.id)} className="shrink-0 rounded-full bg-cyan-950 px-4 py-2 text-xs font-black text-white hover:bg-cyan-900">Gruba katıl</button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-3 border-b border-slate-200 px-4 py-3.5">
       {me ? (
@@ -640,40 +829,147 @@ function ComposerPrompt({ ctx }) {
       <div className="min-w-0 flex-1">
         <button
           type="button"
-          onClick={ctx.onCompose}
+          onClick={compose}
           className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-left text-[15px] text-slate-400 hover:bg-slate-100"
         >
-          {me ? "Akvaryumunda neler oluyor?" : "Paylaşmak için giriş yap"}
+          {!me ? "Paylaşmak için giriş yap" : group ? group.name + " grubunda paylaş..." : "Akvaryumunda neler oluyor?"}
         </button>
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-1 text-cyan-800">
-            <button type="button" onClick={ctx.onCompose} title="Anket" className="rounded-full p-2 hover:bg-cyan-50"><BarChart3 size={18} /></button>
-            <button type="button" onClick={ctx.onCompose} title="Fotoğraf" className="rounded-full p-2 hover:bg-cyan-50"><ImageIcon size={18} /></button>
-            <button type="button" onClick={ctx.onCompose} title="Video" className="rounded-full p-2 hover:bg-cyan-50"><Video size={18} /></button>
+            <button type="button" onClick={compose} title="Anket" className="rounded-full p-2 hover:bg-cyan-50"><BarChart3 size={18} /></button>
+            <button type="button" onClick={compose} title="Fotoğraf" className="rounded-full p-2 hover:bg-cyan-50"><ImageIcon size={18} /></button>
+            <button type="button" onClick={compose} title="Video" className="rounded-full p-2 hover:bg-cyan-50"><Video size={18} /></button>
           </div>
-          <button type="button" onClick={ctx.onCompose} className="rounded-full bg-cyan-950 px-4 py-1.5 text-sm font-black text-white hover:bg-cyan-900">Paylaş</button>
+          <button type="button" onClick={compose} className="rounded-full bg-cyan-950 px-4 py-1.5 text-sm font-black text-white hover:bg-cyan-900">Paylaş</button>
         </div>
       </div>
     </div>
   );
 }
 
-export function CommunityAside({ onCompose }) {
+const GENERAL_RULES = [
+  "Saygılı ve yapıcı bir dil kullan.",
+  "Satış / takas için ilan ekle bölümünü kullan.",
+  "Hastalık ve tedavi konularında deneyimini paylaş, kesin teşhis koyma.",
+  "Görsellerde başkalarının izni olmadan kişi paylaşma."
+];
+
+function AsideNavButton({ icon: Icon, label, active, onClick, count }) {
+  return (
+    <button
+      onClick={onClick}
+      className={"flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-black transition " + (active ? "bg-cyan-50 text-cyan-950" : "text-slate-600 hover:bg-slate-50")}
+    >
+      <Icon size={18} className={active ? "text-cyan-800" : "text-slate-400"} />
+      <span className="flex-1">{label}</span>
+      {count !== undefined && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">{count}</span>}
+    </button>
+  );
+}
+
+export function CommunityAside({ ctx, view = "feed", group = null, search = "", tags = [], groups = [] }) {
+  const joinedGroups = ctx.isMember ? groups.filter((item) => item.memberIds.includes(ctx.currentUserId)) : [];
+  const UserName = ctx.UserName;
+
   return (
     <aside className="hidden h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:block lg:h-[calc(100vh-72px)] lg:overflow-auto">
       <h2 className="text-lg font-black text-slate-950">Topluluk</h2>
       <p className="mt-1 text-sm leading-relaxed text-slate-500">Tankını paylaş, soru sor, deneyimlerden öğren. Hobicilerle sohbet burada.</p>
-      <button onClick={onCompose} className="mt-4 w-full rounded-full bg-cyan-950 px-4 py-2.5 text-sm font-black text-white hover:bg-cyan-900">İçerik paylaş</button>
+      <button onClick={() => ctx.onCompose(group ? group.id : null)} className="mt-4 w-full rounded-full bg-cyan-950 px-4 py-2.5 text-sm font-black text-white hover:bg-cyan-900">
+        {group ? "Grupta paylaş" : "İçerik paylaş"}
+      </button>
 
-      <div className="mt-6 rounded-2xl bg-slate-50 p-3">
-        <div className="mb-2 text-sm font-black text-slate-800">Topluluk kuralları</div>
+      <nav className="mt-4 grid gap-0.5">
+        <AsideNavButton icon={MessageCircle} label="Akış" active={view === "feed"} onClick={ctx.onOpenFeed} />
+        <AsideNavButton icon={Users} label="Gruplar" active={view === "groups" || view === "group"} onClick={ctx.onOpenGroups} count={groups.length} />
+        <AsideNavButton icon={Hash} label="Etiketler" active={view === "tags"} onClick={ctx.onOpenTags} />
+      </nav>
+
+      <label className="mt-5 block">
+        <span className="mb-1 block text-xs font-black text-slate-500">{group ? "Bu grupta ara" : "Paylaşımlarda ara"}</span>
+        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-cyan-700 focus-within:bg-white">
+          <Search size={16} className="shrink-0 text-slate-400" />
+          <input
+            value={search}
+            onChange={(event) => ctx.onSearch(event.target.value)}
+            onKeyDown={(event) => { if (event.key === "Escape") ctx.onSearch(""); }}
+            className="w-full bg-transparent text-sm outline-none"
+            placeholder="Kelime, #etiket veya @kullanıcı"
+          />
+          {search && (
+            <button type="button" onClick={() => ctx.onSearch("")} title="Aramayı temizle" className="rounded-full p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </label>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {tags.map(({ tag }) => (
+          <button
+            key={tag}
+            type="button"
+            onClick={() => ctx.onSearch(tag)}
+            className={"rounded-full px-2.5 py-1 text-[11px] font-black transition " + (normalizeTr(search) === tag ? "bg-cyan-950 text-white" : "bg-cyan-50 text-cyan-800 hover:bg-cyan-100")}
+          >
+            {tag}
+          </button>
+        ))}
+        <button type="button" onClick={ctx.onOpenTags} className="px-1 text-[11px] font-black text-slate-500 hover:text-cyan-800 hover:underline">
+          Daha fazla etiket →
+        </button>
+      </div>
+
+      {group && (
+        <div className="mt-6 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-black text-cyan-950"><span>{group.emoji}</span> Grup kuralları</div>
+          {group.rules.length ? (
+            <ol className="grid gap-1.5 text-xs leading-relaxed text-slate-700">
+              {group.rules.map((rule, index) => (
+                <li key={index} className="flex gap-2"><span className="font-black text-cyan-800">{index + 1}.</span><span>{rule}</span></li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-xs text-slate-500">Bu grup için ek kural girilmemiş.</p>
+          )}
+          {group.moderatorIds.length > 0 && (
+            <div className="mt-3 border-t border-cyan-100 pt-2">
+              <div className="mb-1 text-[11px] font-black uppercase tracking-wide text-slate-500">Moderatörler</div>
+              <div className="flex flex-wrap gap-x-2 gap-y-1">
+                {group.moderatorIds.map((id) => (
+                  <button key={id} onClick={() => ctx.onProfile(ctx.users[id])} className="text-xs font-black text-slate-700 hover:underline">
+                    <UserName user={ctx.users[id]} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className={(group ? "mt-3" : "mt-6") + " rounded-2xl bg-slate-50 p-3"}>
+        <div className="mb-2 text-sm font-black text-slate-800">{group ? "Genel topluluk kuralları" : "Topluluk kuralları"}</div>
         <ul className="grid gap-1.5 text-xs leading-relaxed text-slate-600">
-          <li>• Saygılı ve yapıcı bir dil kullan.</li>
-          <li>• Satış / takas için ilan ekle bölümünü kullan.</li>
-          <li>• Hastalık ve tedavi konularında deneyimini paylaş, kesin teşhis koyma.</li>
-          <li>• Görsellerde başkalarının izni olmadan kişi paylaşma.</li>
+          {GENERAL_RULES.map((rule) => <li key={rule}>• {rule}</li>)}
         </ul>
       </div>
+
+      {joinedGroups.length > 0 && (
+        <div className="mt-6">
+          <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Gruplarım</div>
+          <div className="grid gap-0.5">
+            {joinedGroups.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => ctx.onOpenGroup(item)}
+                className={"flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-left text-sm font-bold transition " + (group && group.id === item.id ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-50")}
+              >
+                <span className={"grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm " + item.color}>{item.emoji}</span>
+                <span className="truncate">{item.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
@@ -682,7 +978,7 @@ export function CommunityAside({ onCompose }) {
 /* Sayfalar                                                            */
 /* ------------------------------------------------------------------ */
 
-function PageHeader({ title, subtitle }) {
+export function PageHeader({ title, subtitle }) {
   return (
     <div className="sticky top-[72px] z-20 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
       <h2 className="text-xl font-black text-slate-950">{title}</h2>
@@ -691,34 +987,96 @@ function PageHeader({ title, subtitle }) {
   );
 }
 
-export function CommunityFeed({ posts, members, ctx }) {
+// Metin, kullanıcı adı ve yorumlar içinde arar; birden çok kelime hepsiyle eşleşmeli
+export function searchPosts(posts, users, query) {
+  const terms = normalizeTr(query).split(/\s+/).filter(Boolean);
+  if (!terms.length) return posts;
+  return posts.filter((post) => {
+    const haystack = normalizeTr(
+      [post.text, users[post.userId] && users[post.userId].username, ...post.comments.map((comment) => comment.text)]
+        .concat(post.poll ? post.poll.options.map((option) => option.text) : [])
+        .join(" ")
+    );
+    return terms.every((term) => haystack.includes(term));
+  });
+}
+
+export function CommunityFeed({ posts, members, ctx, search = "", embedded = false }) {
+  const query = search.trim();
+  const searching = Boolean(query);
+  const visible = searching ? searchPosts(posts, ctx.users, query) : posts;
   const items = [];
-  posts.forEach((post, index) => {
+  let membersShown = false;
+
+  visible.forEach((post, index) => {
     items.push({ kind: "post", post });
     if ((index + 1) % 3 === 0) {
       const slot = Math.floor(index / 3);
-      items.push(slot % 2 === 0 ? { kind: "ad", ad: ctx.adPool[(slot / 2) % ctx.adPool.length], key: "ad-" + slot } : { kind: "members", key: "members-" + slot });
+      // "Yeni üyelere merhaba deyin" kartı akışta yalnızca bir kez gösterilir
+      if (slot === 1 && !membersShown && !searching && members.length) {
+        membersShown = true;
+        items.push({ kind: "members", key: "members" });
+      } else {
+        items.push({ kind: "ad", ad: ctx.adPool[slot % ctx.adPool.length], key: "ad-" + slot });
+      }
     }
   });
   const FeedAdCard = ctx.FeedAdCard;
 
   return (
     <div>
-      <PageHeader title="Topluluk" subtitle="Hobicilerin paylaşımları" />
-      <ComposerPrompt ctx={ctx} />
+      {!embedded && <PageHeader title="Topluluk" subtitle={searching ? "Arama sonuçları" : "Hobicilerin paylaşımları"} />}
+      {searching ? (
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-cyan-50/60 px-4 py-3">
+          <p className="min-w-0 truncate text-sm text-slate-600">
+            <strong className="text-slate-900">“{query}”</strong> için {visible.length} paylaşım bulundu
+          </p>
+          <button onClick={() => ctx.onSearch("")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-black text-cyan-900 ring-1 ring-cyan-200 hover:bg-cyan-50">Aramayı temizle</button>
+        </div>
+      ) : (
+        <ComposerPrompt ctx={ctx} />
+      )}
       {items.map((entry) => {
         if (entry.kind === "ad") return <FeedAdCard key={entry.key} ad={entry.ad} />;
         if (entry.kind === "members") return <NewMembersCard key={entry.key} members={members} ctx={ctx} />;
         return <PostCard key={entry.post.id} post={entry.post} ctx={ctx} />;
       })}
-      <div className="p-6 text-center text-sm font-semibold text-slate-400">Şimdilik hepsi bu kadar 🐠</div>
+      {searching && visible.length === 0 ? (
+        <div className="p-10 text-center">
+          <Search size={28} className="mx-auto text-slate-300" />
+          <p className="mt-3 text-sm font-black text-slate-700">Sonuç bulunamadı</p>
+          <p className="mt-1 text-sm text-slate-500">Farklı bir kelime ya da etiket dene.</p>
+        </div>
+      ) : (
+        <div className="p-6 text-center text-sm font-semibold text-slate-400">Şimdilik hepsi bu kadar 🐠</div>
+      )}
     </div>
   );
 }
 
 function CommentItem({ comment, postId, ctx }) {
+  const [lightbox, setLightbox] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.text || "");
   const user = ctx.users[comment.userId];
   const UserName = ctx.UserName;
+  const isMine = ctx.isMember && comment.userId === ctx.currentUserId;
+  const images = comment.images || [];
+  const hasMedia = images.length > 0 || Boolean(comment.video);
+  const canSave = (draft.trim() || hasMedia) && draft.trim() !== (comment.text || "");
+  const menuItems = isMine
+    ? [
+        { label: "Düzenle", icon: Pencil, onClick: () => { setDraft(comment.text || ""); setEditing(true); } },
+        { label: "Yorumu sil", icon: Trash2, danger: true, onClick: () => ctx.onDeleteComment(postId, comment.id) }
+      ]
+    : [{ label: "Bildir", icon: Flag, onClick: () => (ctx.isMember ? ctx.onReport({ kind: "comment", comment }) : ctx.onAuth()) }];
+
+  function save() {
+    if (!canSave) return;
+    ctx.onEditComment(postId, comment.id, draft.trim());
+    setEditing(false);
+  }
+
   return (
     <div className="flex gap-3 border-b border-slate-100 px-4 py-3">
       <Avatar user={user} size={36} onClick={() => ctx.onProfile(user)} />
@@ -726,8 +1084,38 @@ function CommentItem({ comment, postId, ctx }) {
         <div className="flex items-center gap-1.5 text-sm">
           <button type="button" onClick={() => ctx.onProfile(user)} className="font-black text-slate-900 hover:underline"><UserName user={user} /></button>
           <span className="text-slate-400">· {timeAgo(comment.createdAt)}</span>
+          {comment.editedAt && <span className="text-xs text-slate-400" title={fullDate(comment.editedAt)}>· düzenlendi</span>}
+          {!editing && <MoreMenu items={menuItems} size={17} />}
         </div>
-        <p className="mt-0.5 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-slate-800">{comment.text}</p>
+        {editing ? (
+          <div className="mt-1.5">
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setEditing(false);
+                if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) save();
+              }}
+              rows={2}
+              maxLength={300}
+              className="w-full resize-none rounded-2xl border border-cyan-300 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-600"
+            />
+            <div className="mt-1.5 flex items-center justify-end gap-2">
+              <button onClick={() => setEditing(false)} className="rounded-full px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-100">Vazgeç</button>
+              <button onClick={save} disabled={!canSave} className="rounded-full bg-cyan-950 px-4 py-1.5 text-xs font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Kaydet</button>
+            </div>
+          </div>
+        ) : (
+          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-slate-800">{comment.text}</p>
+        )}
+        {hasMedia && (
+          <div className="max-w-md">
+            <ImageGrid images={images} onOpen={(index) => setLightbox(index)} />
+            <VideoBlock video={comment.video} />
+          </div>
+        )}
+        {lightbox !== null && <Lightbox images={images} start={lightbox} onClose={() => setLightbox(null)} />}
         <button
           type="button"
           onClick={() => (ctx.isMember ? ctx.onLikeComment(postId, comment.id) : ctx.onAuth())}
@@ -740,8 +1128,17 @@ function CommentItem({ comment, postId, ctx }) {
   );
 }
 
+const MAX_REPLY_IMAGES = 4;
+
 function ReplyBox({ post, ctx }) {
   const [text, setText] = useState("");
+  const [images, setImages] = useState([]);
+  const [video, setVideo] = useState(null);
+  const [videoPanel, setVideoPanel] = useState(false);
+  const [videoLink, setVideoLink] = useState("");
+  const [error, setError] = useState("");
+  const imageInput = useRef(null);
+  const videoInput = useRef(null);
   const me = ctx.isMember ? ctx.users[ctx.currentUserId] : null;
 
   if (!me) {
@@ -753,11 +1150,57 @@ function ReplyBox({ post, ctx }) {
     );
   }
 
+  const value = text.trim();
+  const canSubmit = Boolean(value) || images.length > 0 || Boolean(video);
+
+  function addImages(event) {
+    const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+    event.target.value = "";
+    if (!files.length) return;
+    const room = MAX_REPLY_IMAGES - images.length;
+    setError(files.length > room ? "Yoruma en fazla " + MAX_REPLY_IMAGES + " fotoğraf ekleyebilirsin." : "");
+    setImages((prev) => [...prev, ...files.slice(0, room).map((file) => URL.createObjectURL(file))]);
+  }
+
+  function removeImage(index) {
+    setImages((prev) => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  function addVideoFile(event) {
+    const file = (event.target.files || [])[0];
+    event.target.value = "";
+    if (!file) return;
+    probeVideo(file, (result) => { setVideo(result); setVideoPanel(false); setError(""); }, setError);
+  }
+
+  function addVideoLink() {
+    try {
+      setVideo(parseVideoLink(videoLink));
+    } catch (e) {
+      setError("Geçerli bir bağlantı gir (https://...).");
+      return;
+    }
+    setVideoLink("");
+    setVideoPanel(false);
+    setError("");
+  }
+
+  function removeVideo() {
+    if (video && video.kind === "file") URL.revokeObjectURL(video.url);
+    setVideo(null);
+  }
+
   function submit() {
-    const value = text.trim();
-    if (!value) return;
-    ctx.onReply(post.id, value);
+    if (!canSubmit) return;
+    ctx.onReply(post.id, { text: value, images, video });
     setText("");
+    setImages([]);
+    setVideo(null);
+    setVideoPanel(false);
+    setError("");
   }
 
   return (
@@ -773,16 +1216,84 @@ function ReplyBox({ post, ctx }) {
           placeholder="Yanıtını paylaş"
           className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-400"
         />
-        <div className="mt-2 flex justify-end">
-          <button onClick={submit} disabled={!text.trim()} className="rounded-full bg-cyan-950 px-4 py-1.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Yanıtla</button>
+
+        {images.length > 0 && (
+          <div className="mt-2 grid grid-cols-4 gap-2">
+            {images.map((url, index) => (
+              <div key={url} className="relative aspect-square overflow-hidden rounded-xl bg-slate-100">
+                <img src={url} alt="" className="h-full w-full object-cover" />
+                <button onClick={() => removeImage(index)} className="absolute right-1 top-1 rounded-full bg-slate-950/70 p-1 text-white hover:bg-slate-950" title="Kaldır"><X size={12} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {video && (
+          <div className="relative mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+            {video.kind === "file" ? (
+              <video src={video.url} controls className="max-h-48 w-full bg-black" />
+            ) : (
+              <div className="flex items-center gap-3 p-3 pr-12">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-red-600 text-white"><Play size={16} fill="currentColor" /></span>
+                <div className="min-w-0">
+                  <div className="text-sm font-black">{video.ytId ? "YouTube videosu" : "Video bağlantısı"}</div>
+                  <div className="truncate text-xs text-slate-500">{video.url}</div>
+                </div>
+              </div>
+            )}
+            <button onClick={removeVideo} className="absolute right-2 top-2 rounded-full bg-slate-950/70 p-1 text-white hover:bg-slate-950" title="Kaldır"><X size={13} /></button>
+          </div>
+        )}
+
+        {videoPanel && (
+          <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <button onClick={() => videoInput.current && videoInput.current.click()} className="flex w-full items-center justify-between rounded-xl bg-white px-3 py-2 text-left text-sm font-black text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
+              <span className="flex items-center gap-2"><Video size={15} /> Videoyu yükle</span>
+              <span className="text-xs font-semibold text-slate-500">en fazla 1 dk</span>
+            </button>
+            <div className="my-2 text-center text-xs font-black text-slate-400">daha uzun videolar için bağlantı ekle</div>
+            <div className="flex gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-white px-3 ring-1 ring-slate-200">
+                <Link2 size={15} className="text-slate-400" />
+                <input
+                  value={videoLink}
+                  onChange={(event) => setVideoLink(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter") addVideoLink(); }}
+                  placeholder="YouTube veya video bağlantısı"
+                  className="w-full bg-transparent py-2 text-sm outline-none"
+                />
+              </div>
+              <button onClick={addVideoLink} disabled={!videoLink.trim()} className="rounded-xl bg-cyan-950 px-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Ekle</button>
+            </div>
+          </div>
+        )}
+
+        {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</p>}
+
+        <input ref={imageInput} type="file" accept="image/*" multiple className="hidden" onChange={addImages} />
+        <input ref={videoInput} type="file" accept="video/*" className="hidden" onChange={addVideoFile} />
+
+        <div className="mt-2 flex items-center justify-between">
+          <div className="flex items-center gap-0.5">
+            <ToolButton icon={ImageIcon} label="Foto" compact onClick={() => imageInput.current && imageInput.current.click()} disabled={Boolean(video) || images.length >= MAX_REPLY_IMAGES} />
+            <ToolButton icon={Video} label="Video" compact onClick={() => setVideoPanel((open) => !open)} disabled={images.length > 0 || Boolean(video)} active={videoPanel} />
+          </div>
+          <button onClick={submit} disabled={!canSubmit} className="rounded-full bg-cyan-950 px-4 py-1.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Yanıtla</button>
         </div>
       </div>
     </div>
   );
 }
 
+const COMMENT_SORTS = [["newest", "En yeni"], ["oldest", "En eski"], ["top", "En beğenilen"]];
+
 export function PostDetailPage({ post, ctx, onBack }) {
-  const comments = [...post.comments].sort((a, b) => a.createdAt - b.createdAt);
+  const [sort, setSort] = useState("newest");
+  const comments = [...post.comments].sort((a, b) => {
+    if (sort === "oldest") return a.createdAt - b.createdAt;
+    if (sort === "top") return b.likes - a.likes || b.createdAt - a.createdAt;
+    return b.createdAt - a.createdAt;
+  });
   return (
     <div>
       <div className="sticky top-[72px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur">
@@ -797,7 +1308,23 @@ export function PostDetailPage({ post, ctx, onBack }) {
       {comments.length === 0 ? (
         <p className="p-6 text-center text-sm font-semibold text-slate-400">Henüz yanıt yok. İlk yanıtı sen yaz!</p>
       ) : (
-        comments.map((comment) => <CommentItem key={comment.id} comment={comment} postId={post.id} ctx={ctx} />)
+        <>
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-2">
+            <span className="text-sm font-black text-slate-700">Yanıtlar <span className="text-slate-400">({comments.length})</span></span>
+            <div className="flex gap-1 rounded-full bg-white p-0.5 ring-1 ring-slate-200">
+              {COMMENT_SORTS.map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setSort(key)}
+                  className={"rounded-full px-3 py-1 text-xs font-black transition " + (sort === key ? "bg-cyan-950 text-white" : "text-slate-500 hover:text-slate-800")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {comments.map((comment) => <CommentItem key={comment.id} comment={comment} postId={post.id} ctx={ctx} />)}
+        </>
       )}
     </div>
   );
@@ -814,15 +1341,45 @@ export function PostNotFound({ onBack }) {
 }
 
 export function MyPostsPage({ posts, ctx }) {
+  const [tab, setTab] = useState("mine");
   const mine = posts.filter((post) => post.userId === ctx.currentUserId);
+  const saved = posts.filter((post) => post.savedByMe);
+  const list = tab === "mine" ? mine : saved;
+  const tabs = [["mine", "Paylaşımlarım", mine.length], ["saved", "Kaydettiklerim", saved.length]];
+
   return (
     <div>
-      <PageHeader title="Paylaşımlarım" subtitle={mine.length + " paylaşım"} />
-      <ComposerPrompt ctx={ctx} />
-      {mine.length === 0 ? (
-        <p className="p-8 text-center text-sm font-semibold text-slate-400">Henüz bir şey paylaşmadın. İlk paylaşımını yukarıdan yapabilirsin.</p>
+      <div className="sticky top-[72px] z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div className="px-4 pt-3">
+          <h2 className="text-xl font-black text-slate-950">Paylaşımlarım</h2>
+          <p className="text-xs font-semibold text-slate-500">{mine.length} paylaşım · {saved.length} kayıtlı içerik</p>
+        </div>
+        <div className="mt-2 flex">
+          {tabs.map(([key, label, count]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={"relative flex-1 py-3 text-sm font-black transition hover:bg-slate-50 " + (tab === key ? "text-slate-950" : "text-slate-500")}
+            >
+              {label} <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{count}</span>
+              {tab === key && <span className="absolute bottom-0 left-1/2 h-1 w-16 -translate-x-1/2 rounded-full bg-cyan-700" />}
+            </button>
+          ))}
+        </div>
+      </div>
+      {tab === "mine" && <ComposerPrompt ctx={ctx} />}
+      {list.length === 0 ? (
+        tab === "mine" ? (
+          <p className="p-8 text-center text-sm font-semibold text-slate-400">Henüz bir şey paylaşmadın. İlk paylaşımını yukarıdan yapabilirsin.</p>
+        ) : (
+          <div className="p-10 text-center">
+            <Bookmark size={28} className="mx-auto text-slate-300" />
+            <p className="mt-3 text-sm font-black text-slate-700">Kaydettiğin içerik yok</p>
+            <p className="mt-1 text-sm text-slate-500">Paylaşımlardaki kaydet simgesine ya da ··· menüsündeki Kaydet seçeneğine bastığında burada görünür.</p>
+          </div>
+        )
       ) : (
-        mine.map((post) => <PostCard key={post.id} post={post} ctx={ctx} />)
+        list.map((post) => <PostCard key={post.id} post={post} ctx={ctx} />)
       )}
     </div>
   );
@@ -901,7 +1458,7 @@ export function UserPostsPage({ user, posts, ctx, onBack, onViewListings }) {
 const MAX_TEXT = 500;
 const MAX_IMAGES = 10;
 
-function ToolButton({ icon: Icon, label, onClick, disabled, active }) {
+function ToolButton({ icon: Icon, label, onClick, disabled, active, compact = false }) {
   return (
     <button
       type="button"
@@ -909,7 +1466,8 @@ function ToolButton({ icon: Icon, label, onClick, disabled, active }) {
       disabled={disabled}
       title={disabled ? label + " (diğer eklerle birlikte kullanılamaz)" : label}
       className={
-        "flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-black transition " +
+        "flex items-center gap-1.5 rounded-full font-black transition " +
+        (compact ? "px-2.5 py-1.5 text-xs " : "px-3 py-2 text-sm ") +
         (active ? "bg-cyan-100 text-cyan-950" : "text-cyan-800 hover:bg-cyan-50") +
         " disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
       }
@@ -920,8 +1478,11 @@ function ToolButton({ icon: Icon, label, onClick, disabled, active }) {
   );
 }
 
-export function ComposerModal({ user, userId, onClose, onPublish }) {
+export function ComposerModal({ user, userId, groups = [], defaultGroupId = null, onClose, onPublish }) {
   const [text, setText] = useState("");
+  const [groupId, setGroupId] = useState(defaultGroupId);
+  const [audienceOpen, setAudienceOpen] = useState(false);
+  const audience = groups.find((item) => item.id === groupId) || null;
   const [images, setImages] = useState([]);
   const [video, setVideo] = useState(null);
   const [videoPanel, setVideoPanel] = useState(false);
@@ -967,37 +1528,20 @@ export function ComposerModal({ user, userId, onClose, onPublish }) {
     const file = (event.target.files || [])[0];
     event.target.value = "";
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    const probe = document.createElement("video");
-    probe.preload = "metadata";
-    probe.onloadedmetadata = () => {
-      if (probe.duration > 60.5) {
-        URL.revokeObjectURL(url);
-        const total = Math.round(probe.duration);
-        setError("Bu video " + Math.floor(total / 60) + " dk " + (total % 60) + " sn. Doğrudan yüklenen videolar en fazla 1 dakika olabilir; daha uzunsa bağlantı olarak ekleyebilirsin.");
-        return;
-      }
-      setVideo({ kind: "file", url, name: file.name });
-      setVideoPanel(false);
-      setError("");
-    };
-    probe.onerror = () => {
-      URL.revokeObjectURL(url);
-      setError("Video dosyası okunamadı. Farklı bir dosya dene.");
-    };
-    probe.src = url;
+    probeVideo(
+      file,
+      (result) => { setVideo(result); setVideoPanel(false); setError(""); },
+      setError
+    );
   }
 
   function addVideoLink() {
-    const value = videoLink.trim();
     try {
-      const parsed = new URL(value);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("protokol");
+      setVideo(parseVideoLink(videoLink));
     } catch (e) {
       setError("Geçerli bir bağlantı gir (https://...).");
       return;
     }
-    setVideo({ kind: "link", url: value, ytId: parseYouTubeId(value) });
     setVideoLink("");
     setVideoPanel(false);
     setError("");
@@ -1021,6 +1565,7 @@ export function ComposerModal({ user, userId, onClose, onPublish }) {
       id: "u" + now,
       slug: makeSlug(trimmed || "paylasim"),
       userId,
+      groupId,
       text: trimmed,
       images: images.map((image) => image.url),
       video,
@@ -1029,6 +1574,7 @@ export function ComposerModal({ user, userId, onClose, onPublish }) {
         : null,
       likes: 0,
       likedByMe: false,
+      savedByMe: false,
       comments: [],
       createdAt: now
     });
@@ -1045,6 +1591,36 @@ export function ComposerModal({ user, userId, onClose, onPublish }) {
         <div className="flex gap-3 px-4 pb-2">
           <Avatar user={user} />
           <div className="min-w-0 flex-1">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAudienceOpen((value) => !value)}
+                className="flex items-center gap-1.5 rounded-full border border-cyan-200 px-3 py-1 text-xs font-black text-cyan-800 hover:bg-cyan-50"
+              >
+                {audience ? <><span>{audience.emoji}</span> {audience.name}</> : <><Users size={13} /> Herkes</>}
+                <ChevronRight size={13} className={"transition " + (audienceOpen ? "rotate-90" : "")} />
+              </button>
+              {audienceOpen && (
+                <div className="absolute left-0 top-9 z-20 max-h-72 w-64 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                  <div className="px-2 pb-1 pt-1 text-[11px] font-black uppercase tracking-wide text-slate-400">Nerede paylaşılsın?</div>
+                  {[null, ...groups].map((item) => (
+                    <button
+                      key={item ? item.id : "all"}
+                      type="button"
+                      onClick={() => { setGroupId(item ? item.id : null); setAudienceOpen(false); }}
+                      className={"flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left text-sm font-bold " + ((item ? item.id : null) === groupId ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-50")}
+                    >
+                      <span className={"grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm " + (item ? item.color : "bg-cyan-950 text-white")}>{item ? item.emoji : <Users size={14} />}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{item ? item.name : "Herkes"}</span>
+                        <span className="block text-[11px] font-semibold text-slate-400">{item ? "Grup akışında ve genel akışta" : "Genel topluluk akışı"}</span>
+                      </span>
+                    </button>
+                  ))}
+                  {groups.length === 0 && <p className="px-2 py-2 text-xs text-slate-400">Bir gruba katıldığında burada seçebilirsin.</p>}
+                </div>
+              )}
+            </div>
             <textarea
               autoFocus
               value={text}

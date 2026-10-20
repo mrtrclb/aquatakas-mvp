@@ -1,0 +1,431 @@
+import React, { useState } from "react";
+import { Edit3, Pin, Trash2, Eye, X, Send } from "lucide-react";
+
+function formatLocalDate(date) {
+  if (!date || typeof date !== "string") return "";
+  return date.split("-").reverse().join(".");
+}
+
+function EditListingModal({ listing, mode, onClose }) {
+  if (!listing) return null;
+
+  const isRepublish = mode === "republish";
+  const images = Array.isArray(listing.images) ? listing.images : [];
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
+          <div>
+            <h3 className="text-2xl font-black tracking-tight">
+              {isRepublish ? "İlanı güncelle ve tekrar yayımla" : "İlanı düzenle"}
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              İlan bilgilerini güncelleyip inceleme için gönderebilirsin. Canlı sürümde bu işlem moderasyon kuyruğuna düşer.
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="max-h-[calc(88vh-96px)] overflow-y-auto p-5">
+          <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+            <div>
+              <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-slate-50">
+                {images[0] ? (
+                  <img
+                    src={images[0]}
+                    alt=""
+                    className="aspect-square w-full object-cover"
+                  />
+                ) : (
+                  <div className="grid aspect-square w-full place-items-center text-sm font-black text-slate-300">
+                    Görsel yok
+                  </div>
+                )}
+              </div>
+
+              <button className="mt-3 w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">
+                Görselleri güncelle
+              </button>
+
+              <div className="mt-3 grid grid-cols-5 gap-2">
+                {[0, 1, 2, 3, 4].map((slot) => {
+                  const image = images[slot];
+
+                  return (
+                    <div
+                      key={slot}
+                      className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-black text-slate-300"
+                    >
+                      {image ? (
+                        <img src={image} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        slot + 1
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">
+                    İlan tipi
+                  </span>
+                  <select
+                    defaultValue={listing.type || "Satıyorum"}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
+                  >
+                    <option>Satıyorum</option>
+                    <option>Takas</option>
+                    <option>Ücretsiz / Sahiplendirme</option>
+                    <option>Arıyorum</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">
+                    Kategori
+                  </span>
+                  <select
+                    defaultValue={listing.category || "Canlı"}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
+                  >
+                    <option>Canlı</option>
+                    <option>Bitki</option>
+                    <option>Yem</option>
+                    <option>Kimyasal</option>
+                    <option>Akvaryum</option>
+                    <option>Ekipman</option>
+                    <option>Dekor</option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                <span className="mb-1 block text-xs font-black text-slate-500">
+                  İlan başlığı
+                </span>
+                <input
+                  defaultValue={listing.title || ""}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
+                />
+              </label>
+
+              <label>
+                <span className="mb-1 block text-xs font-black text-slate-500">
+                  Açıklama
+                </span>
+                <textarea
+                  rows={5}
+                  defaultValue={listing.description || ""}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 outline-none"
+                />
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">
+                    Fiyat / teklif
+                  </span>
+                  <input
+                    defaultValue={listing.price || ""}
+                    placeholder="Örn. 750 TL, Takas, Teklif ver"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">
+                    Konum
+                  </span>
+                  <input
+                    defaultValue={`${listing.city || ""} / ${listing.district || ""}`}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
+                  />
+                </label>
+              </div>
+
+              <label>
+                <span className="mb-1 block text-xs font-black text-slate-500">
+                  Etiketler
+                </span>
+                <input
+                  defaultValue={(listing.tags || []).join(", ")}
+                  placeholder="Örn. kendi üretimim, yavru, gönderim yapılır"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none"
+                />
+              </label>
+
+              <div className="rounded-2xl bg-cyan-50 p-3 text-xs leading-relaxed text-cyan-900">
+                Değişiklikler doğrudan yayına alınmaz; inceleme sonrası yeni bilgiler yayına geçer.
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+                <button
+                  onClick={onClose}
+                  className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+                >
+                  Vazgeç
+                </button>
+
+                <button
+                  onClick={onClose}
+                  className="inline-flex items-center gap-2 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white hover:bg-cyan-900"
+                >
+                  <Send size={16} /> İnceleme için gönder
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ListingCard({ item, tab, onOpen, onEdit, onRemove, onPromote }) {
+  const images = Array.isArray(item.images) ? item.images : [];
+
+  return (
+    <article className="grid gap-4 rounded-[28px] border border-slate-200 bg-white p-3 sm:grid-cols-[112px_1fr]">
+      {images[0] ? (
+        <img
+          src={images[0]}
+          alt=""
+          className="h-28 w-28 rounded-2xl object-cover"
+        />
+      ) : (
+        <div className="grid h-28 w-28 place-items-center rounded-2xl bg-slate-50 text-xs font-black text-slate-300">
+          Görsel yok
+        </div>
+      )}
+
+      <div className="min-w-0">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          {tab === "active" && (
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+              Yayında
+            </span>
+          )}
+
+          {tab === "expired" && (
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+              Süresi doldu
+            </span>
+          )}
+
+          {tab === "saved" && (
+            <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-800">
+              Kaydedildi
+            </span>
+          )}
+
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+            {item.type || "İlan"}
+          </span>
+
+          <span className="text-xs font-black text-slate-500">
+            {formatLocalDate(item.date)}
+          </span>
+        </div>
+
+        <h3 className="line-clamp-1 text-lg font-black text-slate-950">
+          {item.title}
+        </h3>
+
+        <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">
+          {item.description}
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            onClick={() => onOpen(item)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+          >
+            <Eye size={14} /> Görüntüle
+          </button>
+
+          {tab === "active" && (
+            <>
+              <button
+                onClick={() => onEdit(item, "edit")}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+              >
+                <Edit3 size={14} /> Düzenle
+              </button>
+
+              <button
+                onClick={() => onPromote(item)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 hover:bg-amber-100"
+              >
+                <Pin size={14} /> Öne çıkar
+              </button>
+
+              <button
+                onClick={() => onRemove(item)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100"
+              >
+                <Trash2 size={14} /> Yayından kaldır
+              </button>
+            </>
+          )}
+
+          {tab === "expired" && (
+            <>
+              <button
+                onClick={() => onEdit(item, "republish")}
+                className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-800 hover:bg-cyan-100"
+              >
+                Güncelle ve tekrar yayımla
+              </button>
+
+              <button
+                className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100"
+              >
+                Komple sil
+              </button>
+            </>
+          )}
+
+          {tab === "saved" && (
+            <button
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"
+            >
+              Kaydedilenlerden kaldır
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function EmptyState({ title, text }) {
+  return (
+    <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+      <div className="text-lg font-black text-slate-800">{title}</div>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{text}</p>
+    </div>
+  );
+}
+
+export default function MyListingsPage({
+  listings = [],
+  onOpen,
+  onRemove,
+  onPromote
+}) {
+  const [tab, setTab] = useState("active");
+  const [editingListing, setEditingListing] = useState(null);
+  const [editingMode, setEditingMode] = useState("edit");
+
+  const activeListings = Array.isArray(listings) ? listings : [];
+
+  const expiredListings = activeListings.slice(0, 2).map((item, index) => ({
+    ...item,
+    id: "expired-" + item.id,
+    date: index === 0 ? "2026-03-18" : "2026-03-05"
+  }));
+
+  const savedListings = activeListings.slice(-2).map((item) => ({
+    ...item,
+    id: "saved-" + item.id
+  }));
+
+  const tabs = [
+    ["active", "Yayındaki ilanlarım", activeListings.length],
+    ["expired", "Süresi dolmuş ilanlar", expiredListings.length],
+    ["saved", "Kaydettiğim ilanlar", savedListings.length]
+  ];
+
+  const currentList =
+    tab === "expired"
+      ? expiredListings
+      : tab === "saved"
+      ? savedListings
+      : activeListings;
+
+  function openEditor(item, mode) {
+    setEditingMode(mode);
+    setEditingListing(item);
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl p-5">
+      <div className="mb-5 border-b border-slate-200 pb-4">
+        <h2 className="text-2xl font-black tracking-tight">İlanlarım</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Yayındaki, süresi dolmuş ve kaydettiğin ilanları buradan yönetebilirsin.
+        </p>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2 rounded-[24px] bg-slate-100 p-1">
+        {tabs.map(([key, label, count]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={
+              "rounded-full px-4 py-2 text-xs font-black transition " +
+              (tab === key
+                ? "bg-cyan-950 text-white"
+                : "text-slate-600 hover:bg-white")
+            }
+          >
+            {label}
+            <span className={tab === key ? "ml-2 text-cyan-100" : "ml-2 text-slate-400"}>
+              {count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-3">
+        {currentList.length > 0 ? (
+          currentList.map((item) => (
+            <ListingCard
+              key={item.id}
+              item={item}
+              tab={tab}
+              onOpen={onOpen}
+              onEdit={openEditor}
+              onRemove={onRemove}
+              onPromote={onPromote}
+            />
+          ))
+        ) : tab === "active" ? (
+          <EmptyState
+            title="Yayında ilanın yok"
+            text="Yeni bir ilan eklediğinde burada görünecek."
+          />
+        ) : tab === "expired" ? (
+          <EmptyState
+            title="Süresi dolmuş ilanın yok"
+            text="30 günlük yayın süresi biten ilanlar burada listelenir."
+          />
+        ) : (
+          <EmptyState
+            title="Kaydettiğin ilan yok"
+            text="İlan detayındaki Kaydet butonunu kullandığında ilanlar burada görünecek."
+          />
+        )}
+      </div>
+
+      {editingListing && (
+        <EditListingModal
+          listing={editingListing}
+          mode={editingMode}
+          onClose={() => setEditingListing(null)}
+        />
+      )}
+    </div>
+  );
+}

@@ -54,10 +54,10 @@ export function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
 
   return createPortal(
     <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/50 p-3 backdrop-blur-sm sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()} role="dialog" aria-modal="true" aria-label={title}>
-      <div className="grid max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[32px] bg-white shadow-2xl md:grid-cols-[200px_1fr]">
-        <aside className="border-b border-slate-200 bg-slate-50 p-3 md:border-b-0 md:border-r md:p-4">
+      <div className="grid max-h-[90vh] w-full max-w-4xl grid-cols-[minmax(0,1fr)] overflow-hidden rounded-[32px] bg-white shadow-2xl md:grid-cols-[200px_minmax(0,1fr)]">
+        <aside className="min-w-0 border-b border-slate-200 bg-slate-50 p-3 md:border-b-0 md:border-r md:p-4">
           <div className="flex items-center gap-2 md:block">
-            <div className="flex flex-1 gap-1 overflow-x-auto pb-1 md:grid md:overflow-visible md:pb-0 [scrollbar-width:none]">
+            <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-1 md:grid md:overflow-visible md:pb-0 [scrollbar-width:none]">
               {SITE_INFO_TABS.map(([key, label]) => (
                 <button key={key} onClick={() => setActiveTab(key)} className={"shrink-0 rounded-2xl px-3 py-2 text-left text-sm font-black " + (activeTab === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>{label}</button>
               ))}
@@ -66,7 +66,7 @@ export function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
             <button onClick={onClose} className="shrink-0 rounded-full bg-white p-2 text-slate-500 hover:bg-slate-100 md:hidden" aria-label="Kapat"><X size={18} /></button>
           </div>
         </aside>
-        <section className="max-h-[calc(90vh-64px)] overflow-y-auto p-5 sm:p-6 md:max-h-[90vh]">
+        <section className="max-h-[calc(90vh-64px)] min-w-0 overflow-y-auto overflow-x-hidden p-5 sm:p-6 md:max-h-[90vh]">
           <div className="mb-4 flex items-start justify-between gap-4">
             <h2 className="text-2xl font-black tracking-tight sm:text-3xl">{title}</h2>
             <button onClick={onClose} className="hidden rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 md:block" aria-label="Kapat"><X size={18} /></button>
@@ -301,6 +301,21 @@ function WarningsTab() {
         </div>
       ))}
       <p className="flex items-center gap-1.5 text-xs text-slate-400"><Mail size={13} /> Sorun mu yaşıyorsun? {CONTACT_EMAIL}</p>
+    </div>
+  );
+}
+
+// Mobil menüde site bağlantıları (masaüstünde sağ sütunun altında yer alır)
+export function SiteLinks({ className = "" }) {
+  const [tab, setTab] = useState(null);
+  const links = [["nedir", "Nedir?"], ["contact", "Bize ulaşın"], ["terms", "Kullanım şartları"], ["ads", "Reklam verin"], ["adpolicy", "Reklam politikası"], ["warnings", "Önemli uyarılar"], ["privacy", "Gizlilik politikası"], ["kvkk", "KVKK"]];
+  return (
+    <div className={"flex flex-wrap gap-1 " + className}>
+      {links.map(([key, label]) => (
+        <button key={key} type="button" onClick={() => setTab(key)} className="rounded-xl px-2.5 py-1.5 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">{label}</button>
+      ))}
+      <a href={BLOG_URL} target="_blank" rel="noopener" className="rounded-xl px-2.5 py-1.5 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">Blog</a>
+      {tab && <SiteInfoModal activeTab={tab} setActiveTab={setTab} onClose={() => setTab(null)} />}
     </div>
   );
 }

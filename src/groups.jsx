@@ -360,9 +360,9 @@ export function GroupPage({ group, posts, ctx, search = "" }) {
 
       <Cover group={group} className="h-40" />
       <div className="border-b border-slate-200 px-4 pb-4">
-        <div className="relative z-10 -mt-10 flex items-end justify-between gap-3">
+        <div className="relative z-10 -mt-10 flex flex-wrap items-end justify-between gap-3">
           <GroupTile group={group} size="lg" />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button onClick={() => ctx.onShareGroup(group)} title="Bağlantıyı kopyala" className="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><Link2 size={16} /></button>
             {canEdit && (
               <button onClick={() => ctx.onEditGroup(group)} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"><Pencil size={14} /> Grubu düzenle</button>

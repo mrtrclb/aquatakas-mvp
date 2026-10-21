@@ -484,7 +484,7 @@ export default function AdminApp() {
               </span>
             </a>
             <div className="flex-1" />
-            <Badge tone={isSuper ? "amber" : "cyan"}><ShieldCheck size={12} /> {isSuper ? "Süper yönetici" : "Moderatör"}</Badge>
+            <span className="hidden min-[400px]:inline-flex"><Badge tone={isSuper ? "amber" : "cyan"}><ShieldCheck size={12} /> {isSuper ? "Süper yönetici" : "Moderatör"}</Badge></span>
             <span className="hidden text-sm font-black text-slate-700 sm:inline">@{auth.profile.username}</span>
             <a href="/" className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-black text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">
               <ArrowLeft size={15} /> <span className="hidden sm:inline">Siteye dön</span>
@@ -492,7 +492,7 @@ export default function AdminApp() {
           </div>
         </header>
 
-        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[230px_1fr]">
+        <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-5 px-4 py-5 lg:grid-cols-[230px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
             <div className="sticky top-[76px] rounded-[22px] border border-slate-200 bg-white p-2">{nav}</div>
           </aside>
@@ -1595,7 +1595,7 @@ function ContactSection() {
       <LoadState state={state}>
         {(data) =>
           !data.rows.length ? <Empty>Bu listede mesaj yok.</Empty> : (
-            <div className="grid gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
               {data.rows.map((row) => {
                 const expanded = openId === row.id;
                 const [statusLabel, statusTone] = CONTACT_STATUS[row.status] || CONTACT_STATUS.open;
@@ -1603,14 +1603,14 @@ function ContactSection() {
                 const handler = row.handled_by && data.people[row.handled_by];
                 return (
                   <Card key={row.id} className="p-0">
-                    <button type="button" onClick={() => setOpenId(expanded ? null : row.id)} className="flex w-full flex-wrap items-center gap-2 px-4 py-3 text-left">
+                    <button type="button" onClick={() => setOpenId(expanded ? null : row.id)} className="flex w-full min-w-0 flex-wrap items-center gap-2 px-4 py-3 text-left">
                       <Badge tone={statusTone}>{statusLabel}</Badge>
                       <Badge tone="cyan">{CONTACT_TOPIC_LABELS[row.topic] || row.topic}</Badge>
                       <span className="font-black text-slate-900">{row.name}</span>
                       <span className="text-sm text-slate-500">{row.email}</span>
                       <span className="flex-1" />
                       <span className="text-xs text-slate-400">{fmtDate(row.created_at)}</span>
-                      {!expanded && <span className="basis-full truncate text-sm text-slate-600">{row.body}</span>}
+                      {!expanded && <span className="w-full min-w-0 basis-full truncate text-sm text-slate-600">{row.body}</span>}
                     </button>
                     {expanded && (
                       <div className="border-t border-slate-100 px-4 py-3">

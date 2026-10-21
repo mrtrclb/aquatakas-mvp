@@ -13,7 +13,7 @@ import {
   Users,
   X
 } from "lucide-react";
-import { Avatar, ComposerPrompt, PageHeader, PostCard, extractTags, normalizeTr, searchPosts, slugifyWords } from "./community.jsx";
+import { Avatar, ComposerPrompt, PageHeader, PostCard, TagFollowButton, extractTags, normalizeTr, searchPosts, slugifyWords } from "./community.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Varsayılan gruplar                                                  */
@@ -81,6 +81,42 @@ export function buildDefaultGroups() {
       description: "Oscar, arowana, büyük yayın balıkları ve dev tanklar. Büyük balık, büyük sorumluluk.",
       rules: ["Balığın yetişkin boyuna uygun olmayan tank önerileri kaldırılır.", "Canlı yem videoları paylaşılmaz."],
       ownerId: null, moderatorIds: [4], memberIds: [4, 7], createdAt: created
+    },
+    {
+      id: "hastaliklar", slug: "hastaliklar", name: "Hastalıklar", emoji: "🩺", color: "bg-red-100", cover: COVER.guney,
+      description: "Beyaz benek, kadife, yüzgeç çürümesi, bakteriyel ve paraziter sorunlar: belirtiler, karantina ve tedavi deneyimleri.",
+      rules: ["Soru sorarken su değerlerini (NH3, NO2, NO3, pH, sıcaklık), tank hacmini ve belirtileri yaz; mümkünse fotoğraf/video ekle.", "Paylaşılanlar deneyimdir, kesin teşhis değildir; ilaç dozlarını ürün etiketine göre uygula.", "İlaç satışı ve reçeteli ürün önerisi yapılmaz.", "Acil durumlarda önce su değişimi ve karantina önerilerini dikkate al."],
+      ownerId: null, moderatorIds: [4, 2], memberIds: [4, 2, 6, 9, 1], createdAt: created + 86400000
+    },
+    {
+      id: "canli-yem", slug: "canli-yem", name: "Canlı Yem", emoji: "🪱", color: "bg-lime-100", cover: COVER.nano,
+      description: "Artemia, mikrokurt, infusoria, daphnia, grindal ve kültür kurulumları; kültür takasları ve beslenme deneyimleri.",
+      rules: ["Kültür satışı için ilan bölümünü kullan; burada yöntem ve deneyim paylaşılır.", "Doğadan toplanan yemlerde parazit riskini belirt."],
+      ownerId: null, moderatorIds: [3], memberIds: [3, 5, 6], createdAt: created + 2 * 86400000
+    },
+    {
+      id: "yavru-bakimi", slug: "yavru-bakimi", name: "Yavru Bakımı", emoji: "🐣", color: "bg-yellow-100", cover: COVER.tanganyika,
+      description: "Yumurtadan yetişkine: kuluçka, ilk yem, büyütme tankları, su kalitesi ve seçilim.",
+      rules: ["Türü ve yavruların yaşını (gün/hafta) belirt.", "Satış ya da sahiplendirme için ilan bölümünü kullan."],
+      ownerId: null, moderatorIds: [1], memberIds: [1, 6, 7, 3], createdAt: created + 3 * 86400000
+    },
+    {
+      id: "ekipman", slug: "ekipman", name: "Ekipman Önerileri", emoji: "🔧", color: "bg-zinc-200", cover: COVER.monster,
+      description: "Filtre, ısıtıcı, aydınlatma, CO2 ve ölçüm cihazları: karşılaştırmalar, kurulum ve arıza çözümleri.",
+      rules: ["Marka/model önerirken kendi kullanım süreni ve tank hacmini yaz.", "Gizli reklam ve yönlendirme bağlantısı paylaşılmaz; satıcıysan belirt.", "Elektrik güvenliği konusunda riskli yöntemler önerilmez."],
+      ownerId: null, moderatorIds: [4], memberIds: [4, 2, 10], createdAt: created + 4 * 86400000
+    },
+    {
+      id: "bitki-bakimi", slug: "bitki-bakimi", name: "Bitki Bakımı", emoji: "🌱", color: "bg-green-100", cover: COVER.bitkili,
+      description: "Besin eksiklikleri, yosun sorunları, budama ve çoğaltma. Bitkin neden sararıyor? Burada sor.",
+      rules: ["Işık süresi, gübreleme ve CO2 bilgisini paylaş.", "Bitkinin yakın plan fotoğrafını ekle."],
+      ownerId: null, moderatorIds: [5], memberIds: [5, 3, 8], createdAt: created + 5 * 86400000
+    },
+    {
+      id: "nadir-turler", slug: "nadir-turler", name: "Nadir Türler", emoji: "💎", color: "bg-violet-100", cover: COVER.deniz,
+      description: "Türkiye'de az bulunan türler, lokasyon varyantları, yabani (WC) hatlar ve koruma odaklı üretim.",
+      rules: ["Tür adını Latince ve varsa lokasyon/hat bilgisiyle yaz.", "Koruma altındaki (CITES) türlerin yasal belgesiz alım-satımı konuşulmaz.", "Doğaya bırakma (salım) hiçbir şekilde önerilmez."],
+      ownerId: null, moderatorIds: [7], memberIds: [7, 1, 5], createdAt: created + 6 * 86400000
     }
   ];
 }
@@ -313,7 +349,7 @@ export function GroupPage({ group, posts, ctx, search = "" }) {
 
   return (
     <div>
-      <div className="sticky top-[72px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2 backdrop-blur">
+      <div className="sticky top-[60px] lg:top-[72px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2 backdrop-blur">
         <button onClick={ctx.onOpenGroups} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Gruplar"><ArrowLeft size={19} /></button>
         <div className="min-w-0">
           <h2 className="truncate text-lg font-black leading-tight">{group.name}</h2>
@@ -346,7 +382,7 @@ export function GroupPage({ group, posts, ctx, search = "" }) {
         </button>
       </div>
 
-      <div className="sticky top-[128px] z-10 flex border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="sticky top-[116px] lg:top-[128px] z-10 flex border-b border-slate-200 bg-white/95 backdrop-blur">
         {[["feed", "Akış"], ["members", "Üyeler"], ["about", "Hakkında"]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} className={"relative flex-1 py-3 text-sm font-black transition hover:bg-slate-50 " + (tab === key ? "text-slate-950" : "text-slate-500")}>
             {label}
@@ -437,6 +473,17 @@ export function TagsPage({ posts, ctx }) {
   return (
     <div>
       <PageHeader title="Etiketler" subtitle={all.length + " etiket · paylaşım sayılarıyla"} />
+      {ctx.isMember && (ctx.followedTags || []).length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 bg-cyan-50/50 px-4 py-3">
+          <span className="mr-1 text-xs font-black text-slate-600">Takip ettiklerin:</span>
+          {ctx.followedTags.map((tag) => (
+            <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-cyan-950 py-1 pl-2.5 pr-1 text-xs font-black text-white">
+              <button onClick={() => ctx.onSearch(tag)} className="hover:underline">{tag}</button>
+              <button onClick={() => ctx.onToggleTag(tag)} title="Takibi bırak" className="rounded-full p-0.5 hover:bg-white/20"><X size={11} /></button>
+            </span>
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
         <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
           <Hash size={14} className="text-slate-400" />
@@ -452,20 +499,27 @@ export function TagsPage({ posts, ctx }) {
         <p className="p-10 text-center text-sm font-semibold text-slate-400">Bu aramaya uyan etiket yok.</p>
       ) : (
         <div className="flex flex-wrap items-center gap-2 p-5">
-          {list.map(({ tag, count }) => (
-            <button
-              key={tag}
-              onClick={() => ctx.onSearch(tag)}
-              title={count + " paylaşımda kullanıldı"}
-              className={"inline-flex items-center gap-2 rounded-full bg-cyan-50 font-black text-cyan-900 ring-1 ring-cyan-100 transition hover:bg-cyan-950 hover:text-white " + size(count)}
-            >
-              {tag}
-              <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-black text-cyan-800">{count}</span>
-            </button>
-          ))}
+          {list.map(({ tag, count }) => {
+            const following = (ctx.followedTags || []).includes(tag);
+            return (
+              <span key={tag} className={"inline-flex items-center gap-1 rounded-full font-black ring-1 transition " + (following ? "bg-cyan-950 text-white ring-cyan-950" : "bg-cyan-50 text-cyan-900 ring-cyan-100") + " " + size(count)}>
+                <button onClick={() => ctx.onSearch(tag)} title={count + " paylaşımda kullanıldı · paylaşımları gör"} className="inline-flex items-center gap-2 hover:underline">
+                  {tag}
+                  <span className={"rounded-full px-2 py-0.5 text-[11px] font-black " + (following ? "bg-white/15 text-white" : "bg-white/80 text-cyan-800")}>{count}</span>
+                </button>
+                <button
+                  onClick={() => ctx.onToggleTag(tag)}
+                  title={following ? "Takibi bırak" : "Takip et"}
+                  className={"ml-0.5 grid h-6 w-6 place-items-center rounded-full text-sm leading-none transition " + (following ? "bg-white/15 hover:bg-red-500" : "bg-white text-cyan-800 hover:bg-cyan-950 hover:text-white")}
+                >
+                  {following ? <Check size={13} /> : <Plus size={13} />}
+                </button>
+              </span>
+            );
+          })}
         </div>
       )}
-      <p className="px-5 pb-6 text-xs text-slate-400">Etikete tıkladığında o etiketle yapılan paylaşımlar listelenir.</p>
+      <p className="px-5 pb-6 text-xs text-slate-400">Etikete tıkladığında o etiketle yapılan paylaşımlar listelenir. <strong>+</strong> ile takip ettiğin etiketlerin paylaşımları ana sayfandaki “Takip ettiklerim” sekmesinde görünür.</p>
     </div>
   );
 }

@@ -39,7 +39,9 @@ import {
   Hourglass,
   BarChart3,
   Home,
-  LogOut
+  LogOut,
+  BookOpen,
+  Menu
 } from "lucide-react";
 import {
   ComposerModal,
@@ -60,7 +62,9 @@ import {
   userIdOf
 } from "./community.jsx";
 import { GroupFormModal, GroupPage, GroupsPage, TagsPage, buildDefaultGroups } from "./groups.jsx";
-import { HomeAside, HomeFeed, HomeTopBar, HomeWidgets, loadHomeFilter, saveHomeFilter } from "./home.jsx";
+import { HomeAside, HomeFeed, HomeTopBar, loadHomeFilter, saveHomeFilter } from "./home.jsx";
+import { KbAside, KbCategoryPage, KbHome, KbMinePage, KbWidgets, KeptSpeciesChips, SpeciesPage } from "./knowledge.jsx";
+import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, speciesBySlug } from "./species.js";
 
 const locations = {
   Gaziantep: { Şehitkamil: ["Batıkent", "Emek", "Merveşehir"], Şahinbey: ["Karataş", "Güneykent", "Binevler"] },
@@ -345,6 +349,18 @@ export default function AquaTakasPrototype() {
   const [homeTab, setHomeTab] = useState("foryou");
   const [homeLocation, setHomeLocation] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [followedTags, setFollowedTags] = useState([]);
+  const [kbRoute, setKbRoute] = useState(null); // { section } | { category } | { slug } | { mine }
+  const [kbSearch, setKbSearch] = useState("");
+  const [kbKeeping, setKbKeeping] = useState(() => ({ ...SEED_KEEPING }));
+  const [kbFavorites, setKbFavorites] = useState(() => ({ ...SEED_FAVORITES }));
+  const [kbComments, setKbComments] = useState(() =>
+    SEED_SPECIES_COMMENTS.map(([slug, userId, text, hoursAgo], index) => ({
+      id: "sc" + index, slug, userId, text, createdAt: Date.now() - hoursAgo * 3600000, likes: (text.length % 9) + 1, likedByMe: false
+    }))
+  );
+  const [drawerOpen, setDrawerOpen] = useState(false); // mobil: sol menü / filtre paneli
+  const [mobileShareOpen, setMobileShareOpen] = useState(false);
   const userMenuRef = useRef(null);
   const shareMenuRef = useRef(null);
   const cameFromApp = useRef(false);
@@ -359,6 +375,17 @@ export default function AquaTakasPrototype() {
       setPostSlug(post ? decodeURIComponent(post[1]) : null);
       setGroupSlug(group ? decodeURIComponent(group[1]) : null);
       setCommunityPage(hash === "#/gruplar" ? "groups" : hash === "#/etiketler" ? "tags" : null);
+      const kbSection = hash.match(/^#\/bilgi(?:\/b\/([^/]+))?$/);
+      const kbCategory = hash.match(/^#\/bilgi\/k\/([^/]+)$/);
+      const species = hash.match(/^#\/tur\/([^/]+)$/);
+      setKbRoute(
+        species ? { slug: decodeURIComponent(species[1]) }
+          : kbCategory ? { category: decodeURIComponent(kbCategory[1]) }
+          : hash === "#/bilgi/turlerim" ? { mine: true }
+          : kbSection ? { section: kbSection[1] || "tatlisu" }
+          : null
+      );
+      setDrawerOpen(false);
     }
     syncFromHash();
     window.addEventListener("hashchange", syncFromHash);
@@ -394,6 +421,7 @@ export default function AquaTakasPrototype() {
     setPostSlug(null);
     setGroupSlug(null);
     setCommunityPage(null);
+    setKbRoute(null);
   }
 
   function clearViews() {
@@ -405,6 +433,8 @@ export default function AquaTakasPrototype() {
     setCommunityOpen(false);
     setPostsUser(null);
     setShareMenuOpen(false);
+    setDrawerOpen(false);
+    setMobileShareOpen(false);
     clearPostHash();
   }
 
@@ -422,9 +452,62 @@ export default function AquaTakasPrototype() {
 
   function openHashPage(path) {
     clearViews();
+    setListingsOpen(false);
     window.location.hash = path;
     scrollTop();
   }
+
+  function toggleTag(tag) {
+    if (!isMember) {
+      requireLogin();
+      return;
+    }
+    const following = followedTags.includes(tag);
+    setFollowedTags((prev) => (following ? prev.filter((item) => item !== tag) : [...prev, tag]));
+    setToast(following ? tag + " takibi bırakıldı" : tag + " takip ediliyor · paylaşımlar ana sayfanda");
+  }
+
+  function toggleInMap(setter, slug, onMsg, offMsg) {
+    setter((prev) => {
+      const mine = prev[currentUserId] || [];
+      const has = mine.includes(slug);
+      setToast(has ? offMsg : onMsg);
+      return { ...prev, [currentUserId]: has ? mine.filter((item) => item !== slug) : [...mine, slug] };
+    });
+  }
+
+  const kb = {
+    species: SPECIES,
+    keeping: kbKeeping,
+    favorites: kbFavorites,
+    comments: kbComments,
+    search: kbSearch,
+    setSearch: (value) => {
+      setKbSearch(value);
+      if (value && !(kbRoute && kbRoute.section)) openHashPage("/bilgi");
+    },
+    openHome: () => { setKbSearch(""); openHashPage("/bilgi"); },
+    openSection: (id) => openHashPage(id === "tatlisu" ? "/bilgi" : "/bilgi/b/" + id),
+    openCategory: (id) => { setKbSearch(""); openHashPage("/bilgi/k/" + id); },
+    openSpecies: (species) => openHashPage("/tur/" + species.slug),
+    openMine: () => openHashPage("/bilgi/turlerim"),
+    onToggleKeep: (slug) => toggleInMap(setKbKeeping, slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı"),
+    onToggleFav: (slug) => toggleInMap(setKbFavorites, slug, "Favori türlerine eklendi ⭐", "Favorilerden çıkarıldı"),
+    onComment: (slug, { text, images = [], video = null }) => {
+      setKbComments((prev) => [{ id: "sc" + Date.now(), slug, userId: currentUserId, text, images, video, createdAt: Date.now(), likes: 0, likedByMe: false }, ...prev]);
+      setToast("Deneyimin paylaşıldı, teşekkürler!");
+    },
+    onEditComment: (id, text) => {
+      setKbComments((prev) => prev.map((item) => (item.id === id ? { ...item, text, editedAt: Date.now() } : item)));
+      setToast("Yorum güncellendi");
+    },
+    onDeleteComment: (id) => {
+      if (!window.confirm("Bu yorumu silmek istediğine emin misin?")) return;
+      setKbComments((prev) => prev.filter((item) => item.id !== id));
+    },
+    onLikeComment: (id) =>
+      setKbComments((prev) => prev.map((item) => (item.id === id ? { ...item, likedByMe: !item.likedByMe, likes: item.likes + (item.likedByMe ? -1 : 1) } : item)))
+  };
 
   function openGroup(group) {
     setCommunitySearch("");
@@ -595,6 +678,8 @@ export default function AquaTakasPrototype() {
       return Boolean(group) && (group.ownerId === currentUserId || group.moderatorIds.includes(currentUserId));
     },
     onOpenGroup: openGroup,
+    followedTags,
+    onToggleTag: toggleTag,
     onOpenListing: (item) => openListing(item),
     featuredListingIds,
     priceLabel,
@@ -722,12 +807,14 @@ export default function AquaTakasPrototype() {
   const postMode = Boolean(postSlug);
   const currentGroup = groupSlug ? groups.find((group) => group.slug === groupSlug) : null;
   const groupMode = Boolean(groupSlug) && !postMode;
-  const hashMode = postMode || groupMode || Boolean(communityPage);
+  const kbMode = Boolean(kbRoute) && !postMode;
+  const currentSpecies = kbMode && kbRoute.slug ? speciesBySlug(kbRoute.slug) : null;
+  const hashMode = postMode || groupMode || Boolean(communityPage) || kbMode;
   const effectiveMemberPage = isMember && !hashMode ? memberPage : null;
   const accountMode = Boolean(effectiveMemberPage) && effectiveMemberPage !== "posts";
   const userListingsMode = Boolean(viewUser) && !hashMode;
   const detailMode = Boolean(selectedListing) && !hashMode;
-  const communityMode = hashMode || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
+  const communityMode = (hashMode && !kbMode) || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
   const currentUser = users[currentUserId];
   const currentPost = postSlug ? posts.find((post) => post.slug === postSlug) : null;
   const newMembers = Object.values(users).filter((user) => user.newMember);
@@ -745,10 +832,10 @@ export default function AquaTakasPrototype() {
   const asideView = postMode ? "post" : groupMode ? "group" : communityPage || (communityOpen && !postsUser && !effectiveMemberPage ? "feed" : "other");
   const joinedGroups = isMember ? groups.filter((group) => group.memberIds.includes(currentUserId)) : [];
   // Ana sayfa: İlanlar + İçerikler karışık akış; "İlanlar"/"İçerikler" seçimi hatırlanır ve o görünüme döner
-  const homeMode = !communityMode && !accountMode && !userListingsMode && !detailMode && !listingsOpen && !effectiveMemberPage;
+  const homeMode = !communityMode && !kbMode && !accountMode && !userListingsMode && !detailMode && !listingsOpen && !effectiveMemberPage;
   const homeView = homeMode ? (homeFilter === "listings" ? "listings" : homeFilter === "posts" ? "posts" : "mixed") : null;
-  const showListingFilters = !accountMode && !userListingsMode && !communityMode && homeView !== "mixed" && homeView !== "posts";
-  const navActive = communityMode ? "community" : homeMode ? "home" : listingsOpen && !accountMode && !effectiveMemberPage && !userListingsMode ? "listings" : null;
+  const showListingFilters = !accountMode && !userListingsMode && !communityMode && !kbMode && homeView !== "mixed" && homeView !== "posts";
+  const navActive = kbMode ? "kb" : communityMode ? "community" : homeMode ? "home" : listingsOpen && !accountMode && !effectiveMemberPage && !userListingsMode ? "listings" : null;
   const homeTopBar = (
     <HomeTopBar
       filter={homeFilter}
@@ -764,29 +851,83 @@ export default function AquaTakasPrototype() {
     />
   );
 
-  return (
-    <div className="min-h-screen bg-white text-slate-950">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-4">
-          <button onClick={goHome} className="flex items-center gap-3 text-left">
-            <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-cyan-950 text-sm font-black text-white">HH<span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-cyan-400" /></div>
-            <div className="hidden sm:block">
-              <h1 className="text-xl font-black leading-tight tracking-tight">Hobiciden Hobiciye</h1>
-              <p className="hidden text-xs text-slate-500 lg:block">Akvaryum hobisine özel ilan platformu</p>
+  const listingFilterAside = (
+
+          <aside className="h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:h-[calc(100vh-72px)] lg:overflow-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-black"><SlidersHorizontal size={17} /> Filtrele</h2>
+              <button onClick={resetFilters} className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100"><RefreshCw size={13} /> sıfırla</button>
             </div>
-          </button>
+
+            <label className="mb-3 block">
+              <span className="mb-1 block text-xs font-black text-slate-500">Ara</span>
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <Search size={16} className="text-slate-400" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Discus, filtre, gübre..." />
+              </div>
+            </label>
+
+            <div className="grid gap-3">
+              <MultiSelectDropdown label="İl" options={cityNames} selected={selectedCities} onChange={(value) => { setSelectedCities(value); setSelectedDistricts([]); setSelectedNeighborhoods([]); }} placeholder="Tüm iller" searchable />
+              <MultiSelectDropdown label="İlçe" options={[...new Set(districtNames)]} selected={selectedDistricts} onChange={(value) => { setSelectedDistricts(value); setSelectedNeighborhoods([]); }} placeholder="Tüm ilçeler" searchable />
+              <MultiSelectDropdown label="Mahalle" options={[...new Set(neighborhoodNames)]} selected={selectedNeighborhoods} onChange={setSelectedNeighborhoods} placeholder="Tüm mahalleler" searchable />
+              <Select label="İlan tipi" value={selectedType} onChange={setSelectedType} options={listingTypes} />
+              <Select label="Kategori" value={selectedCategory} onChange={(value) => { setSelectedCategory(value); setSelectedTags([]); }} options={categories} />
+              <MultiSelectDropdown label="Alt seçenekler" options={activeCategoryOptions} selected={selectedTags} onChange={setSelectedTags} placeholder="Alt seçenek seç" searchable />
+              <Select label="Sıralama" value={sort} onChange={setSort} options={["newest", "oldest", "verified"]} labels={{ newest: "En yeni", oldest: "En eski", verified: "Doğrulanmış üye ilanları" }} />
+            </div>
+          </aside>
+  );
+  const leftAside = kbMode ? (
+    <KbAside kb={kb} ctx={communityCtx} route={{ ...kbRoute, species: currentSpecies }} />
+  ) : communityMode ? (
+    <CommunityAside ctx={communityCtx} view={asideView} group={groupMode ? currentGroup : null} search={communitySearch} tags={asideTags} groups={groups} />
+  ) : homeView === "posts" ? (
+    <CommunityAside ctx={communityCtx} view="feed" search={communitySearch} tags={asideTags} groups={groups} />
+  ) : homeView === "mixed" ? (
+    <HomeAside ctx={communityCtx} groups={groups} posts={posts} />
+  ) : showListingFilters ? (
+    listingFilterAside
+  ) : null;
+  // Mobilde sağ sütun yerine açılır panelin altında gösterilenler
+  const drawerExtras = kbMode ? <KbWidgets kb={kb} /> : null;
+  const isListingFilterPanel = leftAside === listingFilterAside;
+
+  const navItems = [["home", "Ana sayfa", Home, goHome], ["listings", "İlanlar", Tag, openListingsPage], ["community", "Topluluk", Users, openCommunity], ["kb", "Bilgi Bankası", BookOpen, kb.openHome]];
+
+  return (
+    <div className="min-h-screen bg-white pb-[calc(64px+env(safe-area-inset-bottom))] text-slate-950 lg:pb-0">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between gap-2 px-3 sm:px-4 lg:h-[72px]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {leftAside && (
+              <button
+                onClick={() => setDrawerOpen(true)}
+                title={isListingFilterPanel ? "Filtrele" : "Menü"}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-700 hover:bg-slate-100 lg:hidden"
+              >
+                {isListingFilterPanel ? <SlidersHorizontal size={20} /> : <Menu size={21} />}
+              </button>
+            )}
+            <button onClick={goHome} className="flex min-w-0 items-center gap-2.5 text-left lg:gap-3">
+              <div className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cyan-950 text-sm font-black text-white lg:h-11 lg:w-11">HH<span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-cyan-400" /></div>
+              <div className="hidden min-w-0 sm:block lg:hidden xl:block">
+                <h1 className="truncate text-lg font-black leading-tight tracking-tight lg:text-xl">Hobiciden Hobiciye</h1>
+                <p className="hidden text-xs text-slate-500 xl:block">Akvaryum hobisine özel ilan platformu</p>
+              </div>
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
-            
-            <nav className="flex items-center gap-1 rounded-full bg-slate-100 p-1">
-              {[["home", "Ana sayfa", Home, goHome], ["listings", "İlanlar", Tag, openListingsPage], ["community", "Topluluk", Users, openCommunity]].map(([key, label, Icon, onClick]) => (
+            <nav className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 lg:flex">
+              {navItems.map(([key, label, Icon, onClick]) => (
                 <button
                   key={key}
                   onClick={onClick}
                   title={label}
                   className={"flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-black transition " + (navActive === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}
                 >
-                  <Icon size={16} /> <span className="hidden md:inline">{label}</span>
+                  <Icon size={16} /> <span className="hidden xl:inline">{label}</span>
                 </button>
               ))}
             </nav>
@@ -822,11 +963,11 @@ export default function AquaTakasPrototype() {
                 )}
               </div>
             ) : (
-              <button onClick={requireLogin} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                Üye ol / Giriş yap
+              <button onClick={requireLogin} className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:px-4">
+                <span className="hidden sm:inline">Üye ol / </span>Giriş yap
               </button>
             )}
-            <div ref={shareMenuRef} className="relative">
+            <div ref={shareMenuRef} className="relative hidden lg:block">
               <button onClick={() => setShareMenuOpen((open) => !open)} className="flex items-center gap-2 rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white hover:bg-cyan-900">
                 <Plus size={17} /> Paylaş <ChevronDown size={15} className={"transition " + (shareMenuOpen ? "rotate-180" : "")} />
               </button>
@@ -860,38 +1001,27 @@ export default function AquaTakasPrototype() {
       </header>
 
       <main className={"mx-auto grid max-w-7xl px-4 " + ((accountMode || userListingsMode) ? "lg:grid-cols-[1fr]" : detailMode ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
-                {communityMode && <CommunityAside ctx={communityCtx} view={asideView} group={groupMode ? currentGroup : null} search={communitySearch} tags={asideTags} groups={groups} />}
-                {homeView === "posts" && <CommunityAside ctx={communityCtx} view="feed" search={communitySearch} tags={asideTags} groups={groups} />}
-                {homeView === "mixed" && <HomeAside ctx={communityCtx} groups={groups} posts={posts} listingCount={listings.filter((item) => item.userId === currentUserId).length} />}
-                {showListingFilters && (
-          <aside className="h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:h-[calc(100vh-72px)] lg:overflow-auto">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-base font-black"><SlidersHorizontal size={17} /> Filtrele</h2>
-              <button onClick={resetFilters} className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100"><RefreshCw size={13} /> sıfırla</button>
-            </div>
+        {leftAside && <div className="hidden lg:block">{leftAside}</div>}
 
-            <label className="mb-3 block">
-              <span className="mb-1 block text-xs font-black text-slate-500">Ara</span>
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <Search size={16} className="text-slate-400" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Discus, filtre, gübre..." />
-              </div>
-            </label>
-
-            <div className="grid gap-3">
-              <MultiSelectDropdown label="İl" options={cityNames} selected={selectedCities} onChange={(value) => { setSelectedCities(value); setSelectedDistricts([]); setSelectedNeighborhoods([]); }} placeholder="Tüm iller" searchable />
-              <MultiSelectDropdown label="İlçe" options={[...new Set(districtNames)]} selected={selectedDistricts} onChange={(value) => { setSelectedDistricts(value); setSelectedNeighborhoods([]); }} placeholder="Tüm ilçeler" searchable />
-              <MultiSelectDropdown label="Mahalle" options={[...new Set(neighborhoodNames)]} selected={selectedNeighborhoods} onChange={setSelectedNeighborhoods} placeholder="Tüm mahalleler" searchable />
-              <Select label="İlan tipi" value={selectedType} onChange={setSelectedType} options={listingTypes} />
-              <Select label="Kategori" value={selectedCategory} onChange={(value) => { setSelectedCategory(value); setSelectedTags([]); }} options={categories} />
-              <MultiSelectDropdown label="Alt seçenekler" options={activeCategoryOptions} selected={selectedTags} onChange={setSelectedTags} placeholder="Alt seçenek seç" searchable />
-              <Select label="Sıralama" value={sort} onChange={setSort} options={["newest", "oldest", "verified"]} labels={{ newest: "En yeni", oldest: "En eski", verified: "Doğrulanmış üye ilanları" }} />
-            </div>
-          </aside>
-        )}
-
-        <section className={"min-w-0 bg-white " + (accountMode || userListingsMode ? "border-x border-slate-200" : "border-r border-slate-200")}>
-  {postMode ? (
+        <section className={"min-w-0 bg-white " + (accountMode || userListingsMode ? "border-x border-slate-200" : "lg:border-r border-slate-200")}>
+  {kbMode ? (
+  kbRoute.slug ? (
+    currentSpecies ? (
+      <SpeciesPage key={currentSpecies.slug} species={currentSpecies} kb={kb} ctx={communityCtx} listings={listings} posts={posts} />
+    ) : (
+      <div className="p-10 text-center">
+        <h2 className="text-xl font-black">Tür bulunamadı</h2>
+        <button onClick={kb.openHome} className="mt-5 rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">Bilgi Bankası'na dön</button>
+      </div>
+    )
+  ) : kbRoute.category ? (
+    <KbCategoryPage key={kbRoute.category} kb={kb} categoryId={kbRoute.category} />
+  ) : kbRoute.mine && isMember ? (
+    <KbMinePage kb={kb} ctx={communityCtx} />
+  ) : (
+    <KbHome kb={kb} section={kbRoute.section || "tatlisu"} />
+  )
+) : postMode ? (
   currentPost ? (
     <PostDetailPage post={currentPost} ctx={communityCtx} onBack={closePost} />
   ) : (
@@ -986,7 +1116,7 @@ export default function AquaTakasPrototype() {
 ) : (
   <>
     {homeView === "listings" ? homeTopBar : (
-      <div className="sticky top-[72px] z-20 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
+      <div className="sticky top-[60px] lg:top-[72px] z-20 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
         <h2 className="text-xl font-black text-slate-950">İlanlar</h2>
         <p className="text-xs font-semibold text-slate-500">{filteredListings.length} ilan · soldan filtreleyebilirsin</p>
       </div>
@@ -1005,10 +1135,9 @@ export default function AquaTakasPrototype() {
     />
   </>
 )}
-)}
 </section>
         {!detailMode && !accountMode && !userListingsMode && (
-          <RightSidebar>{homeMode && <HomeWidgets posts={posts} groups={groups} ctx={communityCtx} />}</RightSidebar>
+          <RightSidebar>{kbMode ? <KbWidgets kb={kb} /> : null}</RightSidebar>
         )}
       </main>
 
@@ -1019,6 +1148,8 @@ export default function AquaTakasPrototype() {
     allPosts={posts}
     groups={groups}
     onOpenGroup={openGroup}
+    keptSpecies={kbKeeping[userIdOf(users, profileUser)] || []}
+    kb={kb}
     onClose={() => setProfileUser(null)}
     onOpenPost={openPost}
     onViewPosts={() => {
@@ -1066,8 +1197,73 @@ export default function AquaTakasPrototype() {
           onSave={saveGroup}
         />
       )}
+      {drawerOpen && leftAside && (
+        <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px]" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute inset-y-0 left-0 flex w-[88%] max-w-sm flex-col bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <span className="text-sm font-black text-slate-800">{isListingFilterPanel ? "İlanlar" : "Menü"}</span>
+              <button onClick={() => setDrawerOpen(false)} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200" title="Kapat"><X size={17} /></button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto [&>aside]:border-0">
+              {leftAside}
+              {drawerExtras && <div className="px-4 pb-4">{drawerExtras}</div>}
+            </div>
+            <div className="border-t border-slate-100 p-3">
+              <button onClick={() => setDrawerOpen(false)} className="w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white hover:bg-cyan-900">
+                {isListingFilterPanel ? filteredListings.length + " ilanı göster" : "Kapat"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+        <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center">
+          {[navItems[0], navItems[1], null, navItems[2], navItems[3]].map((item, index) => {
+            if (!item) {
+              return (
+                <div key="share" className="flex justify-center">
+                  <button onClick={() => setMobileShareOpen(true)} title="Paylaş" className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-950 text-white shadow-lg shadow-cyan-950/20 active:scale-95">
+                    <Plus size={24} />
+                  </button>
+                </div>
+              );
+            }
+            const [key, label, Icon, onClick] = item;
+            const active = navActive === key;
+            return (
+              <button key={key} onClick={onClick} className={"flex flex-col items-center gap-0.5 py-1 text-[10px] font-black " + (active ? "text-cyan-950" : "text-slate-400")}>
+                <Icon size={22} strokeWidth={active ? 2.4 : 2} />
+                <span className="max-w-full truncate px-0.5">{key === "kb" ? "Bilgi" : label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {mobileShareOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end bg-slate-950/50 lg:hidden" onClick={() => setMobileShareOpen(false)}>
+          <div className="w-full rounded-t-[28px] bg-white p-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-200" />
+            {[
+              [Tag, "İlan ekle", "Sat, takas et, sahiplendir", () => { setMobileShareOpen(false); setAddOpen(true); }],
+              [PenLine, "İçerik paylaş", "Yazı, foto, video veya anket", () => { setMobileShareOpen(false); openComposer(groupMode && currentGroup ? currentGroup.id : null); }]
+            ].map(([Icon, title, sub, onClick]) => (
+              <button key={title} onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-slate-50">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-cyan-50 text-cyan-900"><Icon size={19} /></span>
+                <span>
+                  <span className="block text-[15px] font-black text-slate-900">{title}</span>
+                  <span className="block text-xs text-slate-500">{sub}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {toast && (
-        <div className="fixed bottom-6 left-1/2 z-[80] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-black text-white shadow-xl">{toast}</div>
+        <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 z-[80] max-w-[92vw] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-center text-sm font-black text-white shadow-xl lg:bottom-6">{toast}</div>
       )}
       {authOpen && (
         <AuthModal
@@ -1151,7 +1347,7 @@ function ListingFeed({ listings, onOpen, onProfile }) {
               </div>
             </button>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-[112px] text-sm">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm sm:pl-[112px]">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
                 <button onClick={() => onProfile(user)} className="font-black text-slate-700 hover:underline">
                   <UserName user={user} />
@@ -1360,8 +1556,7 @@ function RightSidebar({ children }) {
   ];
 
   return (
-    <aside className="h-fit border-r border-slate-200 bg-white p-4 lg:sticky lg:top-[72px]">
-      {children}
+    <aside className="hidden h-fit border-r border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:block lg:max-h-[calc(100vh-72px)] lg:overflow-y-auto [scrollbar-width:thin]">
       <SidebarAd ad={adPool[0]} />
       <div className="mt-4 overflow-hidden rounded-[28px] border border-slate-200 bg-white">
         <div className="relative h-52 overflow-hidden bg-slate-900 p-5 text-white" style={{ backgroundImage: "linear-gradient(120deg, rgba(8,51,68,.92), rgba(15,23,42,.62)), url(" + slide.image + ")", backgroundSize: "cover", backgroundPosition: "center" }}>
@@ -1387,6 +1582,7 @@ function RightSidebar({ children }) {
           </button>
         ))}
       </div>
+      {children}
       {infoOpen && <SiteInfoModal activeTab={infoTab} setActiveTab={setInfoTab} onClose={() => setInfoOpen(false)} />}
     </aside>
   );
@@ -2637,7 +2833,7 @@ function UserListingsPage({ user, onBack, onOpen, onProfile }) {
                   </div>
                 </button>
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-[112px] text-sm">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm sm:pl-[112px]">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
                     <button onClick={() => onProfile(user)} className="font-black text-slate-700 hover:underline">
                       <UserName user={user} />
@@ -2689,7 +2885,7 @@ function MediaThumb({ item, size = "h-11 w-11" }) {
   return null;
 }
 
-function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], onClose, onViewListings, onViewPosts, onOpenPost, onOpenGroup }) {
+function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSpecies = [], kb, onClose, onViewListings, onViewPosts, onOpenPost, onOpenGroup }) {
   const stats = user.reviewStats || { positive: 0, neutral: 0, negative: 0 };
   const totalReviews = stats.positive + stats.neutral + stats.negative;
   const hasSocials = user.socials && (user.socials.instagram || user.socials.facebook || user.socials.x);
@@ -2782,6 +2978,14 @@ function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], onClos
               <div className="text-xs font-bold text-slate-500">Olumsuz</div>
             </div>
           </div>
+        </div>
+
+        <div className="mb-4 rounded-2xl bg-slate-50 p-3">
+          <div className="mb-2 flex items-center justify-between text-sm font-black">
+            <span className="flex items-center gap-1.5"><BookOpen size={15} /> Beslediği türler</span>
+            <span className="text-xs text-slate-400">{keptSpecies.length}</span>
+          </div>
+          <KeptSpeciesChips slugs={keptSpecies} kb={kb} onOpen={kb.openSpecies} />
         </div>
 
         {userGroups.length > 0 && (

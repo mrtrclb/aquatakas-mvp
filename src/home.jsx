@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { CalendarDays, Flame, Hash, MapPin, MessageCircle, Pin, Play, Sparkles, Users, X } from "lucide-react";
-import { Avatar, PostCard, extractTags, mediaLabel, timeAgo } from "./community.jsx";
+import { CalendarDays, ChevronRight, Flame, Hash, Info, MapPin, MessageCircle, Pin, Play, Sparkles, Users, X } from "lucide-react";
+import { Avatar, PostCard, extractTags, mediaLabel, normalizeTr, timeAgo } from "./community.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Ayarlar                                                             */
@@ -41,7 +41,23 @@ function loadOnboardDone() {
 }
 
 function isQuestion(post) {
-  return !post.poll && /\?/.test(post.text || "");
+  return post.kind === "question";
+}
+
+function postTags(post) {
+  return ((post.text || "").match(/#[\p{L}\p{N}_]+/gu) || []).map(normalizeTr);
+}
+
+// Takip: katıldığın gruplar + takip ettiğin etiketler
+export function isFollowedPost(post, joinedIds, followedTags) {
+  if (post.groupId && joinedIds.includes(post.groupId)) return true;
+  return followedTags.length > 0 && postTags(post).some((tag) => followedTags.includes(tag));
+}
+
+// Popüler tartışmalar puanı: son 48 saat, yorum x3 + beğeni (yorum, tartışmayı beğeniden daha iyi temsil eder)
+export const POPULAR_WINDOW_HOURS = 48;
+export function popularScore(post) {
+  return post.comments.length * 3 + post.likes;
 }
 
 /* ------------------------------------------------------------------ */
@@ -50,10 +66,10 @@ function isQuestion(post) {
 
 export function HomeTopBar({ filter, onFilter, tab, onTab, location, onLocation, cities, myCity, showTabs = true, showLocation = true }) {
   return (
-    <div className="sticky top-[72px] z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div className="sticky top-[60px] lg:top-[72px] z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       {showTabs && (
         <div className="flex">
-          {[["foryou", "Senin için"], ["groups", "Gruplarım"]].map(([key, label]) => (
+          {[["foryou", "Senin için"], ["following", "Takip ettiklerim"]].map(([key, label]) => (
             <button key={key} onClick={() => onTab(key)} className={"relative flex-1 py-3.5 text-sm font-black transition hover:bg-slate-50 " + (tab === key ? "text-slate-950" : "text-slate-500")}>
               {label}
               {tab === key && <span className="absolute bottom-0 left-1/2 h-1 w-16 -translate-x-1/2 rounded-full bg-cyan-700" />}
@@ -137,38 +153,93 @@ function HomeListingCard({ item, ctx, featured }) {
 /* İlgi alanı kartı (bir kez)                                          */
 /* ------------------------------------------------------------------ */
 
+function InterestChip({ group, active, onClick, large = false }) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "flex shrink-0 snap-start items-center gap-1.5 rounded-full font-black transition " +
+        (large ? "px-3.5 py-2 text-sm " : "px-3 py-1.5 text-sm ") +
+        (active ? "bg-cyan-950 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50")
+      }
+    >
+      <span>{group.emoji}</span> {group.name}
+      {active && <span className="text-xs">✓</span>}
+    </button>
+  );
+}
+
 function OnboardingCard({ groups, ctx, onDone }) {
   const [picked, setPicked] = useState([]);
+  const [allOpen, setAllOpen] = useState(false);
   const toggle = (id) => setPicked((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  const sorted = groups.slice().sort((a, b) => b.memberIds.length - a.memberIds.length);
+
+  function submit() {
+    if (!ctx.isMember) return ctx.onAuth();
+    picked.forEach((id) => ctx.onJoinGroup(id));
+    setAllOpen(false);
+    onDone();
+    return undefined;
+  }
+  const submitLabel = ctx.isMember ? (picked.length ? picked.length + " gruba katıl" : "Grup seç") : "Üye ol ve akışını oluştur";
 
   return (
-    <section className="relative border-b border-slate-200 bg-gradient-to-br from-cyan-50 to-white px-4 py-4">
+    <section className="relative border-b border-slate-200 bg-gradient-to-br from-cyan-50 to-white py-4">
       <button onClick={onDone} title="Kapat" className="absolute right-3 top-3 rounded-full p-1.5 text-slate-400 hover:bg-white hover:text-slate-700"><X size={16} /></button>
-      <h3 className="flex items-center gap-2 text-base font-black text-cyan-950"><Sparkles size={17} /> İlgi alanlarını seç</h3>
-      <p className="mt-0.5 text-xs font-semibold text-slate-500">Seçtiğin gruplara katılırsın; akışın ilk günden sana göre şekillenir.</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {groups.map((group) => (
-          <button
-            key={group.id}
-            onClick={() => toggle(group.id)}
-            className={"flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-black transition " + (picked.includes(group.id) ? "bg-cyan-950 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50")}
-          >
-            <span>{group.emoji}</span> {group.name}
-          </button>
-        ))}
+      <div className="px-4 pr-10">
+        <h3 className="flex items-center gap-2 text-base font-black text-cyan-950"><Sparkles size={17} /> İlgi alanlarını seç</h3>
+        <p className="mt-0.5 text-xs font-semibold text-slate-500">Seçtiğin gruplara katılırsın; akışın ilk günden sana göre şekillenir.</p>
       </div>
-      <button
-        onClick={() => {
-          if (!ctx.isMember) return ctx.onAuth();
-          picked.forEach((id) => ctx.onJoinGroup(id));
-          onDone();
-          return undefined;
-        }}
-        disabled={ctx.isMember && picked.length === 0}
-        className="mt-3 rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40"
-      >
-        {ctx.isMember ? (picked.length ? picked.length + " gruba katıl" : "Grup seç") : "Üye ol ve akışını oluştur"}
-      </button>
+      <div className="mt-3 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+        {sorted.map((group) => <InterestChip key={group.id} group={group} active={picked.includes(group.id)} onClick={() => toggle(group.id)} />)}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 px-4">
+        <button onClick={submit} disabled={ctx.isMember && picked.length === 0} className="rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">{submitLabel}</button>
+        <button onClick={() => setAllOpen(true)} className="flex items-center gap-1 rounded-full px-3 py-2 text-sm font-black text-cyan-800 hover:bg-white">
+          Tümünü gör ({groups.length}) <ChevronRight size={15} />
+        </button>
+      </div>
+
+      {allOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setAllOpen(false); }}>
+          <div className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-2xl sm:rounded-[28px]">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+              <div>
+                <h3 className="flex items-center gap-2 text-lg font-black text-cyan-950"><Sparkles size={18} /> İlgi alanların</h3>
+                <p className="text-xs font-semibold text-slate-500">İstediğin kadar seç; sonradan gruplardan ayrılabilirsin.</p>
+              </div>
+              <button onClick={() => setAllOpen(false)} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={17} /></button>
+            </div>
+            <div className="grid gap-2 overflow-y-auto p-4 sm:grid-cols-2">
+              {sorted.map((group) => {
+                const active = picked.includes(group.id);
+                return (
+                  <button
+                    key={group.id}
+                    onClick={() => toggle(group.id)}
+                    className={"flex items-start gap-3 rounded-2xl p-3 text-left ring-1 transition " + (active ? "bg-cyan-50 ring-cyan-700" : "ring-slate-200 hover:bg-slate-50")}
+                  >
+                    <span className={"grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl " + group.color}>{group.emoji}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-black text-slate-900">{group.name}</span>
+                        <span className={"grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] " + (active ? "bg-cyan-950 text-white" : "ring-1 ring-slate-300")}>{active ? "✓" : ""}</span>
+                      </span>
+                      <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-slate-500">{group.description}</span>
+                      <span className="mt-1 block text-[11px] font-bold text-slate-400">{group.memberIds.length} üye</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3">
+              <span className="text-xs font-bold text-slate-500">{picked.length} seçildi</span>
+              <button onClick={submit} disabled={ctx.isMember && picked.length === 0} className="rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">{submitLabel}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -181,6 +252,7 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [onboardDone, setOnboardDone] = useState(loadOnboardDone);
   const joinedIds = ctx.isMember ? groups.filter((group) => group.memberIds.includes(ctx.currentUserId)).map((group) => group.id) : [];
+  const followedTags = ctx.isMember ? ctx.followedTags || [] : [];
   const myCity = ctx.isMember ? ctx.users[ctx.currentUserId].city : null;
   const FeedAdCard = ctx.FeedAdCard;
 
@@ -188,7 +260,7 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
     const inLocation = (city) => !location || city === location;
 
     let feedPosts = posts.filter((post) => inLocation(ctx.users[post.userId].city));
-    if (tab === "groups") feedPosts = feedPosts.filter((post) => post.groupId && joinedIds.includes(post.groupId));
+    if (tab === "following") feedPosts = feedPosts.filter((post) => isFollowedPost(post, joinedIds, followedTags));
     if (filter === "questions") feedPosts = feedPosts.filter(isQuestion);
     if (filter === "polls") feedPosts = feedPosts.filter((post) => post.poll);
     feedPosts = feedPosts.slice().sort((a, b) => b.createdAt - a.createdAt);
@@ -241,7 +313,7 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
       }
     }
     return result;
-  }, [posts, listings, filter, tab, location, joinedIds.join(","), myCity]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [posts, listings, filter, tab, location, joinedIds.join(","), followedTags.join(","), myCity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showOnboarding = !onboardDone && tab === "foryou" && (!ctx.isMember || joinedIds.length === 0);
   function finishOnboarding() {
@@ -249,11 +321,11 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
     try { window.localStorage.setItem(ONBOARD_KEY, "1"); } catch (e) { /* yoksay */ }
   }
 
-  if (tab === "groups" && !ctx.isMember) {
+  if (tab === "following" && !ctx.isMember) {
     return (
       <div className="p-10 text-center">
         <Users size={30} className="mx-auto text-slate-300" />
-        <p className="mt-3 text-sm font-black text-slate-700">Gruplarının akışını görmek için giriş yap</p>
+        <p className="mt-3 text-sm font-black text-slate-700">Takip ettiğin grup ve etiketleri görmek için giriş yap</p>
         <button onClick={ctx.onAuth} className="mt-4 rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">Giriş yap</button>
       </div>
     );
@@ -269,9 +341,14 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
       })}
       {items.length === 0 ? (
         <div className="p-10 text-center">
-          <p className="text-sm font-black text-slate-700">{tab === "groups" ? (joinedIds.length ? "Gruplarında bu filtreye uyan paylaşım yok" : "Henüz bir gruba katılmadın") : "Bu filtreye uyan bir şey yok"}</p>
-          <p className="mt-1 text-sm text-slate-500">{tab === "groups" && !joinedIds.length ? "Gruplara göz at ve ilgini çekenlere katıl." : "Konum ya da filtreyi değiştirmeyi dene."}</p>
-          {tab === "groups" && !joinedIds.length && <button onClick={ctx.onOpenGroups} className="mt-4 rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">Gruplara göz at</button>}
+          <p className="text-sm font-black text-slate-700">{tab === "following" ? (joinedIds.length || followedTags.length ? "Takip ettiklerinde bu filtreye uyan paylaşım yok" : "Henüz bir grup ya da etiket takip etmiyorsun") : "Bu filtreye uyan bir şey yok"}</p>
+          <p className="mt-1 text-sm text-slate-500">{tab === "following" && !joinedIds.length && !followedTags.length ? "Gruplara katıl ya da etiket takip et; paylaşımları burada toplanır." : "Konum ya da filtreyi değiştirmeyi dene."}</p>
+          {tab === "following" && !joinedIds.length && !followedTags.length && (
+            <div className="mt-4 flex justify-center gap-2">
+              <button onClick={ctx.onOpenGroups} className="rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">Gruplara göz at</button>
+              <button onClick={ctx.onOpenTags} className="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50">Etiketler</button>
+            </div>
+          )}
         </div>
       ) : limit < items.length ? (
         <div className="border-b border-slate-200 p-5">
@@ -288,69 +365,53 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
 /* Sol menü                                                            */
 /* ------------------------------------------------------------------ */
 
-export function HomeAside({ ctx, groups, posts, listingCount }) {
-  const me = ctx.isMember ? ctx.users[ctx.currentUserId] : null;
-  const UserName = ctx.UserName;
-  const joined = me ? groups.filter((group) => group.memberIds.includes(ctx.currentUserId)) : [];
-  const myPostCount = me ? posts.filter((post) => post.userId === ctx.currentUserId).length : 0;
-  const savedCount = me ? posts.filter((post) => post.savedByMe).length : 0;
+// Sayfa her yüklendiğinde farklı 3 grup göstermek için
+const GROUP_SHUFFLE_SEED = Math.random();
+function shuffledGroups(groups) {
+  const score = (id) => {
+    let h = 0;
+    for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) | 0;
+    const x = Math.sin(h * 0.001 + GROUP_SHUFFLE_SEED * 1000) * 10000;
+    return x - Math.floor(x);
+  };
+  return groups.slice().sort((a, b) => score(a.id) - score(b.id));
+}
+
+export function HomeAside({ ctx, groups, posts }) {
+  const picks = useMemo(() => shuffledGroups(groups).slice(0, 3), [groups.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const live = picks.map((pick) => groups.find((group) => group.id === pick.id) || pick);
 
   return (
-    <aside className="hidden h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:block lg:h-[calc(100vh-72px)] lg:overflow-auto">
-      {me ? (
-        <div className="rounded-3xl border border-slate-200 p-4">
-          <div className="flex items-center gap-3">
-            <Avatar user={me} size={48} onClick={() => ctx.onProfile(me)} />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-black text-slate-900"><UserName user={me} /></div>
-              <div className="flex items-center gap-1 text-xs text-slate-500"><MapPin size={12} /> {me.city}</div>
-            </div>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-1 text-center">
-            {[[myPostCount, "Paylaşım", ctx.onMyPosts], [listingCount, "İlan", ctx.onMyListings], [joined.length, "Grup", ctx.onOpenGroups]].map(([value, label, onClick]) => (
-              <button key={label} onClick={onClick} className="rounded-2xl bg-slate-50 py-2 hover:bg-cyan-50">
-                <div className="text-base font-black text-slate-900">{value}</div>
-                <div className="text-[11px] font-black text-slate-500">{label}</div>
-              </button>
-            ))}
-          </div>
-          <button onClick={() => ctx.onCompose(null)} className="mt-3 w-full rounded-full bg-cyan-950 px-4 py-2.5 text-sm font-black text-white hover:bg-cyan-900">İçerik paylaş</button>
-        </div>
-      ) : (
-        <div className="rounded-3xl bg-gradient-to-br from-cyan-950 to-slate-900 p-4 text-white">
-          <h2 className="text-lg font-black leading-tight">Hobiciden hobiciye</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-cyan-50/80">İlan ver, takas yap, gruplara katıl, tankını paylaş. Akvaryum hobisine özel.</p>
-          <button onClick={ctx.onAuth} className="mt-3 w-full rounded-full bg-white px-4 py-2.5 text-sm font-black text-cyan-950 hover:bg-cyan-50">Üye ol / Giriş yap</button>
-        </div>
-      )}
+    <aside className="h-fit border-x border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:h-[calc(100vh-72px)] lg:overflow-auto">
+      <HomeWidgets posts={posts} ctx={ctx} className="grid gap-4" />
 
-      {me && (
-        <div className="mt-5">
-          <div className="mb-1.5 text-xs font-black uppercase tracking-wide text-slate-500">Kısayollar</div>
-          <div className="grid gap-0.5">
-            {[["Kaydettiğim içerikler", savedCount, ctx.onMyPosts], ["Kaydettiğim ilanlar", null, ctx.onMyListings], ["Mesajlarım", null, ctx.onMessages]].map(([label, count, onClick]) => (
-              <button key={label} onClick={onClick} className="flex items-center justify-between rounded-xl px-2 py-1.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50">
-                {label} {count !== null && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-500">{count}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-5">
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-xs font-black uppercase tracking-wide text-slate-500">{joined.length ? "Gruplarım" : "Gruplar"}</span>
-          <button onClick={ctx.onOpenGroups} className="text-[11px] font-black text-cyan-800 hover:underline">Tümü →</button>
-        </div>
+      <section className="mt-4 rounded-[28px] border border-slate-200 p-4">
+        <h3 className="mb-1.5 flex items-center gap-2 text-sm font-black text-slate-900"><Users size={16} className="text-cyan-700" /> Gruplar</h3>
         <div className="grid gap-0.5">
-          {(joined.length ? joined : groups.slice(0, 5)).map((group) => (
-            <button key={group.id} onClick={() => ctx.onOpenGroup(group)} className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50">
-              <span className={"grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm " + group.color}>{group.emoji}</span>
-              <span className="truncate">{group.name}</span>
-            </button>
-          ))}
+          {live.map((group) => {
+            const joined = ctx.isMember && group.memberIds.includes(ctx.currentUserId);
+            return (
+              <div key={group.id} className="flex items-center gap-2 rounded-xl px-1 py-1.5">
+                <button onClick={() => ctx.onOpenGroup(group)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+                  <span className={"grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg " + group.color}>{group.emoji}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-black text-slate-900 hover:underline">{group.name}</span>
+                    <span className="block text-[11px] font-semibold text-slate-400">{group.memberIds.length} üye</span>
+                  </span>
+                </button>
+                {joined ? (
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-500">✓ Üyesin</span>
+                ) : (
+                  <button onClick={() => ctx.onToggleJoin(group.id)} className="shrink-0 rounded-full bg-cyan-950 px-3 py-1.5 text-xs font-black text-white hover:bg-cyan-900">Katıl</button>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
+        <button onClick={ctx.onOpenGroups} className="mt-2 flex w-full items-center justify-center gap-1 rounded-full bg-slate-50 py-2 text-xs font-black text-cyan-800 hover:bg-cyan-50">
+          Daha fazlasını gör ({groups.length} grup) <ChevronRight size={14} />
+        </button>
+      </section>
     </aside>
   );
 }
@@ -359,23 +420,22 @@ export function HomeAside({ ctx, groups, posts, listingCount }) {
 /* Sağ sütun bileşenleri                                               */
 /* ------------------------------------------------------------------ */
 
-export function HomeWidgets({ posts, groups, ctx }) {
-  const dayAgo = Date.now() - 86400000;
-  const recent = posts.filter((post) => post.createdAt >= dayAgo);
+export function HomeWidgets({ posts, ctx, className = "mt-4 grid gap-4" }) {
+  const since = Date.now() - POPULAR_WINDOW_HOURS * 3600000;
+  const recent = posts.filter((post) => post.createdAt >= since);
   const popular = (recent.length >= 3 ? recent : posts)
     .slice()
-    .sort((a, b) => b.comments.length - a.comments.length || b.likes - a.likes)
+    .sort((a, b) => popularScore(b) - popularScore(a) || b.createdAt - a.createdAt)
     .slice(0, 5);
   const tags = extractTags(posts).slice(0, 5);
-  const suggestions = groups
-    .filter((group) => !ctx.isMember || !group.memberIds.includes(ctx.currentUserId))
-    .sort((a, b) => b.memberIds.length - a.memberIds.length)
-    .slice(0, 3);
 
   return (
-    <div className="mb-4 grid gap-4">
+    <div className={className}>
       <section className="rounded-[28px] border border-slate-200 p-4">
-        <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-slate-900"><Flame size={16} className="text-orange-500" /> Popüler tartışmalar</h3>
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-slate-900">
+          <Flame size={16} className="text-orange-500" /> Popüler tartışmalar
+          <span title={"Son " + POPULAR_WINDOW_HOURS + " saatteki paylaşımlar; puan = yorum × 3 + beğeni"} className="ml-auto cursor-help text-slate-300 hover:text-slate-500"><Info size={14} /></span>
+        </h3>
         <div className="grid">
           {popular.map((post, index) => {
             const user = ctx.users[post.userId];
@@ -410,25 +470,6 @@ export function HomeWidgets({ posts, groups, ctx }) {
         </div>
       </section>
 
-      {suggestions.length > 0 && (
-        <section className="rounded-[28px] border border-slate-200 p-4">
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-slate-900"><Users size={16} className="text-cyan-700" /> Keşfet: Gruplar</h3>
-          <div className="grid gap-1">
-            {suggestions.map((group) => (
-              <div key={group.id} className="flex items-center gap-2.5 rounded-xl px-1 py-1.5">
-                <button onClick={() => ctx.onOpenGroup(group)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-                  <span className={"grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg " + group.color}>{group.emoji}</span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-black text-slate-900 hover:underline">{group.name}</span>
-                    <span className="block text-[11px] font-semibold text-slate-400">{group.memberIds.length} üye</span>
-                  </span>
-                </button>
-                <button onClick={() => ctx.onToggleJoin(group.id)} className="shrink-0 rounded-full bg-cyan-950 px-3 py-1.5 text-xs font-black text-white hover:bg-cyan-900">Katıl</button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

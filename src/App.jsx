@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth, AuthModal, NewPasswordModal, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
+import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, uploadListingImages, loadFeaturedPlans } from "./lib/listings";
+import { detectSpecies } from "./species";
 import {
   ChevronDown,
   PenLine,
@@ -114,7 +116,7 @@ const img = {
   culture: "https://images.unsplash.com/photo-1589927986089-35812388d1f4?auto=format&fit=crop&w=1200&q=80"
 };
 
-const listings = [
+const demoListings = [
   { id: 1, userId: 1, title: "Kendi üretimim genç Brichardi kolonisi", category: "Canlı", tags: ["Kendi üretimim", "Yavru"], type: "Satıyorum", city: "Gaziantep", district: "Şehitkamil", neighborhood: "Batıkent", price: "750 TL", allowOffer: true, date: "2026-05-18", images: [img.fish1, img.fish2, img.tank1], youtube: "https://youtube.com/shorts/example", description: "2-3 cm civarı, kuru yeme alışık, sağlıklı genç Neolamprologus brichardi yavruları. Elden teslim tercih edilir. Takas da konuşulur." },
   { id: 2, userId: 2, title: "160x40x45h akvaryum ve sehpa", category: "Akvaryum", tags: ["Sehpalı", "Çok az kullanıldı"], type: "Satıyorum", city: "İstanbul", district: "Kadıköy", neighborhood: "Fenerbahçe", price: "4.500 TL", allowOffer: true, date: "2026-05-15", images: [img.tank1, img.tank2], description: "Sızdırma yok, sehpa dahil. Taşıma alıcıya aittir. Bitkili tank kurulumu için uygundur." },
   { id: 3, userId: 3, title: "Java fern, anubias ve moss budama paketi", category: "Bitki", tags: ["Budama", "Rizomlu"], type: "Takas", city: "Ankara", district: "Çankaya", neighborhood: "Ayrancı", price: "Takas", allowOffer: false, date: "2026-05-10", images: [img.plant1, img.plant2], description: "Düşük destekli tanktan budama. Karides, salyangoz veya nano türlerle takas düşünülür." },
@@ -151,7 +153,13 @@ const listings = [
   { id: 34, userId: 3, title: "Mobilyalı 60 cm karides tankı", category: "Akvaryum", tags: ["Mobilyalı", "Tüm set", "Tür değiştiriyorum"], type: "Satıyorum", city: "Ankara", district: "Keçiören", neighborhood: "Şenlik", price: "3.200 TL", allowOffer: true, date: "2026-04-15", images: [img.tank2, img.plant1], description: "Karides düzeninden çıkma komple set. İçindeki bitkiler ayrı konuşulabilir." }
 ];
 
-const featuredListingIds = [9, 12, 16, 21];
+// Örnek (demo) içerik: gerçek içerik yeterince çoğalınca SHOW_DEMO=false yapılır
+const SHOW_DEMO = true;
+const demoFeaturedIds = [9, 12, 16, 21];
+// Aşağıdaki iki değişken her çizimde App içinde güncellenir (gerçek + örnek ilanlar)
+let listings = demoListings;
+let featuredListingIds = demoFeaturedIds;
+for (const city of TR_CITIES) if (!locations[city]) locations[city] = {};
 
 const welcomeSlides = [
   { title: "Yerel hobicilerle buluş", text: "Canlı, bitki, ekipman ve akvaryum ilanlarını konumuna göre keşfet.", image: img.tank1 },
@@ -333,6 +341,7 @@ export default function AquagramApp() {
   const [authMode, setAuthMode] = useState("login");
   const [removeListing, setRemoveListing] = useState(null);
   const [promoteListing, setPromoteListing] = useState(null);
+  const [editListing, setEditListing] = useState(null); // { item, mode: "edit" | "republish" }
   const [posts, setPosts] = useState(() => buildInitialPosts());
   const [communityOpen, setCommunityOpen] = useState(false);
   const [postSlug, setPostSlug] = useState(null);
@@ -369,7 +378,17 @@ export default function AquagramApp() {
   const userMenuRef = useRef(null);
   const shareMenuRef = useRef(null);
   const cameFromApp = useRef(false);
-  const currentUserId = 1;
+  const myId = auth.user?.id || null;
+  const currentUserId = isMember && myId ? myId : 1;
+  const db = useDbListings(myId);
+  // Gerçek kullanıcıları (ilan sahipleri + giriş yapan üye) kullanıcı listesine ekle
+  db.rows.forEach((row) => { if (row.owner) users[row.owner.id] = profileToUser(row.owner); });
+  if (myId) users[myId] = auth.profile ? profileToUser(auth.profile) : users[myId] || { ...profileToUser({ id: myId, username: (auth.email || "uye").split("@")[0] }) };
+  const dbListings = useMemo(() => db.rows.map(mapListing), [db.rows]);
+  const myListings = dbListings.filter((item) => item.userId === myId);
+  listings = [...dbListings.filter((item) => item.status === "active"), ...(SHOW_DEMO ? demoListings : [])];
+  featuredListingIds = [...demoFeaturedIds, ...dbListings.filter((item) => item.featured && item.status === "active").map((item) => item.id)];
+  Object.values(users).forEach((user) => { if (user.real) user.listingsCount = listings.filter((item) => item.userId === user.id).length; });
 
   // Bağlantılar: #/paylasim/<sayı>-<ilk-kelimeler>, #/gruplar, #/grup/<ad>, #/etiketler
   useEffect(() => {
@@ -599,6 +618,11 @@ export default function AquagramApp() {
     if (!communityOpen && !postsUser && memberPage !== "posts") setCommunityOpen(true);
   }
 
+  function openAddListing() {
+    if (!isMember) return requireLogin();
+    setAddOpen(true);
+  }
+
   function requireLogin() {
     setAuthMode("login");
     setAuthOpen(true);
@@ -813,7 +837,7 @@ export default function AquagramApp() {
       return sort === "oldest" ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date);
     });
     return result;
-  }, [query, selectedType, selectedCategory, selectedTags, selectedCities, selectedDistricts, selectedNeighborhoods, sort]);
+  }, [query, selectedType, selectedCategory, selectedTags, selectedCities, selectedDistricts, selectedNeighborhoods, sort, dbListings]);
 
   function resetFilters() {
     setSelectedType("Tümü");
@@ -873,10 +897,7 @@ export default function AquagramApp() {
   const userListingsMode = Boolean(viewUser) && !hashMode;
   const detailMode = Boolean(selectedListing) && !hashMode;
   const communityMode = (hashMode && !kbMode) || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
-  // Gerçek profil bilgileri; henüz veritabanına taşınmamış alanlar örnek kullanıcıdan gelir
-  const currentUser = auth.profile
-    ? { ...users[currentUserId], username: "@" + auth.profile.username, city: auth.profile.city || "", bio: auth.profile.bio || "", verified: auth.profile.phone_verified, joined: new Date(auth.profile.created_at).toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) }
-    : users[currentUserId];
+  const currentUser = users[currentUserId];
   const currentPost = postSlug ? posts.find((post) => post.slug === postSlug) : null;
   const newMembers = Object.values(users).filter((user) => user.newMember);
   const allTags = useMemo(() => extractTags(posts), [posts]);
@@ -1035,7 +1056,7 @@ export default function AquagramApp() {
               {shareMenuOpen && (
                 <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-60 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
                   <button
-                    onClick={() => { setShareMenuOpen(false); setAddOpen(true); }}
+                    onClick={() => { setShareMenuOpen(false); openAddListing(); }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50"
                   >
                     <span className="grid h-9 w-9 place-items-center rounded-full bg-cyan-50 text-cyan-900"><Tag size={17} /></span>
@@ -1123,10 +1144,19 @@ export default function AquagramApp() {
   <AccountPage auth={auth} onSaved={(message) => setToast(message)} />
 ) : effectiveMemberPage === "listings" ? (
   <MyListingsPage
-    listings={listings.filter((item) => item.userId === currentUserId)}
+    listings={myListings.filter((item) => item.status === "active")}
+    endedListings={myListings.filter((item) => item.status !== "active")}
     onOpen={openListing}
     onRemove={setRemoveListing}
     onPromote={setPromoteListing}
+    onEdit={(item, mode) => setEditListing({ item, mode })}
+    onDelete={async (item) => {
+      if (!item.dbId || !window.confirm("“" + item.title + "” ilanı kalıcı olarak silinsin mi? Bu işlem geri alınamaz.")) return;
+      const { error } = await supabase.from("listings").delete().eq("id", item.dbId);
+      if (error) return setToast(trError(error));
+      await db.reload();
+      setToast("İlan silindi.");
+    }}
   />
 ) : effectiveMemberPage === "messages" ? (
   <MessagesPage
@@ -1249,7 +1279,32 @@ export default function AquagramApp() {
           }}
         />
       )}
-      {addOpen && <AddListingModal onClose={() => setAddOpen(false)} />}
+      {editListing && (
+        <AddListingModal
+          auth={auth}
+          listing={editListing.item}
+          republish={editListing.mode === "republish"}
+          onClose={() => setEditListing(null)}
+          onCreated={async () => {
+            const republished = editListing.mode === "republish";
+            setEditListing(null);
+            await db.reload();
+            setToast(republished ? "İlanın yeniden yayında!" : "İlan güncellendi.");
+          }}
+        />
+      )}
+      {addOpen && (
+        <AddListingModal
+          auth={auth}
+          onClose={() => setAddOpen(false)}
+          onCreated={async (row) => {
+            setAddOpen(false);
+            await db.reload();
+            setToast("İlanın yayında!");
+            openListing(mapListing({ ...row, owner: auth.profile }));
+          }}
+        />
+      )}
       {composerOpen && (
         <ComposerModal
           user={currentUser}
@@ -1320,7 +1375,7 @@ export default function AquagramApp() {
           <div className="w-full rounded-t-[28px] bg-white p-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-200" />
             {[
-              [Tag, "İlan ekle", "Sat, takas et, sahiplendir", () => { setMobileShareOpen(false); setAddOpen(true); }],
+              [Tag, "İlan ekle", "Sat, takas et, sahiplendir", () => { setMobileShareOpen(false); openAddListing(); }],
               [PenLine, "İçerik paylaş", "Yazı, foto, video veya anket", () => { setMobileShareOpen(false); openComposer(groupMode && currentGroup ? currentGroup.id : null); }]
             ].map(([Icon, title, sub, onClick]) => (
               <button key={title} onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-slate-50">
@@ -1361,8 +1416,8 @@ export default function AquagramApp() {
           }}
         />
       )}
-      {removeListing && <RemoveListingModal listing={removeListing} onClose={() => setRemoveListing(null)} />}
-      {promoteListing && <PromoteListingModal listing={promoteListing} onClose={() => setPromoteListing(null)} />}
+      {removeListing && <RemoveListingModal listing={removeListing} onClose={() => setRemoveListing(null)} onDone={async (message) => { setRemoveListing(null); await db.reload(); setToast(message); }} />}
+      {promoteListing && <PromoteListingModal listing={promoteListing} onClose={() => setPromoteListing(null)} onDone={(message) => { setPromoteListing(null); setToast(message); }} />}
     </div>
   );
 }
@@ -1458,7 +1513,7 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
 
   return (
     <article className="bg-white px-5 py-5">
-      <DetailBannerAd ad={adPool[item.id % adPool.length]} />
+      <DetailBannerAd ad={adPool[(item.dbId || item.id) % adPool.length]} />
       <button onClick={onBack} className="mb-4 flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-100">
         <ArrowLeft size={17} /> İlan listesine dön
       </button>
@@ -2046,27 +2101,20 @@ function SocialInput({ icon, placeholder, value, onChange }) {
   );
 }
 
-function MyListingsPage({ listings = [], onOpen, onRemove, onPromote }) {
+function MyListingsPage({ listings = [], endedListings = [], onOpen, onRemove, onPromote, onEdit, onDelete }) {
   const [tab, setTab] = useState("active");
   const [editingListing, setEditingListing] = useState(null);
   const [editingMode, setEditingMode] = useState("edit");
 
   const activeListings = Array.isArray(listings) ? listings : [];
 
-  const expiredListings = activeListings.slice(0, 2).map((item, index) => ({
-    ...item,
-    id: "expired-" + item.id,
-    date: index === 0 ? "2026-03-18" : "2026-03-05"
-  }));
+  const expiredListings = endedListings;
 
-  const savedListings = activeListings.slice(-2).map((item) => ({
-    ...item,
-    id: "saved-" + item.id
-  }));
+  const savedListings = [];
 
   const tabs = [
     ["active", "Yayındaki ilanlarım", activeListings.length],
-    ["expired", "Süresi dolmuş ilanlar", expiredListings.length],
+    ["expired", "Yayından kalkan ilanlar", expiredListings.length],
     ["saved", "Kaydettiğim ilanlar", savedListings.length]
   ];
 
@@ -2074,6 +2122,7 @@ function MyListingsPage({ listings = [], onOpen, onRemove, onPromote }) {
     tab === "expired" ? expiredListings : tab === "saved" ? savedListings : activeListings;
 
   function openEditor(item, mode) {
+    if (item.dbId && onEdit) return onEdit(item, mode);
     setEditingMode(mode);
     setEditingListing(item);
   }
@@ -2139,7 +2188,7 @@ function MyListingsPage({ listings = [], onOpen, onRemove, onPromote }) {
 
                   {tab === "expired" && (
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
-                      Süresi doldu
+                      {item.status === "sold" ? "Satıldı / sonuçlandı" : item.status === "removed" ? "Yönetici kaldırdı" : "Yayından kalktı"}
                     </span>
                   )}
 
@@ -2208,7 +2257,7 @@ function MyListingsPage({ listings = [], onOpen, onRemove, onPromote }) {
                         <RotateCcw size={14} /> Güncelle ve tekrar yayımla
                       </button>
 
-                      <button className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100">
+                      <button onClick={() => onDelete && onDelete(item)} className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100">
                         <Trash2 size={14} /> Komple sil
                       </button>
                     </>
@@ -3394,22 +3443,278 @@ function ReportModal({ target, onClose, onSubmit }) {
   );
 }
 
-function RemoveListingModal({ listing, onClose }) {
-  const [reason, setReason] = useState("Aquagram aracılığıyla sattım / sahiplendirdim / buldum");
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-[32px] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-black">İlanı yayından kaldır</h2><p className="mt-1 text-sm leading-relaxed text-slate-500">“{listing.title}” ilanını neden yayından kaldırıyorsun?</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><div className="grid gap-2">{["Aquagram aracılığıyla sattım / sahiplendirdim / buldum", "Başka bir platform ile sattım / sahiplendirdim / buldum", "Vazgeçtim"].map((item) => <label key={item} className={"flex cursor-pointer items-start gap-3 rounded-2xl border p-3 text-sm " + (reason === item ? "border-cyan-950 bg-cyan-50 text-cyan-950" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50")}><input type="radio" checked={reason === item} onChange={() => setReason(item)} className="mt-0.5" /><span className="font-bold leading-relaxed">{item}</span></label>)}</div><label className="mt-4 block"><span className="mb-1 block text-xs font-black text-slate-500">Kısa not - opsiyonel</span><textarea rows={3} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder="İstersen kısa bir not ekleyebilirsin." /></label><div className="mt-4 rounded-2xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">Bu bilgi platformun ilan kalitesini ve başarı oranını ölçmek için kullanılabilir. Kullanıcılara açık şekilde gösterilmez.</div><div className="mt-5 flex gap-2"><button onClick={onClose} className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Vazgeç</button><button onClick={onClose} className="flex-1 rounded-full bg-red-600 px-4 py-3 text-sm font-black text-white hover:bg-red-700">Yayından kaldır</button></div></div></div>;
+const REMOVE_REASONS = [
+  ["sold_here", "Aquagram aracılığıyla sattım / sahiplendirdim / buldum", "sold"],
+  ["sold_elsewhere", "Başka bir platform ile sattım / sahiplendirdim / buldum", "sold"],
+  ["gave_up", "Vazgeçtim", "expired"]
+];
+
+function RemoveListingModal({ listing, onClose, onDone }) {
+  const [reason, setReason] = useState(REMOVE_REASONS[0][0]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function confirm() {
+    if (!listing.dbId) return onClose();
+    setBusy(true);
+    setError("");
+    const status = REMOVE_REASONS.find(([key]) => key === reason)[2];
+    const { error: err } = await supabase.from("listings").update({ status }).eq("id", listing.dbId);
+    setBusy(false);
+    if (err) return setError(trError(err));
+    onDone("İlan yayından kaldırıldı.");
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[32px] bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black">İlanı yayından kaldır</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-500">“{listing.title}” ilanını neden yayından kaldırıyorsun?</p>
+          </div>
+          <button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button>
+        </div>
+        <div className="grid gap-2">
+          {REMOVE_REASONS.map(([key, label]) => (
+            <label key={key} className={"flex cursor-pointer items-start gap-3 rounded-2xl border p-3 text-sm " + (reason === key ? "border-cyan-950 bg-cyan-50 text-cyan-950" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50")}>
+              <input type="radio" checked={reason === key} onChange={() => setReason(key)} className="mt-0.5" />
+              <span className="font-bold leading-relaxed">{label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">Bu bilgi ilan kalitesini ve başarı oranını ölçmek için kullanılır, kullanıcılara gösterilmez.</div>
+        {error && <div className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
+        <div className="mt-5 flex gap-2">
+          <button onClick={onClose} className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Vazgeç</button>
+          <button onClick={confirm} disabled={busy} className="flex-1 rounded-full bg-red-600 px-4 py-3 text-sm font-black text-white hover:bg-red-700 disabled:opacity-60">{busy ? "Kaldırılıyor…" : "Yayından kaldır"}</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function PromoteListingModal({ listing, onClose }) {
-  const [plan, setPlan] = useState("7 Gün");
-  const prices = { "3 Gün": "49 TL", "7 Gün": "89 TL", "14 Gün": "149 TL" };
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-lg rounded-[32px] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="flex items-center gap-2 text-xl font-black"><Pin size={18} fill="currentColor" className="text-amber-600" /> İlanı öne çıkar</h2><p className="mt-1 text-sm leading-relaxed text-slate-500">“{listing.title}” ilanını ana akışta vurgulu ve öne çıkan ilan olarak göster.</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><div className="grid gap-2 sm:grid-cols-3">{["3 Gün", "7 Gün", "14 Gün"].map((item) => <button key={item} onClick={() => setPlan(item)} className={"rounded-2xl border p-3 text-left " + (plan === item ? "border-amber-400 bg-amber-50" : "border-slate-200 bg-white hover:bg-slate-50")}><div className="text-sm font-black text-slate-900">{item}</div><div className="mt-1 text-lg font-black text-amber-700">{prices[item]}</div><div className="mt-1 text-xs text-slate-500">Öne çıkan ilan bandı</div></button>)}</div><div className="mt-4 rounded-2xl bg-slate-50 p-3"><div className="mb-3 text-sm font-black">Ödeme bilgileri</div><div className="grid gap-3"><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="Kart üzerindeki isim" /><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="Kart numarası" /><div className="grid grid-cols-2 gap-3"><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="AA / YY" /><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="CVC" /></div></div></div><div className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">Bu alan MVP’de temsili ödeme ekranıdır. Canlıya geçerken kart bilgileri platformda tutulmaz; ödeme altyapısı üzerinden güvenli şekilde işlenir.</div><div className="mt-5 flex gap-2"><button onClick={onClose} className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Vazgeç</button><button onClick={onClose} className="flex-1 rounded-full bg-amber-500 px-4 py-3 text-sm font-black text-white hover:bg-amber-600">{prices[plan]} öde ve öne çıkar</button></div></div></div>;
+function PromoteListingModal({ listing, onClose, onDone }) {
+  const [plans, setPlans] = useState([]);
+  const [plan, setPlan] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadFeaturedPlans().then((list) => {
+      setPlans(list);
+      if (list[0]) setPlan(list[0].id);
+    });
+  }, []);
+
+  async function apply() {
+    if (!listing.dbId || !plan) return;
+    setBusy(true);
+    setError("");
+    const { error: err } = await supabase.from("listing_features").insert({ listing_id: listing.dbId, plan_id: plan });
+    setBusy(false);
+    if (err) return setError(trError(err));
+    onDone("Başvurun alındı. Onaylandığında ilanın öne çıkacak.");
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-[32px] bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-black"><Pin size={18} fill="currentColor" className="text-amber-600" /> İlanı öne çıkar</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-500">“{listing.title}” ilanın akışta ve ilan listesinde üst sıralarda, “Öne çıkan” etiketiyle görünür.</p>
+          </div>
+          <button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {plans.map((item) => (
+            <button key={item.id} onClick={() => setPlan(item.id)} className={"rounded-2xl border p-4 text-left transition " + (plan === item.id ? "border-amber-500 bg-amber-50" : "border-slate-200 hover:bg-slate-50")}>
+              <div className="text-sm font-black text-slate-900">{item.days} gün</div>
+              <div className="mt-1 text-2xl font-black text-amber-600">{Number(item.price).toLocaleString("tr-TR")} TL</div>
+            </button>
+          ))}
+          {plans.length === 0 && <div className="col-span-2 py-6 text-center text-sm text-slate-400">Paketler yükleniyor…</div>}
+        </div>
+        <div className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+          Başvurular yönetici onayından sonra yayına girer. <b>Ödeme sistemi deneme aşamasında:</b> şu an kartından ücret alınmaz.
+        </div>
+        {error && <div className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
+        <div className="mt-5 flex gap-2">
+          <button onClick={onClose} className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Vazgeç</button>
+          <button onClick={apply} disabled={busy || !plan} className="flex-1 rounded-full bg-amber-500 px-4 py-3 text-sm font-black text-white hover:bg-amber-600 disabled:opacity-60">{busy ? "Gönderiliyor…" : "Başvur"}</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function AddListingModal({ onClose }) {
-  const [type, setType] = useState("Satıyorum");
-  const [category, setCategory] = useState("Canlı");
-  const [selectedOptions, setSelectedOptions] = useState([]);
-  const [allowOffer, setAllowOffer] = useState(true);
+const MAX_LISTING_PHOTOS = 6;
+
+function AddListingModal({ auth, listing = null, republish = false, onClose, onCreated }) {
+  const raw = listing?.raw || null;
+  const [type, setType] = useState(raw ? listing.type : "Satıyorum");
+  const [category, setCategory] = useState(raw ? raw.category : "Canlı");
+  const [selectedOptions, setSelectedOptions] = useState(raw ? raw.tags || [] : []);
+  const [allowOffer, setAllowOffer] = useState(raw ? raw.allow_offer : true);
+  const [title, setTitle] = useState(raw ? raw.title : "");
+  const [description, setDescription] = useState(raw ? raw.description || "" : "");
+  const [price, setPrice] = useState(raw && raw.price != null ? String(Number(raw.price)) : "");
+  const [youtube, setYoutube] = useState(raw ? raw.youtube_url || "" : "");
+  const [city, setCity] = useState(raw ? raw.city : auth.profile?.city && TR_CITIES.includes(auth.profile.city) ? auth.profile.city : "");
+  const [district, setDistrict] = useState(raw ? raw.district || "" : auth.profile?.district || "");
+  const [neighborhood, setNeighborhood] = useState(raw ? raw.neighborhood || "" : "");
+  const [photos, setPhotos] = useState(() => (raw ? (raw.images || []).map((url) => ({ url, remote: true })) : [])); // { file?, url, remote? }
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const fileRef = useRef(null);
   const options = categoryOptions[category] || [];
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-2xl overflow-hidden rounded-[32px] bg-white shadow-2xl"><div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5"><div><h2 className="text-xl font-black">İlan ekle</h2><p className="text-sm text-slate-500">Fotoğraf, başlık, açıklama, kategori ve konum yeterli. Alt seçenekler opsiyoneldir.</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><div className="max-h-[72vh] overflow-y-auto p-5"><div className="grid gap-4"><div className="grid h-36 place-items-center rounded-[26px] border-2 border-dashed border-slate-300 bg-slate-50 text-center text-slate-500"><div><Camera className="mx-auto mb-2" size={28} /><strong>Fotoğraf ekle</strong><p className="mt-1 text-xs">En fazla 5 fotoğraf · vitrin seçilebilir · sıralama yapılabilir</p></div></div><div className="grid grid-cols-5 gap-2">{["Vitrin", "2", "3", "4", "5"].map((slot) => <div key={slot} className="grid h-14 place-items-center rounded-2xl bg-slate-100 text-xs font-black text-slate-500">{slot}</div>)}</div><input className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder="YouTube linki - opsiyonel" /><input className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder="Başlık" /><textarea rows={4} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder="Açıklama: adet, durum, takas, teslimat ve diğer notlar burada yazılabilir." /><div className="grid gap-3 sm:grid-cols-2"><Select label="İlan tipi" value={type} onChange={setType} options={listingTypes.filter((x) => x !== "Tümü")} /><Select label="Kategori" value={category} onChange={(value) => { setCategory(value); setSelectedOptions([]); }} options={categories.filter((x) => x !== "Tümü")} />{type === "Satıyorum" && <label><span className="mb-1 block text-xs font-black text-slate-500">Fiyat</span><input className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder={allowOffer ? "Boş bırakılırsa Teklif ver görünür" : "Örn. 750 TL"} /></label>}<Select label="İl" value="Gaziantep" onChange={() => {}} options={Object.keys(locations)} /></div>{type === "Satıyorum" && <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-sm text-cyan-950"><input type="checkbox" checked={allowOffer} onChange={(e) => setAllowOffer(e.target.checked)} className="mt-0.5" /><span><strong>Teklif ver seçeneği açık</strong><br /><span className="text-cyan-800/80">Fiyat yazmasan bile ilanda “Teklif ver” görünebilir.</span></span></label>}<MultiSelectChips label={category + " için opsiyonel seçenekler"} options={options} selected={selectedOptions} onChange={setSelectedOptions} /></div></div><div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 p-5"><p className="text-xs leading-relaxed text-slate-500">İlanların yayımda kalma süresi 30 gündür. İlanınız inceleme sonrası yayına alınacaktır.</p><button onClick={onClose} className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white">Yayınla</button></div></div></div>;
+  const districtOptions = Object.keys(locations[city] || {});
+  const neighborhoodOptions = (locations[city] || {})[district] || [];
+
+  useEffect(() => () => photos.forEach((photo) => !photo.remote && URL.revokeObjectURL(photo.url)), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function addPhotos(event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    const valid = files.filter((file) => /^image\//.test(file.type));
+    if (valid.length < files.length) setError("Yalnızca fotoğraf yükleyebilirsin.");
+    setPhotos((prev) => [...prev, ...valid.map((file) => ({ file, url: URL.createObjectURL(file) }))].slice(0, MAX_LISTING_PHOTOS));
+  }
+
+  function removePhoto(index) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function makeCover(index) {
+    setPhotos((prev) => [prev[index], ...prev.filter((_, i) => i !== index)]);
+  }
+
+  async function submit() {
+    setError("");
+    if (title.trim().length < 5) return setError("Başlık en az 5 karakter olmalı.");
+    if (!city) return setError("İl seçmelisin.");
+    if (youtube && !/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(youtube.trim())) return setError("YouTube bağlantısı geçerli görünmüyor.");
+    const numericPrice = type === "Satıyorum" && price.trim() ? Number(price.replace(/[^\d,]/g, "").replace(",", ".")) : null;
+    if (type === "Satıyorum" && !numericPrice && !allowOffer) return setError("Fiyat yaz ya da “Teklif ver” seçeneğini aç.");
+    try {
+      const fresh = photos.filter((photo) => !photo.remote);
+      let uploaded = [];
+      if (fresh.length) {
+        setBusy("Fotoğraflar yükleniyor (0/" + fresh.length + ")…");
+        uploaded = await uploadListingImages(auth.user.id, fresh.map((photo) => photo.file), (done, total) => setBusy("Fotoğraflar yükleniyor (" + done + "/" + total + ")…"));
+      }
+      let next = 0;
+      const images = photos.map((photo) => (photo.remote ? photo.url : uploaded[next++]));
+      setBusy(raw ? "Kaydediliyor…" : "İlan yayınlanıyor…");
+      const fields = {
+          title: title.trim(),
+          description: description.trim(),
+          category,
+          tags: selectedOptions,
+          type: TR_TO_TYPE[type],
+          city,
+          district: district.trim() || null,
+          neighborhood: neighborhood.trim() || null,
+          price: numericPrice,
+          allow_offer: type === "Satıyorum" ? allowOffer : false,
+          youtube_url: youtube.trim() || null,
+          images,
+          species_slugs: detectSpecies(title + " " + description)
+      };
+      if (republish) {
+        fields.status = "active";
+        fields.expires_at = new Date(Date.now() + 90 * 86400000).toISOString();
+      }
+      const request = raw ? supabase.from("listings").update(fields).eq("id", raw.id) : supabase.from("listings").insert(fields);
+      const { data, error: err } = await request.select().single();
+      if (err) throw err;
+      onCreated(data);
+    } catch (err) {
+      setError(trError(err));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  const input = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-800 focus:bg-white";
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-3 backdrop-blur-sm sm:p-4">
+      <div className="flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-[30px] bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
+          <div>
+            <h2 className="text-xl font-black">{republish ? "İlanı güncelle ve tekrar yayınla" : raw ? "İlanı düzenle" : "İlan ekle"}</h2>
+            <p className="text-sm text-slate-500">Fotoğraf, başlık, açıklama, kategori ve konum yeterli. Alt seçenekler isteğe bağlı.</p>
+          </div>
+          <button onClick={onClose} disabled={Boolean(busy)} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="grid gap-4">
+            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={addPhotos} />
+            {photos.length === 0 ? (
+              <button type="button" onClick={() => fileRef.current.click()} className="grid h-36 place-items-center rounded-[26px] border-2 border-dashed border-slate-300 bg-slate-50 text-center text-slate-500 hover:border-cyan-700 hover:text-cyan-800">
+                <div><Camera className="mx-auto mb-2" size={28} /><strong>Fotoğraf ekle</strong><p className="mt-1 text-xs">En fazla {MAX_LISTING_PHOTOS} fotoğraf · ilki vitrin olur</p></div>
+              </button>
+            ) : (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {photos.map((photo, index) => (
+                  <div key={photo.url} className="group relative aspect-square overflow-hidden rounded-2xl bg-slate-100">
+                    <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                    {index === 0 ? (
+                      <span className="absolute left-1 top-1 rounded-full bg-cyan-950 px-2 py-0.5 text-[10px] font-black text-white">Vitrin</span>
+                    ) : (
+                      <button type="button" onClick={() => makeCover(index)} className="absolute left-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-slate-700">Vitrin yap</button>
+                    )}
+                    <button type="button" onClick={() => removePhoto(index)} className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-slate-950/70 text-white" title="Kaldır"><X size={13} /></button>
+                  </div>
+                ))}
+                {photos.length < MAX_LISTING_PHOTOS && (
+                  <button type="button" onClick={() => fileRef.current.click()} className="grid aspect-square place-items-center rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 hover:border-cyan-700 hover:text-cyan-800" title="Fotoğraf ekle"><Plus size={22} /></button>
+                )}
+              </div>
+            )}
+            <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} className={input} placeholder="Başlık (ör. Kendi üretimim genç Brichardi kolonisi)" />
+            <textarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={3000} className={input} placeholder="Açıklama: adet, boy, durum, takas, teslimat ve diğer notlar." />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Select label="İlan tipi" value={type} onChange={setType} options={listingTypes.filter((x) => x !== "Tümü")} />
+              <Select label="Kategori" value={category} onChange={(value) => { setCategory(value); setSelectedOptions([]); }} options={categories.filter((x) => x !== "Tümü")} />
+              {type === "Satıyorum" && (
+                <label>
+                  <span className="mb-1 block text-xs font-black text-slate-500">Fiyat (TL)</span>
+                  <input inputMode="decimal" value={price} onChange={(event) => setPrice(event.target.value.replace(/[^\d.,]/g, ""))} className={input} placeholder={allowOffer ? "Boş bırakırsan “Teklif ver” görünür" : "Ör. 750"} />
+                </label>
+              )}
+              <Select label="İl" value={city} onChange={(value) => { setCity(value); setDistrict(""); setNeighborhood(""); }} options={TR_CITIES} placeholder="İl seç" />
+              <label>
+                <span className="mb-1 block text-xs font-black text-slate-500">İlçe (isteğe bağlı)</span>
+                <input list="add-listing-districts" value={district} onChange={(event) => { setDistrict(event.target.value); setNeighborhood(""); }} maxLength={40} className={input} placeholder="İlçe" />
+                <datalist id="add-listing-districts">{districtOptions.map((item) => <option key={item} value={item} />)}</datalist>
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-black text-slate-500">Mahalle (isteğe bağlı)</span>
+                <input list="add-listing-hoods" value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} maxLength={60} className={input} placeholder="Mahalle" />
+                <datalist id="add-listing-hoods">{neighborhoodOptions.map((item) => <option key={item} value={item} />)}</datalist>
+              </label>
+            </div>
+            {type === "Satıyorum" && (
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-sm text-cyan-950">
+                <input type="checkbox" checked={allowOffer} onChange={(event) => setAllowOffer(event.target.checked)} className="mt-0.5" />
+                <span><strong>Teklif ver seçeneği açık</strong><br /><span className="text-cyan-800/80">Fiyat yazmasan bile ilanda “Teklif ver” görünür.</span></span>
+              </label>
+            )}
+            <MultiSelectChips label={category + " için isteğe bağlı seçenekler"} options={options} selected={selectedOptions} onChange={setSelectedOptions} />
+            <input value={youtube} onChange={(event) => setYoutube(event.target.value)} className={input} placeholder="YouTube bağlantısı (isteğe bağlı)" />
+          </div>
+        </div>
+        <div className="border-t border-slate-100 bg-slate-50 p-4 sm:p-5">
+          {error && <div className="mb-3 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs leading-relaxed text-slate-500">İlanın hemen yayına girer ve 90 gün yayında kalır. Kurallara aykırı ilanlar şikâyet üzerine kaldırılır.</p>
+            <button onClick={submit} disabled={Boolean(busy)} className="shrink-0 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{busy || (republish ? "Tekrar yayınla" : raw ? "Kaydet" : "Yayınla")}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

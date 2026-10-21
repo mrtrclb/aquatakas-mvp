@@ -1,4 +1,4 @@
-name: Deploy AquaTakas MVP to GitHub Pages
+name: Aquagram — GitHub Pages yayını
 
 on:
   push:

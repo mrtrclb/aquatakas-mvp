@@ -1,4 +1,4 @@
-# Hobiciden Hobiciye — Yol Haritası
+# Aquagram — Yol Haritası
 
 ## Şu an
 Arayüz prototipi yayında (GitHub Pages). Veriler örnek; sayfa yenilenince sıfırlanır.

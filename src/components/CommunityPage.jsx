@@ -210,7 +210,7 @@ function Composer({ isMember, currentUser, onAuth, onAddPost }) {
     onAddPost({
       id: Date.now(),
       user: currentUser?.username || "@hobici",
-      name: currentUser?.name || "Hobiciden Hobiciye Üyesi",
+      name: currentUser?.name || "Aquagram üyesi",
       city: currentUser?.city || "Türkiye",
       time: "şimdi",
       tag: selectedTag,

@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth, AuthModal, NewPasswordModal, AquagramMark } from "./auth";
+import { supabase, trError } from "./lib/supabase";
 import {
   ChevronDown,
   PenLine,
@@ -308,7 +310,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, placeholder =
   );
 }
 
-export default function AquaTakasPrototype() {
+export default function AquagramApp() {
   const [selectedType, setSelectedType] = useState("Tümü");
   const [selectedCategory, setSelectedCategory] = useState("Tümü");
   const [selectedTags, setSelectedTags] = useState([]);
@@ -319,7 +321,8 @@ export default function AquaTakasPrototype() {
   const [sort, setSort] = useState("newest");
   const [selectedListing, setSelectedListing] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
-  const [isMember, setIsMember] = useState(false);
+  const auth = useAuth();
+  const isMember = Boolean(auth.session);
   const [profileUser, setProfileUser] = useState(null);
   const [viewUser, setViewUser] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
@@ -411,6 +414,14 @@ export default function AquaTakasPrototype() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [userMenuOpen]);
+
+  // E-postadaki doğrulama bağlantısıyla gelen yeni üye
+  useEffect(() => {
+    if (!auth.justConfirmed || !auth.session) return;
+    auth.clearJustConfirmed();
+    setToast("E-postan doğrulandı. Aquagram'a hoş geldin!");
+    setMemberPage("account");
+  }, [auth.justConfirmed, auth.session]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -862,7 +873,10 @@ export default function AquaTakasPrototype() {
   const userListingsMode = Boolean(viewUser) && !hashMode;
   const detailMode = Boolean(selectedListing) && !hashMode;
   const communityMode = (hashMode && !kbMode) || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
-  const currentUser = users[currentUserId];
+  // Gerçek profil bilgileri; henüz veritabanına taşınmamış alanlar örnek kullanıcıdan gelir
+  const currentUser = auth.profile
+    ? { ...users[currentUserId], username: "@" + auth.profile.username, city: auth.profile.city || "", bio: auth.profile.bio || "", verified: auth.profile.phone_verified, joined: new Date(auth.profile.created_at).toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) }
+    : users[currentUserId];
   const currentPost = postSlug ? posts.find((post) => post.slug === postSlug) : null;
   const newMembers = Object.values(users).filter((user) => user.newMember);
   const allTags = useMemo(() => extractTags(posts), [posts]);
@@ -957,10 +971,10 @@ export default function AquaTakasPrototype() {
               </button>
             )}
             <button onClick={goHome} className="flex min-w-0 items-center gap-2.5 text-left lg:gap-3">
-              <div className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cyan-950 text-sm font-black text-white lg:h-11 lg:w-11">HH<span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-cyan-400" /></div>
-              <div className="hidden min-w-0 sm:block lg:hidden xl:block">
-                <h1 className="truncate text-lg font-black leading-tight tracking-tight lg:text-xl">Hobiciden Hobiciye</h1>
-                <p className="hidden text-xs text-slate-500 xl:block">Akvaryum hobisine özel ilan platformu</p>
+              <AquagramMark />
+              <div className="min-w-0 lg:hidden xl:block">
+                <h1 className="truncate text-lg font-black leading-tight tracking-tight lg:text-xl">Aquagram</h1>
+                <p className="hidden text-xs text-slate-500 xl:block">Akvaryum hobicilerinin buluşma noktası</p>
               </div>
             </button>
           </div>
@@ -984,7 +998,7 @@ export default function AquaTakasPrototype() {
                   onClick={() => setUserMenuOpen((open) => !open)}
                   className={"flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-sm font-black transition " + (effectiveMemberPage ? "border-cyan-950 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50")}
                 >
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-cyan-950 text-white"><UserRound size={16} /></span>
+                  {auth.profile?.avatar_url ? <img src={auth.profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" /> : <span className="grid h-8 w-8 place-items-center rounded-full bg-cyan-950 text-white"><UserRound size={16} /></span>}
                   <span className="hidden xl:inline">{currentUser.username}</span>
                   <ChevronDown size={14} className={"transition " + (userMenuOpen ? "rotate-180" : "")} />
                 </button>
@@ -1001,7 +1015,7 @@ export default function AquaTakasPrototype() {
                     ))}
                     <div className="my-1 border-t border-slate-100" />
                     <button
-                      onClick={() => { setUserMenuOpen(false); setIsMember(false); clearViews(); }}
+                      onClick={() => { setUserMenuOpen(false); auth.signOut(); clearViews(); setToast("Çıkış yaptın."); }}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-black text-slate-500 hover:bg-slate-50"
                     >
                       <LogOut size={15} /> Çıkış yap
@@ -1106,7 +1120,7 @@ export default function AquaTakasPrototype() {
 ) : communityOpen && !selectedListing && !viewUser && !effectiveMemberPage ? (
   <CommunityFeed posts={posts} members={newMembers} ctx={communityCtx} search={communitySearch} />
 ) : effectiveMemberPage === "account" ? (
-  <AccountPage user={currentUser} />
+  <AccountPage auth={auth} onSaved={(message) => setToast(message)} />
 ) : effectiveMemberPage === "listings" ? (
   <MyListingsPage
     listings={listings.filter((item) => item.userId === currentUserId)}
@@ -1324,14 +1338,18 @@ export default function AquaTakasPrototype() {
       {toast && (
         <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 z-[80] max-w-[92vw] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-center text-sm font-black text-white shadow-xl lg:bottom-6">{toast}</div>
       )}
+      {auth.recovery && auth.session && (
+        <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); setMemberPage("account"); }} />
+      )}
       {authOpen && (
         <AuthModal
           mode={authMode}
           setMode={setAuthMode}
           onClose={() => setAuthOpen(false)}
+          image={img.tank1}
           onSuccess={() => {
-            setIsMember(true);
             setAuthOpen(false);
+            setToast("Hoş geldin!");
             if (communityMode) {
               // Topluluktayken giriş yapan kullanıcı olduğu yerde kalır
               setProfileUser(null);
@@ -1660,7 +1678,7 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
 
   const content = {
     nedir: [
-      "Hobiciden Hobiciye nedir?",
+      "Aquagram nedir?",
       "Akvaryum hobisine odaklanan; canlı, bitki, ekipman, yem, kimyasal ve dekor ilanlarının aynı çatı altında toplandığı niş bir ilan platformudur. Amaç genel pazar yeri kalabalığını azaltıp hobicilerin birbirini daha hızlı bulmasını sağlamaktır."
     ],
     contact: [
@@ -1809,7 +1827,7 @@ function AdInfoModal({ onClose }) {
           </div>
           <button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><X size={18} /></button>
         </div>
-        <p className="text-sm leading-6 text-slate-600">Hobiciden.com aracılığıyla akvaryum hobisine ilgi duyan doğrudan hedef kitlenize ulaşın. Marka, ürün, mağaza veya hizmetinizi ilan akışı içinde doğal ve görünür biçimde konumlandırın.</p>
+        <p className="text-sm leading-6 text-slate-600">Aquagram aracılığıyla akvaryum hobisine ilgi duyan doğrudan hedef kitlenize ulaşın. Marka, ürün, mağaza veya hizmetinizi ilan akışı içinde doğal ve görünür biçimde konumlandırın.</p>
         <button onClick={onClose} className="mt-4 w-full rounded-full bg-amber-500 px-4 py-3 text-sm font-black text-white hover:bg-amber-600">Reklam ver</button>
       </div>
     </div>
@@ -1850,19 +1868,105 @@ function DetailBannerAd({ ad }) {
   );
 }
 
-function AccountPage({ user }) {
-  const [hideFromSearch, setHideFromSearch] = useState(false);
+function AccountPage({ auth, onSaved }) {
+  const profile = auth.profile;
+  const [form, setForm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (!profile) return;
+    const socials = profile.socials || {};
+    setForm({
+      username: profile.username || "",
+      city: profile.city || "",
+      district: profile.district || "",
+      bio: profile.bio || "",
+      hide_from_search: Boolean(profile.hide_from_search),
+      socials: { instagram: socials.instagram || "", facebook: socials.facebook || "", x: socials.x || "", web: socials.web || "", youtube: socials.youtube || "" }
+    });
+  }, [profile]);
+
+  if (!profile || !form) {
+    return <div className="mx-auto max-w-5xl p-10 text-center text-sm font-bold text-slate-400">Profil yükleniyor…</div>;
+  }
+
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const setSocial = (key, value) => setForm((prev) => ({ ...prev, socials: { ...prev.socials, [key]: value } }));
+
+  async function save(patch = form, message = "Bilgilerin kaydedildi.") {
+    setError("");
+    setBusy(true);
+    const payload = { ...patch };
+    if ("username" in payload) payload.username = payload.username.trim().toLowerCase().replace(/^@/, "");
+    const { error: err } = await supabase.from("profiles").update(payload).eq("id", profile.id);
+    setBusy(false);
+    if (err) {
+      setError(trError(err));
+      return false;
+    }
+    await auth.reloadProfile();
+    onSaved(message);
+    return true;
+  }
+
+  async function toggleHidden() {
+    const next = !form.hide_from_search;
+    set("hide_from_search", next);
+    const ok = await save({ hide_from_search: next }, next ? "Profilin arama motorlarından gizlendi." : "Profilin arama motorlarında görünebilir.");
+    if (!ok) set("hide_from_search", !next);
+  }
+
+  async function uploadAvatar(event) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return setError("Profil resmi JPG, PNG ya da WEBP olmalı.");
+    if (file.size > 2 * 1024 * 1024) return setError("Profil resmi en fazla 2 MB olabilir.");
+    setError("");
+    setUploading(true);
+    const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+    const path = profile.id + "/" + Date.now() + "." + ext;
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { contentType: file.type });
+    if (upErr) {
+      setUploading(false);
+      return setError(trError(upErr));
+    }
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    await save({ avatar_url: data.publicUrl }, "Profil resmin güncellendi.");
+    setUploading(false);
+  }
+
+  const initials = (profile.username || "?").slice(0, 2).toUpperCase();
+  const field = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-800 focus:bg-white";
+
   return (
     <div className="mx-auto max-w-5xl p-5">
       <div className="mb-5 border-b border-slate-200 pb-4">
         <h2 className="text-2xl font-black tracking-tight">Hesabım</h2>
         <p className="mt-1 text-sm text-slate-500">Profil bilgilerini, doğrulama durumunu ve sosyal hesaplarını yönet.</p>
       </div>
+      {auth.isStaff && (
+        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+          <ShieldCheck size={17} /> {auth.staff.role === "super_admin" ? "Süper yönetici" : "Moderatör"} hesabıyla giriş yaptın. Yönetim paneli yakında burada olacak.
+        </div>
+      )}
+      {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
         <div className="rounded-[28px] border border-slate-200 bg-white p-4">
           <div className="grid place-items-center rounded-[24px] bg-slate-50 p-5 text-center">
-            <div className="grid h-24 w-24 place-items-center rounded-full bg-cyan-950 text-2xl font-black text-white">HH</div>
-            <button className="mt-4 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">Profil resmi ekle</button>
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="h-24 w-24 rounded-full object-cover" />
+            ) : (
+              <div className="grid h-24 w-24 place-items-center rounded-full bg-cyan-950 text-2xl font-black text-white">{initials}</div>
+            )}
+            <div className="mt-3 text-base font-black">@{profile.username}</div>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadAvatar} />
+            <button onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} className="mt-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+              {uploading ? "Yükleniyor…" : profile.avatar_url ? "Profil resmini değiştir" : "Profil resmi ekle"}
+            </button>
           </div>
           <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-900">
             <div className="mb-1 flex items-center gap-2 font-black"><ShieldCheck size={17} /> Güven profili</div>
@@ -1870,54 +1974,52 @@ function AccountPage({ user }) {
           </div>
           <div className="mt-4 rounded-2xl border border-slate-200 p-3">
             <div className="mb-2 text-sm font-black text-slate-800">Gizlilik</div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={hideFromSearch}
-              onClick={() => setHideFromSearch((value) => !value)}
-              className="flex w-full items-start justify-between gap-3 text-left"
-            >
+            <button type="button" role="switch" aria-checked={form.hide_from_search} onClick={toggleHidden} disabled={busy} className="flex w-full items-start justify-between gap-3 text-left">
               <span className="flex gap-2">
-                <span className={"mt-0.5 shrink-0 " + (hideFromSearch ? "text-cyan-800" : "text-slate-400")}>{hideFromSearch ? <EyeOff size={17} /> : <Eye size={17} />}</span>
+                <span className={"mt-0.5 shrink-0 " + (form.hide_from_search ? "text-cyan-800" : "text-slate-400")}>{form.hide_from_search ? <EyeOff size={17} /> : <Eye size={17} />}</span>
                 <span>
                   <span className="block text-sm font-black text-slate-800">Profilimi arama motorlarından gizle</span>
                   <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
-                    {hideFromSearch
+                    {form.hide_from_search
                       ? "Profilin ve paylaşımların Google gibi arama motorlarında listelenmez. Site üyeleri seni görmeye devam eder."
                       : "Profilin ve paylaşımların arama motorlarında görünebilir."}
                   </span>
                 </span>
               </span>
-              <span className={"relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition " + (hideFromSearch ? "bg-cyan-950" : "bg-slate-300")}>
-                <span className={"absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all " + (hideFromSearch ? "left-[22px]" : "left-0.5")} />
+              <span className={"relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition " + (form.hide_from_search ? "bg-cyan-950" : "bg-slate-300")}>
+                <span className={"absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all " + (form.hide_from_search ? "left-[22px]" : "left-0.5")} />
               </span>
             </button>
           </div>
-          <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100"><Trash2 size={16} /> Hesabımı sil</button>
+          <button onClick={() => onSaved("Hesap silme yakında eklenecek. Şimdilik bize ulaşın sayfasından talep oluşturabilirsin.")} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100"><Trash2 size={16} /> Hesabımı sil</button>
         </div>
         <div className="grid gap-4">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-4">
+          <form onSubmit={(event) => { event.preventDefault(); save(); }} className="rounded-[28px] border border-slate-200 bg-white p-4">
             <h3 className="mb-3 text-lg font-black">Profil bilgileri</h3>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label><span className="mb-1 block text-xs font-black text-slate-500">Kullanıcı adı</span><input defaultValue={user.username} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" /></label>
-              <label><span className="mb-1 block text-xs font-black text-slate-500">Şehir</span><input defaultValue={user.city} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" /></label>
-              <label className="sm:col-span-2"><span className="mb-1 block text-xs font-black text-slate-500">Hakkında</span><textarea rows={4} defaultValue={user.bio} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" /></label>
+              <label className="sm:col-span-2"><span className="mb-1 block text-xs font-black text-slate-500">Kullanıcı adı</span>
+                <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">@</span>
+                  <input value={form.username} onChange={(event) => set("username", event.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 24))} className={field + " pl-7"} required minLength={3} />
+                </div>
+              </label>
+              <label><span className="mb-1 block text-xs font-black text-slate-500">Şehir</span><input value={form.city} onChange={(event) => set("city", event.target.value)} maxLength={40} className={field} /></label>
+              <label><span className="mb-1 block text-xs font-black text-slate-500">İlçe</span><input value={form.district} onChange={(event) => set("district", event.target.value)} maxLength={40} className={field} /></label>
+              <label className="sm:col-span-2"><span className="mb-1 block text-xs font-black text-slate-500">Hakkında</span><textarea rows={4} value={form.bio} onChange={(event) => set("bio", event.target.value)} maxLength={500} className={field} placeholder="Hangi türleri besliyorsun, kaç tankın var?" /></label>
             </div>
-            <button className="mt-4 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white">Bilgileri kaydet</button>
-          </div>
+            <button type="submit" disabled={busy} className="mt-4 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{busy ? "Kaydediliyor…" : "Bilgileri kaydet"}</button>
+          </form>
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-[28px] border border-slate-200 bg-white p-4">
               <h3 className="mb-3 text-lg font-black">Doğrulama</h3>
-              <VerificationRow icon={<Mail size={16} />} title="E-posta adresi" value="murat@example.com" verified />
-              <VerificationRow icon={<Phone size={16} />} title="Telefon numarası" value="05xx xxx xx xx" verified />
+              <VerificationRow icon={<Mail size={16} />} title="E-posta adresi" value={auth.email} verified={auth.emailConfirmed} />
+              <VerificationRow icon={<Phone size={16} />} title="Telefon numarası" value="SMS doğrulaması yakında" verified={profile.phone_verified} />
             </div>
             <div className="rounded-[28px] border border-slate-200 bg-white p-4">
               <h3 className="mb-3 text-lg font-black">Sosyal hesaplar</h3>
-              <SocialInput icon="IG" placeholder="Instagram kullanıcı adı" />
-              <SocialInput icon="FB" placeholder="Facebook profil linki" />
-              <SocialInput icon="X" placeholder="Twitter / X kullanıcı adı" />
-              <SocialInput icon="WEB" placeholder="Web sitesi" />
-              <SocialInput icon="YT" placeholder="YouTube kanalı" />
+              {[["instagram", "IG", "Instagram kullanıcı adı"], ["facebook", "FB", "Facebook profil linki"], ["x", "X", "Twitter / X kullanıcı adı"], ["web", "WEB", "Web sitesi"], ["youtube", "YT", "YouTube kanalı"]].map(([key, icon, placeholder]) => (
+                <SocialInput key={key} icon={icon} placeholder={placeholder} value={form.socials[key]} onChange={(value) => setSocial(key, value)} />
+              ))}
+              <button onClick={() => save({ socials: form.socials }, "Sosyal hesapların kaydedildi.")} disabled={busy} className="mt-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-60">Kaydet</button>
             </div>
           </div>
         </div>
@@ -1935,11 +2037,11 @@ function VerificationRow({ icon, title, value, verified }) {
   );
 }
 
-function SocialInput({ icon, placeholder }) {
+function SocialInput({ icon, placeholder, value, onChange }) {
   return (
     <label className="mb-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <span className="w-6 text-xs font-black text-slate-400">{icon}</span>
-      <input placeholder={placeholder} className="w-full bg-transparent text-sm outline-none" />
+      <span className="w-8 text-xs font-black text-slate-400">{icon}</span>
+      <input placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} maxLength={120} className="w-full bg-transparent text-sm outline-none" />
     </label>
   );
 }
@@ -3293,174 +3395,14 @@ function ReportModal({ target, onClose, onSubmit }) {
 }
 
 function RemoveListingModal({ listing, onClose }) {
-  const [reason, setReason] = useState("Hobicidenhobiciye aracılığıyla sattım / sahiplendirdim / buldum");
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-[32px] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-black">İlanı yayından kaldır</h2><p className="mt-1 text-sm leading-relaxed text-slate-500">“{listing.title}” ilanını neden yayından kaldırıyorsun?</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><div className="grid gap-2">{["Hobicidenhobiciye aracılığıyla sattım / sahiplendirdim / buldum", "Başka bir platform ile sattım / sahiplendirdim / buldum", "Vazgeçtim"].map((item) => <label key={item} className={"flex cursor-pointer items-start gap-3 rounded-2xl border p-3 text-sm " + (reason === item ? "border-cyan-950 bg-cyan-50 text-cyan-950" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50")}><input type="radio" checked={reason === item} onChange={() => setReason(item)} className="mt-0.5" /><span className="font-bold leading-relaxed">{item}</span></label>)}</div><label className="mt-4 block"><span className="mb-1 block text-xs font-black text-slate-500">Kısa not - opsiyonel</span><textarea rows={3} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder="İstersen kısa bir not ekleyebilirsin." /></label><div className="mt-4 rounded-2xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">Bu bilgi platformun ilan kalitesini ve başarı oranını ölçmek için kullanılabilir. Kullanıcılara açık şekilde gösterilmez.</div><div className="mt-5 flex gap-2"><button onClick={onClose} className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Vazgeç</button><button onClick={onClose} className="flex-1 rounded-full bg-red-600 px-4 py-3 text-sm font-black text-white hover:bg-red-700">Yayından kaldır</button></div></div></div>;
+  const [reason, setReason] = useState("Aquagram aracılığıyla sattım / sahiplendirdim / buldum");
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-[32px] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-black">İlanı yayından kaldır</h2><p className="mt-1 text-sm leading-relaxed text-slate-500">“{listing.title}” ilanını neden yayından kaldırıyorsun?</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><div className="grid gap-2">{["Aquagram aracılığıyla sattım / sahiplendirdim / buldum", "Başka bir platform ile sattım / sahiplendirdim / buldum", "Vazgeçtim"].map((item) => <label key={item} className={"flex cursor-pointer items-start gap-3 rounded-2xl border p-3 text-sm " + (reason === item ? "border-cyan-950 bg-cyan-50 text-cyan-950" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50")}><input type="radio" checked={reason === item} onChange={() => setReason(item)} className="mt-0.5" /><span className="font-bold leading-relaxed">{item}</span></label>)}</div><label className="mt-4 block"><span className="mb-1 block text-xs font-black text-slate-500">Kısa not - opsiyonel</span><textarea rows={3} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none" placeholder="İstersen kısa bir not ekleyebilirsin." /></label><div className="mt-4 rounded-2xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">Bu bilgi platformun ilan kalitesini ve başarı oranını ölçmek için kullanılabilir. Kullanıcılara açık şekilde gösterilmez.</div><div className="mt-5 flex gap-2"><button onClick={onClose} className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Vazgeç</button><button onClick={onClose} className="flex-1 rounded-full bg-red-600 px-4 py-3 text-sm font-black text-white hover:bg-red-700">Yayından kaldır</button></div></div></div>;
 }
 
 function PromoteListingModal({ listing, onClose }) {
   const [plan, setPlan] = useState("7 Gün");
   const prices = { "3 Gün": "49 TL", "7 Gün": "89 TL", "14 Gün": "149 TL" };
   return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-lg rounded-[32px] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="flex items-center gap-2 text-xl font-black"><Pin size={18} fill="currentColor" className="text-amber-600" /> İlanı öne çıkar</h2><p className="mt-1 text-sm leading-relaxed text-slate-500">“{listing.title}” ilanını ana akışta vurgulu ve öne çıkan ilan olarak göster.</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 hover:bg-slate-200"><X size={18} /></button></div><div className="grid gap-2 sm:grid-cols-3">{["3 Gün", "7 Gün", "14 Gün"].map((item) => <button key={item} onClick={() => setPlan(item)} className={"rounded-2xl border p-3 text-left " + (plan === item ? "border-amber-400 bg-amber-50" : "border-slate-200 bg-white hover:bg-slate-50")}><div className="text-sm font-black text-slate-900">{item}</div><div className="mt-1 text-lg font-black text-amber-700">{prices[item]}</div><div className="mt-1 text-xs text-slate-500">Öne çıkan ilan bandı</div></button>)}</div><div className="mt-4 rounded-2xl bg-slate-50 p-3"><div className="mb-3 text-sm font-black">Ödeme bilgileri</div><div className="grid gap-3"><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="Kart üzerindeki isim" /><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="Kart numarası" /><div className="grid grid-cols-2 gap-3"><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="AA / YY" /><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="CVC" /></div></div></div><div className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">Bu alan MVP’de temsili ödeme ekranıdır. Canlıya geçerken kart bilgileri platformda tutulmaz; ödeme altyapısı üzerinden güvenli şekilde işlenir.</div><div className="mt-5 flex gap-2"><button onClick={onClose} className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Vazgeç</button><button onClick={onClose} className="flex-1 rounded-full bg-amber-500 px-4 py-3 text-sm font-black text-white hover:bg-amber-600">{prices[plan]} öde ve öne çıkar</button></div></div></div>;
-}
-
-function AuthModal({ mode, setMode, onClose, onSuccess }) {
-  const isLogin = mode === "login";
-
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-[34px] bg-white shadow-2xl md:grid-cols-[1.05fr_1fr]">
-        <div
-          className="relative hidden min-h-[640px] overflow-hidden bg-slate-950 p-8 text-white md:block"
-          style={{
-            backgroundImage:
-              "linear-gradient(135deg, rgba(8,51,68,.92), rgba(15,23,42,.68)), url(" + img.tank1 + ")",
-            backgroundSize: "cover",
-            backgroundPosition: "center"
-          }}
-        >
-          <div className="relative z-10 flex h-full flex-col justify-between">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-cyan-100">
-                Hobiciden Hobiciye
-              </div>
-              <h2 className="max-w-md text-4xl font-black leading-tight tracking-tight">
-                Akvaryum hobisine özel sade ve güvenli ilan alanı
-              </h2>
-              <p className="mt-4 max-w-md text-[15px] leading-7 text-cyan-50/85">
-                Canlı, bitki, ekipman ve akvaryum ilanlarını keşfet. Sat, takas et, sahiplendir veya aradığını bul.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative max-h-[90vh] overflow-y-auto p-6 sm:p-8 md:p-10">
-          <button onClick={onClose} className="absolute right-5 top-5 rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200">
-            <X size={18} />
-          </button>
-
-          <div className="mx-auto max-w-md">
-            <div className="mb-6">
-              <div className="mb-2 text-sm font-black uppercase tracking-[0.15em] text-slate-400">
-                Hoş geldin
-              </div>
-              <h3 className="text-3xl font-black tracking-tight text-slate-950">
-                {isLogin ? "Giriş yap" : "Kayıt ol"}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                {isLogin
-                  ? "Hesabına giriş yaparak ilan verebilir, mesaj gönderebilir ve profilini yönetebilirsin."
-                  : "Yeni bir hesap oluşturarak topluluğa katılabilirsin."}
-              </p>
-            </div>
-
-            <div className="mb-6 flex rounded-full bg-slate-100 p-1">
-              <button
-                onClick={() => setMode("login")}
-                className={
-                  "flex-1 rounded-full px-4 py-2.5 text-sm font-black transition " +
-                  (isLogin ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")
-                }
-              >
-                Giriş Yap
-              </button>
-              <button
-                onClick={() => setMode("register")}
-                className={
-                  "flex-1 rounded-full px-4 py-2.5 text-sm font-black transition " +
-                  (!isLogin ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")
-                }
-              >
-                Kayıt Ol
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {!isLogin && (
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-black text-slate-500">Kullanıcı adı</span>
-                  <input
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800"
-                    placeholder="@kullaniciadi"
-                  />
-                </label>
-              )}
-
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-black text-slate-500">E-posta adresi</span>
-                <input
-                  type="email"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800"
-                  placeholder="ornek@mail.com"
-                />
-              </label>
-
-              {!isLogin && (
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-black text-slate-500">Telefon numarası</span>
-                  <input
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800"
-                    placeholder="05xx xxx xx xx"
-                  />
-                </label>
-              )}
-
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-black text-slate-500">Şifre</span>
-                <input
-                  type="password"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800"
-                  placeholder="••••••••"
-                />
-              </label>
-
-              {isLogin && (
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-cyan-950" />
-                    Beni hatırla
-                  </label>
-
-                  <button type="button" className="text-xs font-black text-cyan-800 hover:text-cyan-950">
-                    Şifremi unuttum
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={onSuccess}
-              className="mt-5 w-full rounded-full bg-cyan-950 px-5 py-3.5 text-sm font-black text-white transition hover:bg-cyan-900"
-            >
-              {isLogin ? "Giriş yap" : "Hesap oluştur"}
-            </button>
-
-            <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">veya</span>
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
-            <div className="space-y-3">
-              <button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">G</span>
-                Google ile devam et
-              </button>
-
-              <button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">A</span>
-                Apple ile devam et
-              </button>
-
-              <button onClick={onSuccess} className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-black">F</span>
-                Facebook ile devam et
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function AddListingModal({ onClose }) {

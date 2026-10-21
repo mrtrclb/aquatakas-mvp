@@ -42,10 +42,11 @@ async function loadData() {
   const categories = local.KB_CATEGORIES;
   const sections = local.KB_SECTIONS;
   try {
-    const [species, listings, groups] = await Promise.all([
+    const [species, listings, groups, articles] = await Promise.all([
       rest("species?select=slug,name,latin,category_id,kind,difficulty,temperament,description,facts,image_url,images,updated_at&status=eq.published&order=name"),
       rest("listings?select=id,title,description,price,type,city,district,images,updated_at,user_id,owner:profiles!listings_user_id_fkey(username,hide_from_search)&status=eq.active&order=updated_at.desc&limit=2000"),
-      rest("groups?select=slug,name,description,cover_url,member_count,created_at&is_closed=eq.false&order=member_count.desc")
+      rest("groups?select=slug,name,description,cover_url,member_count,created_at&is_closed=eq.false&order=member_count.desc"),
+      rest("articles?select=slug,title,excerpt,body,footnotes,sources,cover_url,species_slugs,published_at,updated_at&status=eq.published&order=published_at.desc").catch(() => [])
     ]);
     console.log("Prerender: veritabanından " + species.length + " tür, " + listings.length + " ilan, " + groups.length + " grup alındı.");
     return {
@@ -53,7 +54,8 @@ async function loadData() {
       sections,
       species: species.map((row) => ({ ...row, category: row.category_id, images: (row.images && row.images.length ? row.images : row.image_url ? [row.image_url] : []) })),
       listings: listings.filter((row) => !(row.owner && row.owner.hide_from_search)),
-      groups
+      groups,
+      articles
     };
   } catch (error) {
     console.warn("Prerender: veritabanına ulaşılamadı (" + error.message + "); koddaki tür verisi kullanılıyor, ilan ve gruplar atlanıyor.");
@@ -62,7 +64,8 @@ async function loadData() {
       sections,
       species: local.SPECIES.map((sp) => ({ ...sp, description: sp.desc, images: [] })),
       listings: [],
-      groups: []
+      groups: [],
+      articles: []
     };
   }
 }
@@ -201,6 +204,52 @@ async function main() {
       (sp.updated_at || today).slice(0, 10),
       "0.8"
     );
+  }
+
+  // Makaleler
+  if (data.articles.length) {
+    const spBySlug = Object.fromEntries(data.species.map((sp) => [sp.slug, sp]));
+    const listBody = "<h1>Akvaryum makaleleri</h1><ul>" + data.articles.map((a) => '<li><a href="/makale/' + a.slug + '">' + esc(a.title) + "</a> — " + esc(a.excerpt) + "</li>").join("") + "</ul>";
+    add("/makaleler", page({ path: "/makaleler", title: "Akvaryum makaleleri — Aquagram Bilgi Bankası", description: "Tür bakımı, hobi efsaneleri ve akvaryum biyolojisi üzerine kaynaklı makaleler.", body: listBody, jsonld: [breadcrumb([["Bilgi Bankası", "/bilgi"], ["Makaleler", "/makaleler"]])] }), today, "0.8");
+    for (const a of data.articles) {
+      const linked = (a.species_slugs || []).map((slug) => spBySlug[slug]).filter(Boolean);
+      const image = a.cover_url || (linked.find((sp) => sp.images && sp.images[0]) || { images: [OG_DEFAULT] }).images[0];
+      const paras = String(a.body || "").split(/\n{2,}/).map((chunk) => chunk.trim()).filter(Boolean)
+        .map((chunk) => (chunk.startsWith("## ") ? "<h2>" + esc(chunk.slice(3)) + "</h2>" : "<p>" + esc(chunk) + "</p>")).join("");
+      const notes = (a.footnotes || []).length ? "<h2>Dipnotlar</h2><ol>" + a.footnotes.map((n) => "<li>" + esc(n) + "</li>").join("") + "</ol>" : "";
+      const srcs = (a.sources || []).length ? "<h2>Kaynaklar</h2><ul>" + a.sources.map((s) => "<li>" + (s.url ? '<a href="' + esc(s.url) + '" rel="nofollow noopener">' + esc(s.label || s.url) + "</a>" : esc(s.label)) + "</li>").join("") + "</ul>" : "";
+      const rel = linked.length ? "<p>İlgili türler: " + linked.map((sp) => '<a href="/tur/' + sp.slug + '">' + esc(sp.name) + "</a>").join(", ") + "</p>" : "";
+      add(
+        "/makale/" + a.slug,
+        page({
+          path: "/makale/" + a.slug,
+          title: a.title + " — Aquagram Makaleler",
+          description: clip(a.excerpt || "", 158),
+          type: "article",
+          image,
+          body: "<article><h1>" + esc(a.title) + "</h1>" + paras + notes + srcs + rel + "</article>",
+          jsonld: [
+            {
+              "@context": "https://schema.org",
+              "@type": "Article",
+              headline: a.title.slice(0, 110),
+              description: clip(a.excerpt || "", 300),
+              inLanguage: "tr-TR",
+              image: [image],
+              datePublished: a.published_at,
+              dateModified: a.updated_at || a.published_at,
+              ...(linked.length ? { about: linked.map((sp) => ({ "@type": "Taxon", name: sp.latin || sp.name, alternateName: sp.name })) } : {}),
+              author: { "@type": "Organization", name: "Aquagram" },
+              publisher: { "@type": "Organization", name: "Aquagram", logo: { "@type": "ImageObject", url: SITE + "/icon-512.png" } },
+              mainEntityOfPage: SITE + "/makale/" + a.slug
+            },
+            breadcrumb([["Bilgi Bankası", "/bilgi"], ["Makaleler", "/makaleler"], [a.title, "/makale/" + a.slug]])
+          ]
+        }),
+        (a.updated_at || a.published_at || today).slice(0, 10),
+        "0.7"
+      );
+    }
   }
 
   // İlanlar

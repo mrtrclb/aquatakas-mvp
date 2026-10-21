@@ -7,7 +7,8 @@ export const AD_PLACEMENTS = {
   sidebar: { label: "Yan sütun", hint: "Sağ sütunun en üstünde, masaüstünde sürekli görünür" },
   detail: { label: "İlan detayı", hint: "İlan detay sayfasının üstünde geniş şerit" },
   post: { label: "Paylaşım detayı", hint: "Topluluk paylaşımı açıldığında, yorumlardan hemen önce geniş şerit" },
-  species: { label: "Bilgi Bankası tür sayfası", hint: "Tür detay sayfasının en üstünde geniş şerit" }
+  species: { label: "Bilgi Bankası tür sayfası", hint: "Tür detay sayfasının en üstünde geniş şerit" },
+  article: { label: "Makale sayfası", hint: "Bilgi Bankası makale detayının en üstünde geniş şerit" }
 };
 const EMPTY_POOLS = () => Object.fromEntries(Object.keys(AD_PLACEMENTS).map((key) => [key, []]));
 

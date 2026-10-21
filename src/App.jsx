@@ -86,6 +86,8 @@ import {
 import { GroupFormModal, GroupPage, GroupsPage, TagsPage, buildDefaultGroups } from "./groups.jsx";
 import { HomeAside, HomeFeed, HomeTopBar, loadHomeFilter, saveHomeFilter } from "./home.jsx";
 import { KbAside, KbCategoryPage, KbHome, KbMinePage, KbWidgets, KeptSpeciesChips, SpeciesPage, SuggestSpeciesModal } from "./knowledge.jsx";
+import { ArticlePage, ArticlesPage } from "./articles.jsx";
+import { useArticles } from "./lib/articles";
 import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, speciesBySlug } from "./species.js";
 
 const locations = {
@@ -405,7 +407,8 @@ export default function AquagramApp() {
   const [homeLocation, setHomeLocation] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [demoFollowedTags, setFollowedTags] = useState([]);
-  const [kbRoute, setKbRoute] = useState(null); // { section } | { category } | { slug } | { mine }
+  const [kbRoute, setKbRoute] = useState(null);
+  const articlesDb = useArticles(); // { section } | { category } | { slug } | { mine }
   const [kbSearch, setKbSearch] = useState("");
   const [kbKeeping, setKbKeeping] = useState(() => ({ ...SEED_KEEPING }));
   const [kbFavorites, setKbFavorites] = useState(() => ({ ...SEED_FAVORITES }));
@@ -535,8 +538,11 @@ export default function AquagramApp() {
       const kbSection = path.match(/^\/bilgi(?:\/b\/([^/]+))?$/);
       const kbCategory = path.match(/^\/bilgi\/k\/([^/]+)$/);
       const species = path.match(/^\/tur\/([^/]+)$/);
+      const article = path.match(/^\/makale\/([^/]+)$/);
       setKbRoute(
         species ? { slug: species[1] }
+          : article ? { article: decodeURIComponent(article[1]) }
+          : path === "/makaleler" ? { articles: true }
           : kbCategory ? { category: kbCategory[1] }
           : path === "/bilgi/turlerim" ? { mine: true }
           : kbSection ? { section: kbSection[1] || "tatlisu" }
@@ -840,6 +846,11 @@ export default function AquagramApp() {
     openCategory: (id) => { setKbSearch(""); openHashPage("/bilgi/k/" + id); },
     openSpecies: (species) => openHashPage("/tur/" + species.slug),
     openMine: () => openHashPage("/bilgi/turlerim"),
+    articles: articlesDb.list,
+    articlesLoaded: articlesDb.loaded,
+    reloadArticles: articlesDb.reload,
+    openArticles: () => { setKbSearch(""); openHashPage("/makaleler"); },
+    openArticle: (article) => openHashPage("/makale/" + (typeof article === "string" ? article : article.slug)),
     onSuggest: (initial) => (isMember ? setSuggestSpecies(initial || {}) : requireLogin()),
     currentUserId: isMember ? currentUserId : null,
     onAuth: requireLogin,
@@ -1401,7 +1412,12 @@ export default function AquagramApp() {
   const currentPost = postSlug ? posts.find((post) => post.slug === postSlug) : null;
 
   // Sayfa başlığı ve açıklaması: tarayıcı sekmesi, arama motorları ve yer imleri için
-  const pageTitle = currentSpecies
+  const currentArticleMeta = kbMode && kbRoute.article ? articlesDb.list.find((item) => item.slug === kbRoute.article) : null;
+  const pageTitle = currentArticleMeta
+    ? currentArticleMeta.title + " — Aquagram Makaleler"
+    : kbMode && kbRoute.articles
+      ? "Akvaryum makaleleri — Aquagram Bilgi Bankası"
+      : currentSpecies
     ? currentSpecies.name + (currentSpecies.latin ? " (" + currentSpecies.latin + ")" : "") + " bakımı ve künyesi — Aquagram Bilgi Bankası"
     : selectedListing
       ? selectedListing.title + " — " + priceLabel(selectedListing) + (selectedListing.city ? " · " + selectedListing.city : "") + " | Aquagram İlanlar"
@@ -1412,7 +1428,9 @@ export default function AquagramApp() {
           : kbMode
             ? "Akvaryum Bilgi Bankası: tür bakım rehberi — Aquagram"
             : "Aquagram — Akvaryum hobicilerinin buluşma noktası";
-  const pageDescription = currentSpecies
+  const pageDescription = currentArticleMeta
+    ? currentArticleMeta.excerpt.slice(0, 155)
+    : currentSpecies
     ? (currentSpecies.desc || "").slice(0, 155)
     : selectedListing
       ? (selectedListing.description || "").slice(0, 155)
@@ -1423,7 +1441,7 @@ export default function AquagramApp() {
           : "Akvaryum hobicileri için ilan, takas ve topluluk platformu: canlı, bitki, ekipman ilanları; hobicilerle soru-cevap ve tür bakım rehberi.";
   // Ziyaret sayacı (bölüm bazında, kişisel veri yok)
   const visitSection = currentSpecies ? "species" : kbMode ? "kb" : selectedListing ? "listing" : listingsOpen ? "listings" : currentPost ? "post" : currentGroup ? "group" : memberPage ? "account" : communityOpen || communityPage ? "community" : "home";
-  const visitKey = visitSection + ":" + (currentSpecies ? currentSpecies.slug : selectedListing ? selectedListing.id : currentPost ? currentPost.slug : currentGroup ? currentGroup.slug : memberPage || communityPage || (kbRoute && (kbRoute.category || kbRoute.section)) || "");
+  const visitKey = visitSection + ":" + (currentSpecies ? currentSpecies.slug : selectedListing ? selectedListing.id : currentPost ? currentPost.slug : currentGroup ? currentGroup.slug : memberPage || communityPage || (kbRoute && (kbRoute.article || (kbRoute.articles && "makaleler") || kbRoute.category || kbRoute.section)) || "");
   useEffect(() => {
     trackVisit(visitSection, visitKey);
   }, [visitKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1678,6 +1696,10 @@ export default function AquagramApp() {
         <button onClick={kb.openHome} className="mt-5 rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">Bilgi Bankası'na dön</button>
       </div>
     )
+  ) : kbRoute.article ? (
+    <ArticlePage key={kbRoute.article} slug={kbRoute.article} kb={kb} ctx={communityCtx} />
+  ) : kbRoute.articles ? (
+    <ArticlesPage kb={kb} />
   ) : kbRoute.category ? (
     <KbCategoryPage key={kbRoute.category} kb={kb} categoryId={kbRoute.category} />
   ) : kbRoute.mine && isMember ? (

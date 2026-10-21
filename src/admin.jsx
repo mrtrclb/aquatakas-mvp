@@ -34,6 +34,7 @@ import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
 import { loadCategoryCovers } from "./lib/settings";
 import { KB_CATEGORIES } from "./species.js";
+import { forgetArticle, slugifyTr } from "./lib/articles";
 
 /* ------------------------------------------------------------------ */
 /* Sabitler                                                            */
@@ -1862,6 +1863,185 @@ function GroupsSection() {
 /* ------------------------------------------------------------------ */
 
 // Bilgi Bankası kategori başlık bandı kapakları (site_settings.category_covers)
+/* Bilgi Bankası makaleleri ---------------------------------------------------- */
+
+const ARTICLE_INPUT = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-cyan-700";
+const EMPTY_ARTICLE = { id: null, title: "", slug: "", excerpt: "", body: "", footnotesText: "", sourcesText: "", cover_url: "", speciesText: "", status: "published" };
+
+function sourcesToText(list) {
+  return (list || []).map((row) => (row.tag ? "[" + row.tag + "] " : "") + (row.label && row.label !== row.url ? row.label + (row.url ? ": " : "") : "") + (row.url || "")).join("\n");
+}
+function textToSources(text) {
+  return text.split("\n").map((line) => line.trim().replace(/^[-•]\s*/, "")).filter(Boolean).map((line) => {
+    const m = line.match(/^(?:\[([^\]]+)\]\s*)?(.*?)(?::\s*)?(https?:\/\/\S+)?$/);
+    const label = (m[2] || "").trim().replace(/:$/, "").trim();
+    return { tag: m[1] || "", label: label || m[3] || "", url: m[3] || "" };
+  });
+}
+
+function ArticlesAdmin({ speciesRows }) {
+  const { act } = useAdmin();
+  const [rows, setRows] = useState(null);
+  const [form, setForm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+  const nameBySlug = useMemo(() => Object.fromEntries((speciesRows || []).map((row) => [row.slug, row.name])), [speciesRows]);
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from("articles").select("id, slug, title, excerpt, body, footnotes, sources, cover_url, species_slugs, status, published_at").order("published_at", { ascending: false });
+    setRows(data || []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  function edit(row) {
+    setForm(row ? {
+      id: row.id, title: row.title, slug: row.slug, excerpt: row.excerpt || "", body: row.body || "",
+      footnotesText: (row.footnotes || []).join("\n"), sourcesText: sourcesToText(row.sources),
+      cover_url: row.cover_url || "", speciesText: (row.species_slugs || []).join(", "), status: row.status
+    } : { ...EMPTY_ARTICLE });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const speciesSlugs = form ? form.speciesText.split(/[,\s]+/).map((value) => value.trim()).filter(Boolean) : [];
+  const unknown = speciesSlugs.filter((slug) => !nameBySlug[slug]);
+
+  async function upload(event) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = "";
+    if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
+    setBusy(true);
+    try {
+      const blob = await shrinkImage(file, 1800, 0.85);
+      const type = blob.type || "image/jpeg";
+      const path = "articles/" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+      const { error } = await supabase.storage.from("species-media").upload(path, blob, { contentType: type });
+      if (error) throw error;
+      set("cover_url", supabase.storage.from("species-media").getPublicUrl(path).data.publicUrl);
+    } catch (err) {
+      await act(Promise.resolve({ error: err }));
+    }
+    setBusy(false);
+  }
+
+  async function save() {
+    const slug = (form.slug || slugifyTr(form.title)).trim();
+    const firstPara = form.body.split(/\n{2,}/).find((chunk) => chunk.trim() && !chunk.startsWith("## ")) || "";
+    const plain = firstPara.replace(/\[\d+\]/g, "").trim();
+    const payload = {
+      slug,
+      title: form.title.trim(),
+      excerpt: (form.excerpt.trim() || (plain.length > 220 ? plain.slice(0, 217).replace(/\s+\S*$/, "") + "…" : plain)).slice(0, 400),
+      body: form.body.trim(),
+      footnotes: form.footnotesText.split("\n").map((line) => line.trim().replace(/^\[\d+\]\s*/, "")).filter(Boolean),
+      sources: textToSources(form.sourcesText),
+      cover_url: form.cover_url || null,
+      species_slugs: speciesSlugs,
+      status: form.status,
+      updated_at: new Date().toISOString()
+    };
+    setBusy(true);
+    const ok = form.id
+      ? await act(supabase.from("articles").update(payload).eq("id", form.id), "Makale güncellendi")
+      : await act(supabase.from("articles").insert(payload), "Makale eklendi");
+    setBusy(false);
+    if (ok) {
+      forgetArticle(slug);
+      setForm(null);
+      load();
+    }
+  }
+
+  async function remove() {
+    if (!form.id || !window.confirm("Bu makale kalıcı olarak silinsin mi?")) return;
+    if (await act(supabase.from("articles").delete().eq("id", form.id), "Makale silindi")) {
+      setForm(null);
+      load();
+    }
+  }
+
+  if (!rows) return <Card><Loader2 className="animate-spin text-slate-400" size={18} /></Card>;
+
+  if (form) {
+    const canSave = form.title.trim().length >= 3 && form.body.trim().length >= 20 && !busy;
+    return (
+      <Card className="grid gap-3 p-4" data-testid="article-editor">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-black">{form.id ? "Makaleyi düzenle" : "Yeni makale"}</h3>
+          <button onClick={() => setForm(null)} className="rounded-full px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-slate-100">Vazgeç</button>
+        </div>
+        <label className="grid gap-1 text-xs font-black text-slate-500">Başlık
+          <input className={ARTICLE_INPUT} value={form.title} maxLength={200} onChange={(event) => set("title", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-xs font-black text-slate-500">Adres (boş bırakılırsa başlıktan üretilir)
+          <input className={ARTICLE_INPUT} value={form.slug} onChange={(event) => set("slug", slugifyTr(event.target.value))} placeholder={slugifyTr(form.title)} />
+        </label>
+        <div className="grid gap-1 text-xs font-black text-slate-500">Kapak görseli (isteğe bağlı; yoksa ilgili türün görseli kullanılır)
+          <div className="flex items-center gap-3">
+            {form.cover_url ? <img src={form.cover_url} alt="" className="h-16 w-28 rounded-xl object-cover" /> : <div className="grid h-16 w-28 place-items-center rounded-xl bg-slate-100 text-slate-400"><Upload size={16} /></div>}
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={upload} />
+            <button type="button" onClick={() => fileRef.current && fileRef.current.click()} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold text-slate-700 hover:bg-slate-200">{busy ? "Yükleniyor…" : "Görsel seç"}</button>
+            {form.cover_url && <button type="button" onClick={() => set("cover_url", "")} className="rounded-full px-3 py-1.5 text-sm font-bold text-red-600 hover:bg-red-50">Kaldır</button>}
+          </div>
+        </div>
+        <label className="grid gap-1 text-xs font-black text-slate-500">Özet (listede görünür; boşsa ilk paragraftan alınır)
+          <textarea className={ARTICLE_INPUT} rows={2} maxLength={400} value={form.excerpt} onChange={(event) => set("excerpt", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-xs font-black text-slate-500">Metin
+          <span className="font-normal text-slate-400">Paragrafları boş satırla ayır. Alt başlık için satırı "## " ile başlat. Dipnot işareti: [1], [2]…</span>
+          <textarea className={ARTICLE_INPUT + " font-normal leading-relaxed"} rows={18} value={form.body} onChange={(event) => set("body", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-xs font-black text-slate-500">Dipnotlar (her satıra bir dipnot, sırasıyla [1], [2]…)
+          <textarea className={ARTICLE_INPUT} rows={3} value={form.footnotesText} onChange={(event) => set("footnotesText", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-xs font-black text-slate-500">İleri okumalar ve kaynaklar (her satıra bir kaynak)
+          <span className="font-normal text-slate-400">Biçim: [Etiket] Kaynak adı: https://adres</span>
+          <textarea className={ARTICLE_INPUT} rows={4} value={form.sourcesText} onChange={(event) => set("sourcesText", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-xs font-black text-slate-500">İlgili türler (tür adresleri, virgülle)
+          <span className="font-normal text-slate-400">Bu türlerin sayfasında "Makaleyi oku" butonu çıkar. Ör. betta-splendens, pterophyllum-scalare</span>
+          <input className={ARTICLE_INPUT} value={form.speciesText} onChange={(event) => set("speciesText", event.target.value)} />
+          {speciesSlugs.length > 0 && (
+            <span className="flex flex-wrap gap-1.5 font-normal">
+              {speciesSlugs.map((slug) => <span key={slug} className={"rounded-full px-2 py-0.5 text-[11px] font-bold " + (nameBySlug[slug] ? "bg-cyan-50 text-cyan-900" : "bg-red-50 text-red-700")}>{nameBySlug[slug] || slug + " (bulunamadı)"}</span>)}
+            </span>
+          )}
+        </label>
+        <label className="grid gap-1 text-xs font-black text-slate-500">Durum
+          <select className={ARTICLE_INPUT} value={form.status} onChange={(event) => set("status", event.target.value)}>
+            <option value="published">Yayında</option>
+            <option value="draft">Taslak (yalnız ekip görür)</option>
+          </select>
+        </label>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <button disabled={!canSave || unknown.length > 0} onClick={save} className="rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900 disabled:opacity-40">Kaydet</button>
+          {form.id && <button onClick={remove} className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-black text-red-600 hover:bg-red-50"><Trash2 size={14} /> Sil</button>}
+          {unknown.length > 0 && <span className="text-xs font-bold text-red-600">Bulunamayan tür adreslerini düzelt.</span>}
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="divide-y divide-slate-100 p-0">
+      <div className="flex items-center justify-between gap-2 px-4 py-3">
+        <span className="text-sm text-slate-500">{rows.length} makale</span>
+        <button onClick={() => edit(null)} className="inline-flex items-center gap-1.5 rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white hover:bg-cyan-900"><Plus size={15} /> Yeni makale</button>
+      </div>
+      {rows.map((row) => (
+        <button key={row.id} onClick={() => edit(row)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
+          {row.cover_url ? <img src={row.cover_url} alt="" className="h-10 w-14 shrink-0 rounded-lg object-cover" /> : <div className="h-10 w-14 shrink-0 rounded-lg bg-gradient-to-br from-cyan-700 to-teal-500" />}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-black">{row.title}</span>
+            <span className="block truncate text-xs text-slate-400">{(row.species_slugs || []).map((slug) => nameBySlug[slug] || slug).join(", ") || "Tür bağlantısı yok"}</span>
+          </span>
+          {row.status === "draft" && <Badge>Taslak</Badge>}
+        </button>
+      ))}
+    </Card>
+  );
+}
+
 function CategoryCovers({ categories }) {
   const { act } = useAdmin();
   const [covers, setCovers] = useState(null);
@@ -1991,9 +2171,9 @@ function SpeciesSection() {
               <Tabs
                 value={tab}
                 onChange={(key) => (key === "new" ? (window.location.hash = "#/yonetim/turler/yeni") : setTab(key))}
-                items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length], ["covers", "Kategori kapakları"], ["new", "＋ Yeni tür ekle"]]}
+                items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length], ["covers", "Kategori kapakları"], ["articles", "Makaleler"], ["new", "＋ Yeni tür ekle"]]}
               />
-              {tab === "covers" ? <CategoryCovers categories={data.categories} /> : tab === "suggestions" ? (
+              {tab === "covers" ? <CategoryCovers categories={data.categories} /> : tab === "articles" ? <ArticlesAdmin speciesRows={data.species} /> : tab === "suggestions" ? (
                 !data.suggestions.length ? <Empty>Henüz tür önerisi yok.</Empty> : (
                   <Card className="divide-y divide-slate-100 p-0">
                     {data.suggestions.map((row) => (

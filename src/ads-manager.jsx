@@ -281,7 +281,7 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
             <h3 className="mb-1 text-lg font-black">Canlı önizleme</h3>
             <p className="mb-3 text-xs text-slate-500">{placement ? (AD_PLACEMENTS[placement] || {}).label + " alanında böyle görünür" : "Paket seç"}</p>
             <div className="pointer-events-none overflow-hidden rounded-2xl bg-white">
-              {placement === "feed" ? <FeedAdCard ad={previewAd} /> : ["detail", "post", "species"].includes(placement) ? <div className="p-2 [&>div]:mb-0"><DetailBannerAd ad={previewAd} /></div> : <SidebarAd ad={previewAd} />}
+              {placement === "feed" ? <FeedAdCard ad={previewAd} /> : ["detail", "post", "species", "article"].includes(placement) ? <div className="p-2 [&>div]:mb-0"><DetailBannerAd ad={previewAd} /></div> : <SidebarAd ad={previewAd} />}
             </div>
           </div>
         </div>

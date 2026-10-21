@@ -29,6 +29,7 @@ import { DIFFICULTY_COLORS, KB_CATEGORIES, KB_SECTIONS, categoryById, detectSpec
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
 import { useCategoryCovers } from "./lib/settings";
+import { RecentArticles, SpeciesArticlesButton } from "./articles.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -175,7 +176,7 @@ export function KbAside({ kb, ctx, route }) {
           const isOpen = open === section.id;
           return (
             <div key={section.id}>
-              <button onClick={() => { setOpen(isOpen ? null : section.id); kb.openSection(section.id); }} className={"flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm font-black " + (activeSection === section.id && !route.mine ? "text-cyan-950" : "text-slate-700") + " hover:bg-slate-50"}>
+              <button onClick={() => { setOpen(isOpen ? null : section.id); kb.openSection(section.id); }} className={"flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm font-black " + (activeSection === section.id && !route.mine && !route.articles && !route.article ? "text-cyan-950" : "text-slate-700") + " hover:bg-slate-50"}>
                 <span>{section.emoji}</span> <span className="flex-1">{section.name}</span>
                 <ChevronRight size={15} className={"text-slate-400 transition " + (isOpen ? "rotate-90" : "")} />
               </button>
@@ -198,9 +199,9 @@ export function KbAside({ kb, ctx, route }) {
         <button onClick={() => ctx.onOpenGroup(ctx.groupById("hastaliklar"))} className="flex items-center justify-between rounded-xl px-2 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50">
           <span>🩺 Hastalıklar</span> <span className="text-[11px] font-black text-cyan-800">Gruba git →</span>
         </button>
-        <div className="flex items-center justify-between rounded-xl px-2 py-2 text-sm font-bold text-slate-400">
-          <span>📚 Makaleler</span> <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black">Yakında</span>
-        </div>
+        <button onClick={() => kb.openArticles()} data-testid="kb-articles-link" className={"flex items-center justify-between rounded-xl px-2 py-2 text-left text-sm font-bold " + (route.articles || route.article ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-50")}>
+          <span>📚 Makaleler</span> <span className="text-[11px] text-slate-400">{kb.articles.length || ""}</span>
+        </button>
       </div>
     </aside>
   );
@@ -825,6 +826,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
             >
               <Star size={15} fill={myFav ? "currentColor" : "none"} /> {myFav ? "Favorilerimde" : "Favori türlerime ekle"}
             </button>
+            <SpeciesArticlesButton kb={kb} slug={species.slug} />
           </div>
 
           <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
@@ -966,6 +968,7 @@ export function KbWidgets({ kb }) {
           })}
         </div>
       </section>
+      <RecentArticles kb={kb} />
     </div>
   );
 }

@@ -370,7 +370,7 @@ export function buildInitialPosts() {
 
 export function userIdOf(users, user) {
   const id = Object.keys(users).find((key) => users[key].username === user.username);
-  return id ? Number(id) : null;
+  return id ? (/^\d+$/.test(id) ? Number(id) : id) : null;
 }
 
 export function postSnippet(post) {

@@ -1446,6 +1446,8 @@ export default function AquagramApp() {
   <NotificationsPage
     notifs={notifs}
     onOpen={(item) => {
+      // Bildirim yeni bir beğeni/yorumdan geliyor; paylaşımın güncel hâlini görmek için veriyi tazele
+      if (item.post || item.grp) community.reload();
       if (item.post) openPost({ slug: item.post.slug });
       else if (item.grp) openGroup({ slug: String(item.grp.slug) });
       else if (item.listing_id) openMemberPage("listings");

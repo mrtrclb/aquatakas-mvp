@@ -1396,7 +1396,7 @@ export function PostDetailPage({ post, ctx, onBack }) {
       <PostCard post={post} ctx={ctx} detail />
       {ctx.adsFor && ctx.adsFor("post").length > 0 && (
         <div className="px-3 pt-3 sm:px-4 [&>div]:mb-3">
-          <ctx.DetailBannerAd ad={ctx.adsFor("post")[(Number(post.dbId) || post.id.length || 0) % ctx.adsFor("post").length]} />
+          {ctx.RotatingDetailAd ? <ctx.RotatingDetailAd placement="post" pageKey={post.id} /> : <ctx.DetailBannerAd ad={ctx.adsFor("post")[0]} />}
         </div>
       )}
       <ReplyBox post={post} ctx={ctx} />

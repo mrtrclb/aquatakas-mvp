@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, Flame, Hash, Info, MapPin, MessageCircle, Pin, Play, Sparkles, Users, X } from "lucide-react";
 import { Avatar, PostCard, extractTags, mediaLabel, normalizeTr, timeAgo } from "./community.jsx";
+import { SeenMarker, rotate } from "./lib/rotation";
 
 /* ------------------------------------------------------------------ */
 /* Ayarlar                                                             */
@@ -117,8 +118,9 @@ function HomeListingCard({ item, ctx, featured }) {
   return (
     <article
       onClick={() => ctx.onOpenListing(item)}
-      className={"flex cursor-pointer gap-3 border-b border-slate-200 px-4 py-3.5 transition " + (featured ? "bg-cyan-50/50 hover:bg-cyan-50" : "hover:bg-slate-50/70")}
+      className={"relative flex cursor-pointer gap-3 border-b border-slate-200 px-4 py-3.5 transition " + (featured ? "bg-cyan-50/50 hover:bg-cyan-50" : "hover:bg-slate-50/70")}
     >
+      <SeenMarker kind="listing" id={item.id} enabled={Boolean(featured)} />
       <Avatar user={user} onClick={() => ctx.onProfile(user)} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5 text-sm">
@@ -271,7 +273,8 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
     let normal = [];
     if (mixListings) {
       const pool = listings.filter((item) => inLocation(item.city));
-      featured = pool.filter((item) => ctx.featuredListingIds.includes(item.id));
+      // Öne çıkanlar: bu ziyaretçiye en az gösterilen önce, eşitlerde her yüklemede rastgele
+      featured = rotate(pool.filter((item) => ctx.featuredListingIds.includes(item.id)), "listing");
       // Yakınındaki ilanlar (profil şehri) önce, sonra en yeni
       normal = pool
         .filter((item) => !ctx.featuredListingIds.includes(item.id))

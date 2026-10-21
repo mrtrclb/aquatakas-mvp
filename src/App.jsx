@@ -8,6 +8,7 @@ import { useDbMessages, useNotifications, notificationText } from "./lib/social"
 import { useDbKnowledge } from "./lib/knowledge";
 import { useSiteSettings } from "./lib/settings";
 import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
+import { SeenMarker, markSeen, pickLeastSeen, rotate } from "./lib/rotation";
 import AdsManagerPage from "./ads-manager.jsx";
 import { SiteInfoModal, SiteLinks, BLOG_URL } from "./site-info.jsx";
 import { OnboardingModal, shouldOnboard } from "./onboarding.jsx";
@@ -1107,6 +1108,7 @@ export default function AquagramApp() {
     FeedAdCard,
     DetailBannerAd,
     adsFor,
+    RotatingDetailAd,
     adPool: adsFor("feed"),
     isMember,
     currentUserId,
@@ -1305,10 +1307,13 @@ export default function AquagramApp() {
         (selectedDistricts.length === 0 || selectedDistricts.includes(item.district)) &&
         (selectedNeighborhoods.length === 0 || selectedNeighborhoods.includes(item.neighborhood));
     });
+    // Öne çıkanlar en üstte; kendi aralarında en az gösterilen önce, eşitlerde rastgele
+    const featuredRank = new Map(rotate(result.filter((item) => featuredListingIds.includes(item.id)), "listing").map((item, index) => [item.id, index]));
     result.sort((a, b) => {
       const aFeatured = featuredListingIds.includes(a.id) ? 1 : 0;
       const bFeatured = featuredListingIds.includes(b.id) ? 1 : 0;
       if (aFeatured !== bFeatured) return bFeatured - aFeatured;
+      if (aFeatured && bFeatured) return featuredRank.get(a.id) - featuredRank.get(b.id);
       if (sort === "verified") {
         const aVerified = users[a.userId]?.verified ? 1 : 0;
         const bVerified = users[b.userId]?.verified ? 1 : 0;
@@ -2171,6 +2176,7 @@ function ListingFeed({ listings, onOpen, onProfile }) {
               (isFeatured ? "bg-cyan-50/60 hover:bg-cyan-50" : "bg-white hover:bg-slate-50")
             }
           >
+            <SeenMarker kind="listing" id={item.id} enabled={isFeatured} />
             {isFeatured && (
               <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 shadow-sm">
                 <Pin size={12} fill="currentColor" /> Öne çıkan
@@ -2227,11 +2233,11 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
   const isVideoSelected = activeImage === "video";
   const imageIndex = typeof activeImage === "number" ? activeImage : 0;
   const currentImage = item.images[imageIndex] || item.images[0];
-  const featuredListings = listings.filter((listing) => featuredListingIds.includes(listing.id) && listing.id !== item.id);
+  const featuredListings = rotate(listings.filter((listing) => featuredListingIds.includes(listing.id) && listing.id !== item.id), "listing");
 
   return (
     <article className="bg-white px-5 py-5">
-      {adsFor("detail").length > 0 && <DetailBannerAd ad={adsFor("detail")[(Number(item.dbId) || Number(item.id) || 0) % adsFor("detail").length]} />}
+      {adsFor("detail").length > 0 && <RotatingDetailAd placement="detail" pageKey={item.id} />}
       <button onClick={onBack} className="mb-4 flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-100">
         <ArrowLeft size={17} /> İlan listesine dön
       </button>
@@ -2360,6 +2366,7 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
           <div className="flex gap-3 overflow-x-auto pb-2">
             {featuredListings.map((featured) => (
               <button type="button" onClick={() => onOpenListing(featured)} key={featured.id} className="relative grid min-w-[250px] max-w-[250px] grid-cols-[74px_1fr] gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-3 text-left transition hover:border-cyan-300 hover:bg-cyan-50">
+                <SeenMarker kind="listing" id={featured.id} />
                 <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-cyan-950 text-white"><Pin size={12} fill="currentColor" /></span>
                 {featured.images[0] ? <img src={featured.images[0]} alt="" className="h-16 w-16 rounded-xl object-cover" /> : <span className="h-16 w-16 rounded-xl bg-cyan-100" />}
                 <span className="min-w-0 pr-6">
@@ -2449,7 +2456,15 @@ function RightSidebar({ children, minimal = false }) {
 function useAdImpression(ad) {
   useEffect(() => {
     trackAdImpression(ad);
+    if (ad) markSeen("ad", ad.dbId || ad.id);
   }, [ad && ad.id]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+// Detay sayfası reklam şeridi: bu ziyaretçiye en az gösterilen reklam; aynı sayfa açıkken sabit kalır
+function RotatingDetailAd({ placement, pageKey }) {
+  const pool = adsFor(placement);
+  const ad = useMemo(() => pickLeastSeen(pool, "ad", String(pageKey), (item) => item.dbId || item.id), [placement, pageKey, pool.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  return ad ? <DetailBannerAd ad={ad} /> : null;
 }
 
 function AdCta({ ad, className }) {

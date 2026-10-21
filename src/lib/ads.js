@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import { rotate } from "./rotation";
 
 export const AD_PLACEMENTS = {
   feed: { label: "Akış içi", hint: "Ana sayfa, topluluk ve ilan akışında her birkaç gönderide bir" },
@@ -40,11 +41,8 @@ export function useLiveAds() {
       .then(({ data }) => {
         if (cancelled || !data) return;
         const next = EMPTY_POOLS();
-        // Her yüklemede farklı sırada: reklam verenler arasında adil dağılım
-        data
-          .map((row) => ({ row, key: Math.random() }))
-          .sort((a, b) => a.key - b.key)
-          .forEach(({ row }) => next[row.placement] && next[row.placement].push(mapAd(row)));
+        // Her yüklemede: bu ziyaretçiye en az gösterilen reklam önce, eşitlerde rastgele sıra
+        rotate(data, "ad", (row) => row.id).forEach((row) => next[row.placement] && next[row.placement].push(mapAd(row)));
         setAds(next);
       });
     return () => {

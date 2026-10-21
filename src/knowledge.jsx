@@ -797,7 +797,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
 
       {ctx.adsFor && ctx.adsFor("species").length > 0 && (
         <div className="px-4 pt-4 [&>div]:mb-0">
-          <ctx.DetailBannerAd ad={ctx.adsFor("species")[species.slug.length % ctx.adsFor("species").length]} />
+          {ctx.RotatingDetailAd ? <ctx.RotatingDetailAd placement="species" pageKey={species.slug} /> : <ctx.DetailBannerAd ad={ctx.adsFor("species")[0]} />}
         </div>
       )}
       <div className="grid gap-4 p-4 sm:grid-cols-[220px_1fr]">

@@ -51,6 +51,7 @@ import {
   Eye,
   EyeOff,
   Send,
+  Loader2,
   RotateCcw,
   BookmarkX,
   ShieldCheck,
@@ -1743,6 +1744,20 @@ export default function AquagramApp() {
         (error) => setToast(trError(error))
       );
     }}
+    onPurge={(dbIds) =>
+      msgs.purge(dbIds).then(
+        () => setToast(dbIds.length > 1 ? dbIds.length + " sohbet kalıcı olarak silindi" : "Sohbet kalıcı olarak silindi"),
+        (error) => setToast(trError(error))
+      )
+    }
+    onDirectSend={async (otherId, topic, body) => {
+      const id = await msgs.start(otherId, topic || "Profil");
+      await msgs.send(Number(String(id).slice(2)), body);
+      await msgs.reload();
+      setActiveConvId(id);
+      setToast("Mesajın gönderildi");
+      return id;
+    }}
     onDelete={(id) => {
       if (String(id).startsWith("dm")) msgs.setHidden(Number(String(id).slice(2)), true);
       else setConversations((prev) => prev.map((item) => (item.id === id ? { ...item, deleted: true } : item)));
@@ -2642,7 +2657,6 @@ function AccountPage({ auth, onSaved }) {
             </button>
           </div>
           <VerificationCard auth={auth} onToast={onSaved} />
-          <ProCard auth={auth} onToast={onSaved} />
           <div className="mt-4 rounded-2xl border border-slate-200 p-3">
             <div className="mb-2 text-sm font-black text-slate-800">Gizlilik</div>
             <button type="button" role="switch" aria-checked={form.hide_from_search} onClick={toggleHidden} disabled={busy} className="flex w-full items-start justify-between gap-3 text-left">
@@ -2704,6 +2718,7 @@ function AccountPage({ auth, onSaved }) {
               ))}
               <button onClick={() => save({ socials: form.socials }, "Sosyal hesapların kaydedildi.")} disabled={busy} className="mt-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-60">Kaydet</button>
             </div>
+            <ProCard auth={auth} onToast={onSaved} className="h-fit rounded-[28px]" />
           </div>
         </div>
       </div>
@@ -3086,8 +3101,10 @@ function MessageBoxUsage({ count }) {
   );
 }
 
-function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, onReview, onReportUser, onToggleBlock }) {
+function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, onPurge, onDirectSend, onReview, onReportUser, onToggleBlock }) {
   const [tab, setTab] = useState("active");
+  const { status: proStatus } = useProStatus(true);
+  const isPro = Boolean(proStatus && proStatus.pro);
   const [draft, setDraft] = useState("");
   const selectedConversation = conversations.find((item) => item.id === activeId) || null;
   const setSelectedConversation = (item) => setActiveId(item ? item.id : null);
@@ -3143,10 +3160,21 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
         <p className="mt-1 text-sm text-slate-500">
           İlanlarla ilgili konuşmaları görüntüle, bildir, engelle veya sil.
         </p>
-        <MessageBoxUsage count={conversations.filter((item) => !item.deleted && item.dbId).length} />
+        <MessageBoxUsage count={conversations.filter((item) => item.dbId).length} />
       </div>
 
       <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1">
+        {isPro && (
+          <button
+            onClick={() => {
+              setTab("compose");
+              setSelectedConversation(null);
+            }}
+            className={"flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black " + (tab === "compose" ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}
+          >
+            <Send size={13} /> Mesaj gönder <ProBadge />
+          </button>
+        )}
         <button
           onClick={() => {
             setTab("active");
@@ -3174,8 +3202,27 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
         </button>
       </div>
 
+      {tab === "deleted" && visibleConversations.some((item) => item.dbId) && onPurge && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+          <span>Silinmiş sohbetler de mesaj kotana dahildir. Yer açmak için kalıcı olarak sil.</span>
+          <button
+            onClick={() => {
+              const ids = visibleConversations.filter((item) => item.dbId).map((item) => item.dbId);
+              if (window.confirm(ids.length + " sohbet kalıcı olarak silinsin mi? Bu işlem geri alınamaz.")) onPurge(ids);
+            }}
+            className="rounded-full bg-red-600 px-3 py-1.5 font-black text-white hover:bg-red-700"
+          >
+            Tümünü kalıcı sil ({visibleConversations.filter((item) => item.dbId).length})
+          </button>
+        </div>
+      )}
+
+      {tab === "compose" ? (
+        <DirectMessageForm onSend={async (otherId, topic, body) => { await onDirectSend(otherId, topic, body); setTab("active"); }} />
+      ) : (
       <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
         <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white">
+          {visibleConversations.length === 0 && <p className="p-6 text-center text-sm text-slate-400">{tab === "deleted" ? "Silinmiş sohbet yok." : "Henüz mesajın yok."}</p>}
           {visibleConversations.map((message) => (
             <button
               key={message.id}
@@ -3250,6 +3297,11 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
                   {!activeConversation.deleted && (
                     <button onClick={() => onDelete(activeConversation.id)} className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">
                       <Trash2 size={13} className="mr-1 inline" /> Sil
+                    </button>
+                  )}
+                  {activeConversation.deleted && activeConversation.dbId && onPurge && (
+                    <button onClick={() => window.confirm("Bu sohbet kalıcı olarak silinsin mi? Bu işlem geri alınamaz.") && onPurge([activeConversation.dbId])} className="rounded-full bg-red-600 px-3 py-2 text-xs font-black text-white hover:bg-red-700">
+                      <Trash2 size={13} className="mr-1 inline" /> Kalıcı sil
                     </button>
                   )}
                 </div>
@@ -3328,7 +3380,104 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
           )}
         </div>
       </div>
+      )}
     </div>
+  );
+}
+
+// PRO: mesaj panelinden kullanıcı adıyla doğrudan mesaj
+function DirectMessageForm({ onSend }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [target, setTarget] = useState(null);
+  const [topic, setTopic] = useState("");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const q = query.trim().replace(/^@/, "").toLowerCase();
+    if (target || q.length < 2) {
+      setResults([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data: me } = await supabase.auth.getUser();
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, username, city, avatar_url, phone_verified, pro_until")
+        .ilike("username", "%" + q.replace(/[\\%_]/g, (ch) => "\\" + ch) + "%")
+        .is("deleted_at", null)
+        .order("username")
+        .limit(8);
+      if (!cancelled) setResults((data || []).filter((row) => !me || !me.user || row.id !== me.user.id));
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, target]);
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!target || !body.trim() || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onSend(target.id, topic.trim() || "Profil", body.trim());
+    } catch (err) {
+      setError(trError(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mx-auto grid max-w-2xl gap-3 rounded-[28px] border border-slate-200 bg-white p-5">
+      <div className="flex items-center gap-2 text-lg font-black"><Send size={18} /> Yeni mesaj <ProBadge /></div>
+      <div className="relative grid gap-1 text-xs font-black text-slate-500"><span>Kime</span>
+        {target ? (
+          <span className="flex items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm text-slate-900">
+            <span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-cyan-950 text-xs font-black text-white">{target.avatar_url ? <img src={target.avatar_url} alt="" className="h-full w-full object-cover" /> : target.username.charAt(0).toUpperCase()}</span>
+            <b>@{target.username}</b>
+            {target.phone_verified && <VerifiedBadge />}
+            {target.pro_until && new Date(target.pro_until) > new Date() && <ProBadge />}
+            <span className="flex-1" />
+            <button type="button" onClick={() => { setTarget(null); setQuery(""); }} className="rounded-full p-1 text-slate-500 hover:bg-white" aria-label="Alıcıyı değiştir"><X size={15} /></button>
+          </span>
+        ) : (
+          <>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Kime" placeholder="@kullaniciadi yaz…" autoComplete="off" className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700 focus:bg-white" />
+            {results.length > 0 && (
+              <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl" role="listbox">
+                {results.map((row) => (
+                  <button key={row.id} type="button" role="option" aria-selected="false" onClick={() => { setTarget(row); setResults([]); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-cyan-950 text-xs font-black text-white">{row.avatar_url ? <img src={row.avatar_url} alt="" className="h-full w-full object-cover" /> : row.username.charAt(0).toUpperCase()}</span>
+                    <b className="text-slate-900">@{row.username}</b>
+                    {row.phone_verified && <VerifiedBadge />}
+                    {row.pro_until && new Date(row.pro_until) > new Date() && <ProBadge />}
+                    <span className="text-xs font-normal text-slate-400">{row.city || ""}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {query.trim().replace(/^@/, "").length >= 2 && results.length === 0 && <span className="font-normal text-slate-400">Eşleşen üye yok.</span>}
+          </>
+        )}
+      </div>
+      <label className="grid gap-1 text-xs font-black text-slate-500">Konu (isteğe bağlı)
+        <input value={topic} onChange={(event) => setTopic(event.target.value.slice(0, 80))} placeholder="Ör. Betta yavruları hakkında" className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700 focus:bg-white" />
+      </label>
+      <label className="grid gap-1 text-xs font-black text-slate-500">Mesajın
+        <textarea value={body} onChange={(event) => setBody(event.target.value.slice(0, 2000))} rows={5} placeholder="Merhaba!" className="resize-y rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700 focus:bg-white" />
+      </label>
+      {error && <div className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
+      <div className="flex justify-end">
+        <button type="submit" disabled={!target || !body.trim() || busy} className="flex items-center gap-2 rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
+          {busy ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Gönder
+        </button>
+      </div>
+    </form>
   );
 }
 function UserListingsPage({ user, onBack, onOpen, onProfile, onMessage }) {

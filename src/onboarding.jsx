@@ -4,13 +4,9 @@ import { Check, ChevronLeft, Loader2, MapPin, Search, Star, X } from "lucide-rea
 import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES } from "./lib/listings";
 import { SpeciesImage } from "./knowledge.jsx";
+import { KB_CATEGORIES, KB_SECTIONS } from "./species.js";
 
 // Yeni üyeye ilk girişte adım adım profil kurulumu: türler → gruplar → hakkında + şehir → sosyal hesaplar → bitti
-const POPULAR = [
-  "betta-splendens", "poecilia-reticulata", "paracheirodon-innesi", "neocaridina-davidi", "pterophyllum-scalare", "symphysodon-aequifasciatus",
-  "corydoras-paleatus", "ancistrus-sp", "danio-rerio", "xiphophorus-maculatus", "mikrogeophagus-ramirezi", "labidochromis-caeruleus",
-  "astronotus-ocellatus", "trigonostigma-heteromorpha", "caridina-multidentata", "otocinclus-affinis", "anubias-nana", "amphiprion-ocellaris"
-];
 
 const fold = (text) => (text || "").toLocaleLowerCase("tr").replace(/[çğıöşü]/g, (ch) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[ch]);
 const TANKS = ["1", "2", "3", "4", "5+"];
@@ -52,11 +48,23 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
 
   const speciesList = useMemo(() => {
     const q = fold(query.trim());
-    if (q) return species.filter((item) => fold([item.name, item.latin, ...(item.keywords || [])].join(" ")).includes(q)).slice(0, 30);
-    const popular = POPULAR.map((slug) => species.find((item) => item.slug === slug)).filter(Boolean);
-    const rest = species.filter((item) => !POPULAR.includes(item.slug));
-    return [...popular, ...rest].slice(0, 24);
+    if (!q) return [];
+    return species.filter((item) => fold([item.name, item.latin, ...(item.keywords || [])].join(" ")).includes(q)).slice(0, 30);
   }, [species, query]);
+
+  // Tür rehberindeki kategoriler; her açılışta her kategoriden rastgele 3 tür (sıra pencere açıkken sabit)
+  const [expanded, setExpanded] = useState({});
+  const groupsByCategory = useMemo(() => {
+    const order = Object.fromEntries(KB_SECTIONS.map((section, index) => [section.id, index]));
+    return KB_CATEGORIES.slice()
+      .sort((a, b) => (order[a.section] ?? 9) - (order[b.section] ?? 9))
+      .map((category) => {
+        const items = species.filter((item) => item.category === category.id);
+        const shuffled = items.map((item) => ({ item, key: Math.random() })).sort((a, b) => a.key - b.key).map(({ item }) => item);
+        return { category, items: shuffled };
+      })
+      .filter((group) => group.items.length > 0);
+  }, [species]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groupList = useMemo(() => groups.filter((group) => group.dbId && !group.memberIds.includes(profile.id)).slice(0, 12), [groups, profile.id]);
   const selected = mode === "keep" ? keep : fav;
@@ -115,6 +123,27 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
 
   const progress = Math.min(step, 3);
 
+  function tile(item) {
+    const on = selected.includes(item.slug);
+    return (
+      <button
+        key={item.slug}
+        type="button"
+        onClick={() => toggle(selected, mode === "keep" ? setKeep : setFav, item.slug)}
+        aria-pressed={on}
+        className={"relative overflow-hidden rounded-2xl border text-left transition " + (on ? "border-cyan-700 ring-2 ring-cyan-700/30" : "border-slate-200 hover:border-slate-300")}
+      >
+        <SpeciesImage species={item} className="aspect-[4/3] w-full" label={false} />
+        <span className="block truncate px-2 py-1.5 text-xs font-black text-slate-800">{item.name}</span>
+        {on && (
+          <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-cyan-700 text-white shadow">
+            {mode === "keep" ? <Check size={14} /> : <Star size={13} fill="currentColor" />}
+          </span>
+        )}
+      </button>
+    );
+  }
+
   return createPortal(
     <div className="fixed inset-0 z-[75] grid place-items-center bg-slate-950/60 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-label="Profilini oluştur">
       <div className="flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[88vh] sm:max-w-lg sm:rounded-[28px]">
@@ -151,29 +180,35 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
                 <Search size={15} className="text-slate-400" />
                 <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tür ara: betta, neon, karides…" className="w-full bg-transparent text-sm outline-none" aria-label="Tür ara" />
               </label>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {speciesList.map((item) => {
-                  const on = selected.includes(item.slug);
-                  return (
-                    <button
-                      key={item.slug}
-                      type="button"
-                      onClick={() => toggle(selected, mode === "keep" ? setKeep : setFav, item.slug)}
-                      aria-pressed={on}
-                      className={"relative overflow-hidden rounded-2xl border text-left transition " + (on ? "border-cyan-700 ring-2 ring-cyan-700/30" : "border-slate-200 hover:border-slate-300")}
-                    >
-                      <SpeciesImage species={item} className="aspect-[4/3] w-full" label={false} />
-                      <span className="block truncate px-2 py-1.5 text-xs font-black text-slate-800">{item.name}</span>
-                      {on && (
-                        <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-cyan-700 text-white shadow">
-                          {mode === "keep" ? <Check size={14} /> : <Star size={13} fill="currentColor" />}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              {speciesList.length === 0 && <p className="py-6 text-center text-sm text-slate-400">Bu isimde bir tür bulamadık.</p>}
+              {query.trim() ? (
+                <>
+                  <div className="mt-3 grid grid-cols-3 gap-2">{speciesList.map(tile)}</div>
+                  {speciesList.length === 0 && <p className="py-6 text-center text-sm text-slate-400">Bu isimde bir tür bulamadık.</p>}
+                </>
+              ) : (
+                <div className="mt-3 grid gap-4">
+                  {groupsByCategory.map(({ category, items }) => {
+                    const open = expanded[category.id];
+                    const picked = items.filter((item) => keep.includes(item.slug) || fav.includes(item.slug)).length;
+                    return (
+                      <section key={category.id}>
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <h3 className="flex items-center gap-1.5 text-sm font-black text-slate-800">
+                            <span aria-hidden="true">{category.emoji}</span> {category.name}
+                            {picked > 0 && <span className="rounded-full bg-cyan-700 px-1.5 text-[10px] text-white">{picked}</span>}
+                          </h3>
+                          {items.length > 3 && (
+                            <button type="button" onClick={() => setExpanded((prev) => ({ ...prev, [category.id]: !open }))} className="shrink-0 text-xs font-black text-cyan-800 hover:underline">
+                              {open ? "Daha az" : "Tümünü gör (" + items.length + ")"}
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">{(open ? items : items.slice(0, 3)).map(tile)}</div>
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
 

@@ -59,7 +59,7 @@ function monthly(plan) {
 }
 
 /* Hesabım → PRO kartı */
-export function ProCard({ auth, onToast }) {
+export function ProCard({ auth, onToast, className = "mt-4 rounded-2xl" }) {
   const { status, reload } = useProStatus(Boolean(auth.profile));
   const plans = useProPlans();
   const [open, setOpen] = useState(false);
@@ -69,9 +69,9 @@ export function ProCard({ auth, onToast }) {
   const left = daysLeft(until);
 
   return (
-    <div className={"mt-4 overflow-hidden rounded-2xl " + (pro ? "bg-gradient-to-br from-amber-50 to-orange-50 ring-1 ring-amber-200" : "bg-gradient-to-br from-slate-900 to-cyan-950 text-white")}>
-      <div className="p-3">
-        <div className="flex items-center gap-2 font-black"><Crown size={17} className={pro ? "text-amber-600" : "text-amber-300"} /> Aquagram PRO {pro && <ProBadge />}</div>
+    <div className={"overflow-hidden " + className + " " + (pro ? "bg-gradient-to-br from-amber-50 to-orange-50 ring-1 ring-amber-200" : "bg-gradient-to-br from-slate-900 to-cyan-950 text-white")}>
+      <div className="p-4">
+        <div className="flex items-center gap-2 text-lg font-black"><Crown size={18} className={pro ? "text-amber-600" : "text-amber-300"} /> Aquagram PRO {pro && <ProBadge />}</div>
         {pro ? (
           <>
             <div className="mt-2 flex items-end gap-1.5">
@@ -81,8 +81,8 @@ export function ProCard({ auth, onToast }) {
             <div className="text-xs text-amber-900/70">{fmtDay(until)} tarihine kadar</div>
             {status && (
               <ul className="mt-3 grid gap-1 text-xs text-amber-950">
-                <li className="flex justify-between gap-2"><span>Ücretsiz öne çıkarma</span><b>{status.features_left} / 2</b></li>
-                <li className="flex justify-between gap-2"><span>Ücretsiz reklam</span><b>{status.ads_left} / 1</b></li>
+                <li className="flex justify-between gap-2"><span>Ücretsiz öne çıkarma</span><b>{status.features_left} / {status.features_total || 2}</b></li>
+                <li className="flex justify-between gap-2"><span>Ücretsiz reklam</span><b>{status.ads_left} / {status.ads_total || 1}</b></li>
                 <li className="flex justify-between gap-2"><span>Bugün üste taşıma</span><b>{status.bumps_left} / {status.bump_limit}</b></li>
                 <li className="flex justify-between gap-2"><span>Mesaj kutusu</span><b>{status.conversation_count} / {status.conversation_limit} sohbet</b></li>
               </ul>
@@ -137,7 +137,7 @@ export function ProPlansDialog({ plans, pro, onClose, onDone }) {
         <div className="relative bg-gradient-to-br from-slate-900 via-cyan-950 to-cyan-800 px-5 pb-5 pt-6 text-white">
           <button type="button" onClick={onClose} className="absolute right-3 top-3 rounded-full bg-white/10 p-1.5 hover:bg-white/20" aria-label="Kapat"><X size={17} /></button>
           <div className="flex items-center gap-2 text-2xl font-black"><Crown className="text-amber-300" size={24} /> Aquagram PRO</div>
-          <p className="mt-1 text-sm text-cyan-50/80">{pro ? "Süreni uzat; yeni süre mevcut sürenin üstüne eklenir." : "Hobini bir üst seviyeye taşı."}</p>
+          <p className="mt-1 text-sm text-cyan-50/80">{pro ? "Yeni süre mevcut sürenin üstüne eklenir; ücretsiz öne çıkarma ve reklam hakların ile +100 sohbet hakkın da yeniden eklenir." : "Hobini bir üst seviyeye taşı."}</p>
         </div>
         <div className="grid gap-2 p-4">
           <ul className="grid gap-2">

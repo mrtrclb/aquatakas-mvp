@@ -39,9 +39,10 @@ export function useDbMessages(myId) {
     setBlocked(blockedSet);
     const { data: mineRows } = await supabase
       .from("conversation_participants")
-      .select("conversation_id, last_read_at, hidden_at")
+      .select("conversation_id, last_read_at, hidden_at, purged_at, cleared_at")
       .eq("user_id", myId);
-    const mine = mineRows || [];
+    // Kalıcı silinen sohbetler kutuda görünmez
+    const mine = (mineRows || []).filter((row) => !row.purged_at);
     const ids = mine.map((row) => row.conversation_id);
     if (!ids.length) {
       setConversations([]);
@@ -63,7 +64,10 @@ export function useDbMessages(myId) {
     }
     const byId = Object.fromEntries(profileRows.map((row) => [row.id, row]));
     const messagesByConv = {};
+    const clearedAt = Object.fromEntries(mine.filter((row) => row.cleared_at).map((row) => [row.conversation_id, new Date(row.cleared_at).getTime()]));
     (msgRes.data || []).forEach((row) => {
+      // Kalıcı silmeden önceki mesajlar bir daha gösterilmez
+      if (clearedAt[row.conversation_id] && new Date(row.created_at).getTime() <= clearedAt[row.conversation_id]) return;
       (messagesByConv[row.conversation_id] = messagesByConv[row.conversation_id] || []).push(row);
     });
     const list = (convRes.data || []).map((conv) => {
@@ -142,6 +146,13 @@ export function useDbMessages(myId) {
     await supabase.from("conversation_participants").update({ hidden_at: hidden ? new Date().toISOString() : null }).eq("conversation_id", dbId).eq("user_id", myId);
   }
 
+  // Silinmiş sohbetleri kalıcı olarak siler (mesaj kotasını açar)
+  async function purge(dbIds) {
+    const { error } = await supabase.rpc("purge_conversations", { p_ids: dbIds });
+    if (error) throw error;
+    setConversations((prev) => prev.filter((conv) => !dbIds.includes(conv.dbId)));
+  }
+
   async function setBlock(otherId, on) {
     const { error } = on
       ? await supabase.from("user_blocks").insert({ blocker_id: myId, blocked_id: otherId })
@@ -151,7 +162,7 @@ export function useDbMessages(myId) {
   }
 
   const unreadCount = conversations.filter((conv) => conv.unread && !conv.deleted && !conv.blockedByMe).length;
-  return { conversations, profiles, reload, start, send, markRead, setHidden, setBlock, blocked, unreadCount };
+  return { conversations, profiles, reload, start, send, markRead, setHidden, purge, setBlock, blocked, unreadCount };
 }
 
 // ---------------------------------------------------------------------------

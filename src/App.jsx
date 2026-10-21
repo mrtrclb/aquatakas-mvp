@@ -11,6 +11,7 @@ import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
 import AdsManagerPage from "./ads-manager.jsx";
 import { LEGAL_DOCS, LegalBody } from "./legal.jsx";
 import { VerificationCard } from "./verification.jsx";
+import { AccountSecurity } from "./account-security.jsx";
 import { trackVisit } from "./lib/visits";
 import { absoluteUrl, navigate, onRoute, routePath, upgradeLegacyHash } from "./lib/router";
 import { ListingDetailAside } from "./listing-aside.jsx";
@@ -610,14 +611,15 @@ export default function AquagramApp() {
   // E-postadaki doğrulama bağlantısıyla gelen yeni üye
   useEffect(() => {
     if (!auth.justConfirmed || !auth.session) return;
+    const kind = auth.justConfirmed;
     auth.clearJustConfirmed();
-    setToast("E-postan doğrulandı. Aquagram'a hoş geldin!");
+    setToast(kind === "email_change" ? "E-posta adresin güncellendi." : "E-postan doğrulandı. Aquagram'a hoş geldin!");
     setMemberPage("account");
   }, [auth.justConfirmed, auth.session]);
 
   useEffect(() => {
     if (!toast) return undefined;
-    const timer = setTimeout(() => setToast(""), 2600);
+    const timer = setTimeout(() => setToast(""), Math.max(2600, toast.length * 55));
     return () => clearTimeout(timer);
   }, [toast]);
 
@@ -2717,6 +2719,7 @@ function AccountPage({ auth, onSaved }) {
               <VerificationRow icon={<Mail size={16} />} title="E-posta adresi" value={auth.email} verified={auth.emailConfirmed} />
               <VerificationRow icon={<Phone size={16} />} title="Telefon numarası" value="SMS doğrulaması yakında" verified={profile.phone_verified} />
             </div>
+            <AccountSecurity auth={auth} onToast={onSaved} />
             <div className="rounded-[28px] border border-slate-200 bg-white p-4">
               <h3 className="mb-3 text-lg font-black">Sosyal hesaplar</h3>
               {[["instagram", "IG", "Instagram kullanıcı adı"], ["facebook", "FB", "Facebook profil linki"], ["x", "X", "Twitter / X kullanıcı adı"], ["web", "WEB", "Web sitesi"], ["youtube", "YT", "YouTube kanalı"]].map(([key, icon, placeholder]) => (

@@ -18,7 +18,8 @@ export function useAuth() {
     // E-posta bağlantısıyla gelindiyse adres çubuğunda #access_token=…&type=signup|recovery olur
     const hash = window.location.hash;
     if (/type=recovery/.test(hash)) setRecovery(true);
-    if (/type=signup|type=email/.test(hash)) setJustConfirmed(true);
+    if (/type=email_change/.test(hash)) setJustConfirmed("email_change");
+    else if (/type=signup|type=email/.test(hash)) setJustConfirmed("signup");
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);

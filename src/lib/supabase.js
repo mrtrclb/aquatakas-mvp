@@ -23,6 +23,8 @@ const ERRORS = [
   [/weak.?password|password is known to be weak/i, "Bu şifre çok kolay tahmin edilebilir. Daha güçlü bir şifre seç."],
   [/rate limit|too many requests|security purposes/i, "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar dene."],
   [/unable to validate email|invalid format|invalid email/i, "Geçerli bir e-posta adresi gir."],
+  [/email address.*already|email.?exists|already.*registered.*email/i, "Bu e-posta adresi başka bir hesapta kullanılıyor."],
+  [/reauthentication|requires recent login/i, "Güvenlik için çıkış yapıp tekrar giriş yap, sonra yeniden dene."],
   [/same.?password|different from the old/i, "Yeni şifre eskisiyle aynı olamaz."],
   [/profiles_username_key|duplicate key.*username/i, "Bu kullanıcı adı alınmış."],
   [/username_check|profiles_username_check/i, "Kullanıcı adı 3-24 karakter olmalı; yalnızca küçük harf, rakam, nokta ve alt çizgi içerebilir."],

@@ -24,6 +24,7 @@ import {
   Video,
   X
 } from "lucide-react";
+import { categoryById, detectSpecies, speciesBySlug } from "./species.js";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -341,6 +342,7 @@ export function buildInitialPosts() {
         slug: makeSlug(p.text, 10000 + Math.floor(rand() * 89999)),
         userId: p.userId,
         groupId: p.group || null,
+        speciesSlugs: detectSpecies(p.text),
         // Soru: anket değilse ve metin soru içeriyorsa örnek veride soru olarak işaretlenir
         kind: p.kind || (!p.poll && /\?/.test(p.text) ? "question" : "post"),
         text: p.text,
@@ -665,6 +667,27 @@ export function MoreMenu({ items, size = 19 }) {
   );
 }
 
+// Paylaşımın bağlı olduğu türler (tür sayfasına gider)
+export function SpeciesChips({ slugs, ctx, className = "mt-2.5" }) {
+  const list = (slugs || []).map(speciesBySlug).filter(Boolean);
+  if (!list.length) return null;
+  return (
+    <div className={"flex flex-wrap gap-1.5 " + className}>
+      {list.map((item) => (
+        <button
+          key={item.slug}
+          type="button"
+          onClick={(event) => { event.stopPropagation(); if (ctx && ctx.onOpenSpecies) ctx.onOpenSpecies(item); }}
+          title={item.latin + " · tür sayfasına git"}
+          className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100"
+        >
+          <span>{categoryById(item.category).emoji}</span> {item.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function PostCard({ post, ctx, detail = false, hideGroup = false }) {
   const [lightbox, setLightbox] = useState(null);
   const user = ctx.users[post.userId];
@@ -729,6 +752,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false }) {
         <ImageGrid images={post.images} onOpen={(index) => setLightbox(index)} />
         <VideoBlock video={post.video} />
         <PollBlock post={post} ctx={ctx} />
+        <SpeciesChips slugs={post.speciesSlugs} ctx={ctx} />
 
         {detail && <div className="mt-3 text-sm text-slate-500">{fullDate(post.createdAt)}</div>}
 
@@ -1475,7 +1499,7 @@ export function UserPostsPage({ user, posts, ctx, onBack, onViewListings }) {
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={onViewListings} className="rounded-full border border-white/30 px-4 py-2 text-sm font-black text-white hover:bg-white/10">İlanlarını gör</button>
-              <button className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50"><MessageCircle size={16} /> Mesaj gönder</button>
+              <button onClick={() => ctx.onMessage(user, "Profil")} className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50"><MessageCircle size={16} /> Mesaj gönder</button>
             </div>
           </div>
         </div>
@@ -1541,6 +1565,7 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
   const [text, setText] = useState("");
   const [groupId, setGroupId] = useState(defaultGroupId);
   const [kind, setKind] = useState(defaultKind);
+  const [removedSpecies, setRemovedSpecies] = useState([]);
   const [audienceOpen, setAudienceOpen] = useState(false);
   const audience = groups.find((item) => item.id === groupId) || null;
   const [images, setImages] = useState([]);
@@ -1565,6 +1590,8 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
   const hasMedia = images.length > 0 || Boolean(video);
   const filledOptions = pollOptions.map((option) => option.trim()).filter(Boolean);
   const trimmed = text.trim();
+  const pollText = pollOn ? pollOptions.join(" ") : "";
+  const detectedSpecies = detectSpecies(text + " " + pollText).filter((slug) => !removedSpecies.includes(slug));
   const canPublish = text.length <= MAX_TEXT && (pollOn ? Boolean(trimmed) && filledOptions.length >= 2 : Boolean(trimmed) || hasMedia);
 
   function addImages(event) {
@@ -1627,6 +1654,7 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
       userId,
       groupId,
       kind: pollOn ? "post" : kind,
+      speciesSlugs: detectedSpecies,
       text: trimmed,
       images: images.map((image) => image.url),
       video,
@@ -1784,6 +1812,23 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
                     />
                   </div>
                   <button onClick={addVideoLink} disabled={!videoLink.trim()} className="rounded-xl bg-cyan-950 px-4 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Ekle</button>
+                </div>
+              </div>
+            )}
+
+            {detectedSpecies.length > 0 && (
+              <div className="mb-3 rounded-2xl bg-emerald-50/70 p-2.5 ring-1 ring-emerald-100">
+                <div className="mb-1.5 text-[11px] font-black text-emerald-800">Bu paylaşım şu tür sayfalarında da görünecek:</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {detectedSpecies.map((slug) => {
+                    const item = speciesBySlug(slug);
+                    return (
+                      <span key={slug} className="inline-flex items-center gap-1 rounded-full bg-white py-0.5 pl-2 pr-1 text-xs font-black text-emerald-800 ring-1 ring-emerald-200">
+                        {categoryById(item.category).emoji} {item.name}
+                        <button type="button" onClick={() => setRemovedSpecies((prev) => [...prev, slug])} title="Bu türü çıkar" className="rounded-full p-0.5 hover:bg-emerald-100"><X size={11} /></button>
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}

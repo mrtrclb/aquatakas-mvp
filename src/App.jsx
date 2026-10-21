@@ -361,6 +361,8 @@ export default function AquaTakasPrototype() {
   );
   const [drawerOpen, setDrawerOpen] = useState(false); // mobil: sol menü / filtre paneli
   const [mobileShareOpen, setMobileShareOpen] = useState(false);
+  const [conversations, setConversations] = useState(SEED_CONVERSATIONS);
+  const [activeConvId, setActiveConvId] = useState(null);
   const userMenuRef = useRef(null);
   const shareMenuRef = useRef(null);
   const cameFromApp = useRef(false);
@@ -455,6 +457,49 @@ export default function AquaTakasPrototype() {
     setListingsOpen(false);
     window.location.hash = path;
     scrollTop();
+  }
+
+  // Herhangi bir yerden mesaj başlat: varsa mevcut konuşmayı aç, yoksa yeni konuşma oluştur
+  function startConversation(user, topic) {
+    if (!isMember) {
+      requireLogin();
+      return;
+    }
+    if (user.username === users[currentUserId].username) return;
+    // İlan ve tür konuları ayrı konuşma olur; profilden yazılınca kişiyle son konuşma açılır
+    const existing = conversations.find((item) => item.user === user.username && !item.deleted && (topic === "Profil" || item.title === topic));
+    let id = existing ? existing.id : Date.now();
+    if (!existing) {
+      setConversations((prev) => [
+        {
+          id,
+          user: user.username,
+          title: topic || "Yeni konuşma",
+          last: "",
+          date: new Date().toLocaleDateString("tr-TR"),
+          unread: false,
+          deleted: false,
+          messages: [],
+          draft: topic && topic.endsWith(" hakkında") ? "Merhaba! " + topic.replace(/ hakkında$/, "") + " beslediğini gördüm, sormak istediğim bir şey var:" : "Merhaba! "
+        },
+        ...prev
+      ]);
+    }
+    clearViews();
+    setListingsOpen(false);
+    setMemberPage("messages");
+    setActiveConvId(id);
+    scrollTop();
+  }
+
+  function sendMessage(id, body) {
+    setConversations((prev) => prev.map((item) => (item.id !== id ? item : {
+      ...item,
+      last: body,
+      unread: false,
+      date: new Date().toLocaleDateString("tr-TR"),
+      messages: [...item.messages, { from: "sen", body, time: nowTime() }]
+    })));
   }
 
   function toggleTag(tag) {
@@ -680,6 +725,8 @@ export default function AquaTakasPrototype() {
     onOpenGroup: openGroup,
     followedTags,
     onToggleTag: toggleTag,
+    onMessage: startConversation,
+    onOpenSpecies: (species) => openHashPage("/tur/" + species.slug),
     onOpenListing: (item) => openListing(item),
     featuredListingIds,
     priceLabel,
@@ -943,10 +990,10 @@ export default function AquaTakasPrototype() {
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
-                    {[["account", "Hesabım"], ["posts", "Paylaşımlarım"], ["listings", "İlanlarım"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
+                    {[["account", "Hesabım"], ["posts", "Paylaşımlarım"], ["listings", "İlanlarım"], ["species", "Türlerim"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
                       <button
                         key={key}
-                        onClick={() => openMemberPage(key)}
+                        onClick={() => { if (key === "species") { setUserMenuOpen(false); kb.openMine(); } else openMemberPage(key); }}
                         className={"flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-black " + (effectiveMemberPage === key ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-50")}
                       >
                         {label}
@@ -1068,7 +1115,16 @@ export default function AquaTakasPrototype() {
     onPromote={setPromoteListing}
   />
 ) : effectiveMemberPage === "messages" ? (
-  <MessagesPage />
+  <MessagesPage
+    conversations={conversations}
+    activeId={activeConvId}
+    setActiveId={setActiveConvId}
+    onSend={sendMessage}
+    onDelete={(id) => {
+      setConversations((prev) => prev.map((item) => (item.id === id ? { ...item, deleted: true } : item)));
+      setToast("Konuşma silinmiş mesajlara taşındı");
+    }}
+  />
 ) : effectiveMemberPage === "ads" ? (
   <AdsManagerPage />
 ) : selectedListing ? (
@@ -1083,6 +1139,7 @@ export default function AquaTakasPrototype() {
     menuOpen={menuOpen}
     setMenuOpen={setMenuOpen}
     onReport={() => { setMenuOpen(false); setReportTarget({ kind: "listing", listing: selectedListing }); }}
+    onMessage={startConversation}
     onAuth={() => {
       setAuthMode("login");
       setAuthOpen(true);
@@ -1097,6 +1154,7 @@ export default function AquaTakasPrototype() {
       openListing(item);
     }}
     onProfile={setProfileUser}
+    onMessage={startConversation}
     users={users}
     listings={listings}
     formatDate={formatDate}
@@ -1149,6 +1207,7 @@ export default function AquaTakasPrototype() {
     groups={groups}
     onOpenGroup={openGroup}
     keptSpecies={kbKeeping[userIdOf(users, profileUser)] || []}
+    onMessage={startConversation}
     kb={kb}
     onClose={() => setProfileUser(null)}
     onOpenPost={openPost}
@@ -1372,7 +1431,7 @@ function ListingFeed({ listings, onOpen, onProfile }) {
   );
 }
 
-function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBack, onProfile, menuOpen, setMenuOpen, onReport, onAuth }) {
+function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBack, onProfile, menuOpen, setMenuOpen, onReport, onAuth, onMessage }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isVideoSelected = activeImage === "video";
   const imageIndex = typeof activeImage === "number" ? activeImage : 0;
@@ -1493,7 +1552,7 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
 
           <div className="mt-5 max-w-2xl border-t border-slate-200 pt-5">
             {isMember ? (
-              <button className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white hover:bg-cyan-900"><MessageCircle size={17} /> Mesaj gönder</button>
+              <button onClick={() => onMessage(user, item.title)} className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white hover:bg-cyan-900"><MessageCircle size={17} /> Mesaj gönder</button>
             ) : (
               <div>
                 <p className="mb-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200">Mesaj göndermek için üye girişi yapmalısınız.</p>
@@ -2438,32 +2497,7 @@ function AdStatsModal({ ad, onClose }) {
   );
 }
 
-function MessagesPage() {
-  const [tab, setTab] = useState("active");
-  const [selectedConversation, setSelectedConversation] = useState(null);
-
-  function UserAvatarBubble({ user, size = "md" }) {
-    const username = user?.user || user?.from || user?.name || "Kullanıcı";
-    const initial = username.replace("@", "").trim().charAt(0).toUpperCase() || "H";
-
-    const sizeClass =
-      size === "lg"
-        ? "h-12 w-12 text-sm"
-        : size === "sm"
-        ? "h-8 w-8 text-xs"
-        : "h-10 w-10 text-xs";
-
-    return (
-      <div
-        className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-cyan-950 font-black text-white shadow-sm`}
-        title={username}
-      >
-        {initial}
-      </div>
-    );
-  }
-
-  const conversations = [
+const SEED_CONVERSATIONS = [
     {
       id: 1,
       user: "@kadikoytank",
@@ -2519,6 +2553,38 @@ function MessagesPage() {
     }
   ];
 
+function nowTime() {
+  return new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete }) {
+  const [tab, setTab] = useState("active");
+  const [draft, setDraft] = useState("");
+  const selectedConversation = conversations.find((item) => item.id === activeId) || null;
+  const setSelectedConversation = (item) => setActiveId(item ? item.id : null);
+
+  function UserAvatarBubble({ user, size = "md" }) {
+    const username = user?.user || user?.from || user?.name || "Kullanıcı";
+    const initial = username.replace("@", "").trim().charAt(0).toUpperCase() || "H";
+
+    const sizeClass =
+      size === "lg"
+        ? "h-12 w-12 text-sm"
+        : size === "sm"
+        ? "h-8 w-8 text-xs"
+        : "h-10 w-10 text-xs";
+
+    return (
+      <div
+        className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-cyan-950 font-black text-white shadow-sm`}
+        title={username}
+      >
+        {initial}
+      </div>
+    );
+  }
+
+
   const visibleConversations = conversations.filter((message) => {
     if (tab === "deleted") {
       return message.deleted;
@@ -2528,6 +2594,11 @@ function MessagesPage() {
   });
 
   let activeConversation = visibleConversations[0] || null;
+  const draftKey = activeConversation ? activeConversation.id : null;
+  // Yeni başlatılan konuşmada hazır taslak metni kutuya gelir
+  useEffect(() => {
+    setDraft(activeConversation && activeConversation.draft && activeConversation.messages.length === 0 ? activeConversation.draft : "");
+  }, [draftKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (
     selectedConversation &&
@@ -2646,13 +2717,22 @@ function MessagesPage() {
                     Engelle
                   </button>
 
-                  <button className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">
-                    <Trash2 size={13} className="mr-1 inline" /> Sil
-                  </button>
+                  {!activeConversation.deleted && (
+                    <button onClick={() => onDelete(activeConversation.id)} className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">
+                      <Trash2 size={13} className="mr-1 inline" /> Sil
+                    </button>
+                  )}
                 </div>
               </div>
 
               <div className="grid flex-1 content-start gap-3">
+                {activeConversation.messages.length === 0 && (
+                  <div className="rounded-2xl bg-cyan-50/60 p-4 text-center text-sm text-slate-600">
+                    <MessageCircle className="mx-auto mb-2 text-cyan-700" size={26} />
+                    <strong className="text-slate-900">{activeConversation.user}</strong> ile yeni bir konuşma başlatıyorsun.
+                    <span className="block text-xs text-slate-500">Konu: {activeConversation.title}</span>
+                  </div>
+                )}
                 {activeConversation.messages.map((item, index) => {
                   const mine = item.from === "sen";
 
@@ -2677,11 +2757,20 @@ function MessagesPage() {
               {tab !== "deleted" ? (
                 <div className="mt-4 flex gap-2 border-t border-slate-100 pt-3">
                   <input
-                    className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && draft.trim()) { onSend(activeConversation.id, draft.trim()); setDraft(""); }
+                    }}
+                    className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-700"
                     placeholder="Mesaj yaz..."
                   />
 
-                  <button className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white">
+                  <button
+                    onClick={() => { if (draft.trim()) { onSend(activeConversation.id, draft.trim()); setDraft(""); } }}
+                    disabled={!draft.trim()}
+                    className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40"
+                  >
                     Gönder
                   </button>
                 </div>
@@ -2705,7 +2794,7 @@ function MessagesPage() {
     </div>
   );
 }
-function UserListingsPage({ user, onBack, onOpen, onProfile }) {
+function UserListingsPage({ user, onBack, onOpen, onProfile, onMessage }) {
   const userId = Number(Object.keys(users).find((id) => users[id].username === user.username));
   const userListings = listings.filter((item) => item.userId === userId);
 
@@ -2748,7 +2837,7 @@ function UserListingsPage({ user, onBack, onOpen, onProfile }) {
               </div>
             </div>
 
-            <button className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50">
+            <button onClick={() => onMessage(user, "Profil")} className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50">
               <MessageCircle size={16} /> Mesaj gönder
             </button>
           </div>
@@ -2885,7 +2974,7 @@ function MediaThumb({ item, size = "h-11 w-11" }) {
   return null;
 }
 
-function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSpecies = [], kb, onClose, onViewListings, onViewPosts, onOpenPost, onOpenGroup }) {
+function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSpecies = [], kb, onMessage, onClose, onViewListings, onViewPosts, onOpenPost, onOpenGroup }) {
   const stats = user.reviewStats || { positive: 0, neutral: 0, negative: 0 };
   const totalReviews = stats.positive + stats.neutral + stats.negative;
   const hasSocials = user.socials && (user.socials.instagram || user.socials.facebook || user.socials.x);
@@ -3127,7 +3216,7 @@ function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSp
             İlanları
           </button>
 
-          <button className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-3 py-3 text-sm font-black text-white">
+          <button onClick={() => onMessage(user, "Profil")} className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-3 py-3 text-sm font-black text-white hover:bg-cyan-900">
             <MessageCircle size={17} /> Mesaj gönder
           </button>
         </div>

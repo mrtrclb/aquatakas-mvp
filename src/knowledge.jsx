@@ -9,7 +9,11 @@ import {
   Flag,
   Pencil,
   Heart,
+  HelpCircle,
+  MapPin,
   MessageCircle,
+  Send,
+  Users,
   Search,
   Star,
   Tag,
@@ -17,7 +21,7 @@ import {
   X
 } from "lucide-react";
 import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostCard, VideoBlock, normalizeTr, timeAgo } from "./community.jsx";
-import { DIFFICULTY_COLORS, KB_CATEGORIES, KB_SECTIONS, categoryById } from "./species.js";
+import { DIFFICULTY_COLORS, KB_CATEGORIES, KB_SECTIONS, categoryById, detectSpecies } from "./species.js";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -38,9 +42,12 @@ function keepersOf(kb, slug) {
     .map(([id]) => Number(id));
 }
 
-function matchesKeywords(text, species) {
-  const hay = normalizeTr(text);
-  return [species.latin, ...(species.keywords || [])].some((word) => word && hay.includes(normalizeTr(word)));
+// Bir ilan/paylaşımın bu türle ilgili olup olmadığı: paylaşımda kayıtlı türler ya da metinden otomatik tanıma
+export function relatedListings(listings, slug) {
+  return listings.filter((item) => detectSpecies(item.title + " " + item.description).includes(slug));
+}
+export function relatedPosts(posts, slug) {
+  return posts.filter((post) => (post.speciesSlugs || detectSpecies(post.text)).includes(slug));
 }
 
 /* Görsel yer tutucu: kategori renk geçişi + simge */
@@ -321,6 +328,116 @@ function SpeciesComment({ comment, kb, ctx }) {
   );
 }
 
+/* Besleyenler: şehir, aynı şehir rozeti, mesaj butonu */
+function KeeperRow({ userId, species, ctx, kb }) {
+  const user = ctx.users[userId];
+  const UserName = ctx.UserName;
+  const me = ctx.isMember ? ctx.users[ctx.currentUserId] : null;
+  const isMe = ctx.isMember && userId === ctx.currentUserId;
+  const sameCity = me && !isMe && me.city === user.city;
+  const otherCount = (kb.keeping[userId] || []).length - 1;
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5">
+      <Avatar user={user} size={40} onClick={() => ctx.onProfile(user)} />
+      <button onClick={() => ctx.onProfile(user)} className="min-w-0 flex-1 text-left">
+        <span className="flex flex-wrap items-center gap-1.5 text-sm font-black text-slate-900"><UserName user={user} />{isMe && <span className="text-xs font-bold text-slate-400">(sen)</span>}</span>
+        <span className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+          <span className="flex items-center gap-0.5"><MapPin size={11} /> {user.city}</span>
+          {sameCity && <span className="rounded-full bg-cyan-50 px-1.5 font-black text-cyan-800">Aynı şehirde</span>}
+          {otherCount > 0 && <span>+{otherCount} tür daha</span>}
+        </span>
+      </button>
+      {!isMe && (
+        <button
+          onClick={() => ctx.onMessage(user, species.name + " hakkında")}
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-cyan-950 px-3 py-1.5 text-xs font-black text-white hover:bg-cyan-900"
+        >
+          <Send size={13} /> <span className="hidden sm:inline">Mesaj gönder</span><span className="sm:hidden">Mesaj</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function KeepersSection({ keepers, species, kb, ctx }) {
+  const [all, setAll] = useState(false);
+  const me = ctx.isMember ? ctx.users[ctx.currentUserId] : null;
+  // Önce aynı şehirdekiler, sonra diğerleri
+  const sorted = keepers.slice().sort((a, b) => (me ? (ctx.users[b].city === me.city) - (ctx.users[a].city === me.city) : 0));
+  const visible = all ? sorted : sorted.slice(0, 4);
+  return (
+    <section className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+        <h3 className="flex items-center gap-2 text-sm font-black text-slate-800"><Users size={15} /> Bu türü besleyenler <span className="text-slate-400">({keepers.length})</span></h3>
+        <span className="text-[11px] font-semibold text-slate-400">Takas, yavru ve deneyim için ulaş</span>
+      </div>
+      {keepers.length ? (
+        <div className="divide-y divide-slate-100">
+          {visible.map((id) => <KeeperRow key={id} userId={id} species={species} ctx={ctx} kb={kb} />)}
+        </div>
+      ) : (
+        <p className="px-4 py-5 text-center text-sm text-slate-400">Henüz kimse eklemedi. İlk sen ekle!</p>
+      )}
+      {keepers.length > 4 && (
+        <button onClick={() => setAll((value) => !value)} className="w-full border-t border-slate-100 py-2.5 text-xs font-black text-cyan-800 hover:bg-slate-50">
+          {all ? "Daha az göster" : "Tümünü gör (" + keepers.length + ")"}
+        </button>
+      )}
+    </section>
+  );
+}
+
+/* İlanlar / Paylaşımlar / Sorular */
+function RelatedSection({ species, listings, posts, ctx }) {
+  const questions = posts.filter((post) => post.kind === "question");
+  const contents = posts.filter((post) => post.kind !== "question");
+  const tabs = [["listings", "İlanlar", listings.length, Tag], ["posts", "Paylaşımlar", contents.length, MessageCircle], ["questions", "Sorular", questions.length, HelpCircle]];
+  const firstWithData = (tabs.find((tab) => tab[2] > 0) || tabs[0])[0];
+  const [tab, setTab] = useState(firstWithData);
+  const [limit, setLimit] = useState(4);
+  const list = tab === "listings" ? listings : tab === "posts" ? contents : questions;
+
+  return (
+    <section className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
+      <div className="border-b border-slate-100 bg-slate-50 px-4 pt-2.5">
+        <h3 className="text-sm font-black text-slate-800">{species.name} ile ilgili</h3>
+        <div className="mt-1 flex">
+          {tabs.map(([key, label, count, Icon]) => (
+            <button key={key} onClick={() => { setTab(key); setLimit(4); }} className={"relative flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-black " + (tab === key ? "text-slate-950" : "text-slate-500 hover:text-slate-800")}>
+              <Icon size={14} /> {label} <span className="rounded-full bg-white px-1.5 text-[10px] text-slate-500 ring-1 ring-slate-200">{count}</span>
+              {tab === key && <span className="absolute bottom-0 left-1/2 h-1 w-12 -translate-x-1/2 rounded-full bg-cyan-700" />}
+            </button>
+          ))}
+        </div>
+      </div>
+      {list.length === 0 ? (
+        <p className="px-4 py-6 text-center text-sm text-slate-400">
+          {tab === "listings" ? "Bu türle ilgili açık ilan yok." : tab === "posts" ? "Bu türle ilgili paylaşım yok." : "Bu tür hakkında soru sorulmamış."}
+          {tab !== "listings" && <> <button onClick={() => ctx.onCompose(null)} className="font-black text-cyan-800 hover:underline">{tab === "questions" ? "İlk soruyu sor" : "İlk paylaşımı yap"}</button></>}
+        </p>
+      ) : tab === "listings" ? (
+        <div className="divide-y divide-slate-100">
+          {list.slice(0, limit).map((item) => (
+            <button key={item.id} onClick={() => ctx.onOpenListing(item)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black text-slate-900">{item.title}</span>
+                <span className="text-xs text-slate-500">{item.type} · {item.city} / {item.district}</span>
+              </span>
+              <span className="shrink-0 text-sm font-black text-cyan-950">{ctx.priceLabel(item)}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div>{list.slice(0, limit).map((post) => <PostCard key={post.id} post={post} ctx={ctx} />)}</div>
+      )}
+      {list.length > limit && (
+        <button onClick={() => setLimit((value) => value + 6)} className="w-full border-t border-slate-100 py-2.5 text-xs font-black text-cyan-800 hover:bg-slate-50">Daha fazla göster ({list.length - limit})</button>
+      )}
+      <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">Tür adı geçen ilan ve paylaşımlar buraya otomatik eklenir.</p>
+    </section>
+  );
+}
+
 export function SpeciesPage({ species, kb, ctx, listings, posts }) {
   const [sort, setSort] = useState("newest");
   const category = categoryById(species.category);
@@ -330,8 +447,8 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
   const comments = kb.comments
     .filter((comment) => comment.slug === species.slug)
     .sort((a, b) => (sort === "top" ? b.likes - a.likes : b.createdAt - a.createdAt));
-  const relatedListings = useMemo(() => listings.filter((item) => matchesKeywords(item.title + " " + item.description, species)).slice(0, 3), [listings, species]);
-  const relatedPosts = useMemo(() => posts.filter((post) => matchesKeywords(post.text || "", species)).slice(0, 3), [posts, species]);
+  const linkedListings = useMemo(() => relatedListings(listings, species.slug), [listings, species]);
+  const linkedPosts = useMemo(() => relatedPosts(posts, species.slug).sort((a, b) => b.createdAt - a.createdAt), [posts, species]);
   const me = ctx.isMember ? ctx.users[ctx.currentUserId] : null;
 
   return (
@@ -395,32 +512,8 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
         <p className="px-4 py-2 text-[11px] text-slate-400">Değerler hobide yaygın kabul gören aralıklardır; hat, lokasyon ve bireye göre değişebilir.</p>
       </section>
 
-      {(relatedListings.length > 0 || relatedPosts.length > 0) && (
-        <section className="mx-4 mb-4 grid gap-3">
-          {relatedListings.length > 0 && (
-            <div className="rounded-3xl border border-slate-200 p-3">
-              <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-slate-800"><Tag size={15} /> Bu türle ilgili ilanlar</h3>
-              <div className="grid gap-1">
-                {relatedListings.map((item) => (
-                  <button key={item.id} onClick={() => ctx.onOpenListing(item)} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 text-left hover:bg-slate-50">
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-black text-slate-900">{item.title}</span>
-                      <span className="text-xs text-slate-500">{item.type} · {item.city}</span>
-                    </span>
-                    <span className="shrink-0 text-sm font-black text-cyan-950">{ctx.priceLabel(item)}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {relatedPosts.length > 0 && (
-            <div className="overflow-hidden rounded-3xl border border-slate-200">
-              <h3 className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 text-sm font-black text-slate-800"><MessageCircle size={15} /> Toplulukta bu tür</h3>
-              {relatedPosts.map((post) => <PostCard key={post.id} post={post} ctx={ctx} />)}
-            </div>
-          )}
-        </section>
-      )}
+      <KeepersSection keepers={keepers} species={species} kb={kb} ctx={ctx} />
+      <RelatedSection species={species} listings={linkedListings} posts={linkedPosts} ctx={ctx} />
 
       <section className="border-t border-slate-200">
         <div className="flex items-center justify-between gap-3 px-4 py-3">

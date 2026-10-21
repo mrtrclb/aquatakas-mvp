@@ -1443,7 +1443,7 @@ export function MyPostsPage({ posts, ctx }) {
   const myComments = [];
   posts.forEach((post) => post.comments.forEach((comment) => comment.userId === ctx.currentUserId && myComments.push({ comment, post })));
   myComments.sort((a, b) => b.comment.createdAt - a.comment.createdAt);
-  const tabs = [["mine", "Paylaşımlarım", mine.length], ["comments", "Yorumlarım", myComments.length], ["liked", "Beğendiklerim", liked.length], ["saved", "Kaydettiklerim", saved.length]];
+  const tabs = [["mine", "Paylaşımlarım", "Paylaşım", mine.length], ["comments", "Yorumlarım", "Yorum", myComments.length], ["liked", "Beğendiklerim", "Beğeni", liked.length], ["saved", "Kaydettiklerim", "Kayıt", saved.length]];
   const list = tab === "mine" ? mine : tab === "liked" ? liked : saved;
   const empty = {
     comments: [MessageCircle, "Henüz yorum yapmadın", "Paylaşımlara yaptığın yorumlar burada, yorum yaptığın içerikle birlikte görünür."],
@@ -1459,15 +1459,19 @@ export function MyPostsPage({ posts, ctx }) {
           <h2 className="text-xl font-black text-slate-950">Paylaşımlarım</h2>
           <p className="text-xs font-semibold text-slate-500">{mine.length} paylaşım · {myComments.length} yorum · {liked.length} beğeni · {saved.length} kayıtlı içerik</p>
         </div>
-        <div className="mt-2 flex overflow-x-auto [scrollbar-width:none]" data-testid="my-posts-tabs">
-          {tabs.map(([key, label, count]) => (
+        <div className="mt-2 grid grid-cols-4" data-testid="my-posts-tabs">
+          {tabs.map(([key, label, short, count]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={"relative flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-sm font-black transition hover:bg-slate-50 " + (tab === key ? "text-slate-950" : "text-slate-500")}
+              aria-label={label}
+              className={"relative min-w-0 px-1 py-2 text-[12px] font-black transition hover:bg-slate-50 sm:px-2 sm:py-3 sm:text-sm " + (tab === key ? "text-slate-950" : "text-slate-500")}
             >
-              {label} <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{count}</span>
-              {tab === key && <span className="absolute bottom-0 left-1/2 h-1 w-16 -translate-x-1/2 rounded-full bg-cyan-700" />}
+              <span className="flex flex-col items-center gap-0.5 sm:flex-row sm:justify-center sm:gap-1.5">
+                <span className="max-w-full truncate"><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span></span>
+                <span className="rounded-full bg-slate-100 px-1.5 py-px text-[10px] text-slate-600 sm:px-2 sm:py-0.5 sm:text-[11px]">{count}</span>
+              </span>
+              {tab === key && <span className="absolute bottom-0 left-1/2 h-1 w-12 -translate-x-1/2 rounded-full bg-cyan-700 sm:w-16" />}
             </button>
           ))}
         </div>

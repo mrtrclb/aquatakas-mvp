@@ -10,6 +10,7 @@ import { useSiteSettings } from "./lib/settings";
 import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
 import AdsManagerPage from "./ads-manager.jsx";
 import { SiteInfoModal, BLOG_URL } from "./site-info.jsx";
+import { OnboardingModal, shouldOnboard } from "./onboarding.jsx";
 import { VerificationCard } from "./verification.jsx";
 import { AccountSecurity, DeleteAccountDialog } from "./account-security.jsx";
 import { trackVisit } from "./lib/visits";
@@ -362,6 +363,8 @@ export default function AquagramApp() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [memberPage, setMemberPage] = useState(null);
+  const [onboardDismissed, setOnboardDismissed] = useState(false);
+  const [onboardOpen, setOnboardOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [removeListing, setRemoveListing] = useState(null);
@@ -607,6 +610,11 @@ export default function AquagramApp() {
     }
     return undefined;
   }, [memberPage, notifs.unread]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Yeni üyeye ilk girişte profil kurulumu (açıldıktan sonra kapanana kadar açık kalır)
+  useEffect(() => {
+    if (!onboardOpen && !onboardDismissed && !authOpen && shouldOnboard(auth)) setOnboardOpen(true);
+  }, [auth.user, auth.profile, authOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // E-postadaki doğrulama bağlantısıyla gelen yeni üye
   useEffect(() => {
@@ -2027,6 +2035,22 @@ export default function AquagramApp() {
 
       {toast && (
         <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 z-[80] max-w-[92vw] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-center text-sm font-black text-white shadow-xl lg:bottom-6">{toast}</div>
+      )}
+      {onboardOpen && !onboardDismissed && !auth.recovery && (
+        <OnboardingModal
+          auth={auth}
+          species={kb.species}
+          groups={groups}
+          speciesId={kbDb.speciesId}
+          onClose={(saved) => {
+            setOnboardDismissed(true);
+            if (saved) {
+              kbDb.reload();
+              community.reload();
+              auth.reloadProfile();
+            }
+          }}
+        />
       )}
       {auth.recovery && auth.session && (
         <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); leaveTo("/"); setMemberPage("account"); }} />

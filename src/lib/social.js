@@ -58,7 +58,7 @@ export function useDbMessages(myId) {
     const otherIds = Array.from(new Set(others.map((row) => row.user_id)));
     let profileRows = [];
     if (otherIds.length) {
-      const { data } = await supabase.from("profiles").select("id, username, city, bio, avatar_url, phone_verified, socials, created_at").in("id", otherIds);
+      const { data } = await supabase.from("profiles").select("id, username, city, bio, avatar_url, phone_verified, socials, created_at, pro_until").in("id", otherIds);
       profileRows = data || [];
     }
     const byId = Object.fromEntries(profileRows.map((row) => [row.id, row]));

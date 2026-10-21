@@ -4,6 +4,7 @@ import {
   Ban,
   Check,
   ChevronLeft,
+  Crown,
   ChevronRight,
   ExternalLink,
   Fish,
@@ -68,6 +69,7 @@ const SECTIONS = [
   { id: "one-cikarma", label: "Öne çıkarma", icon: Pin, perm: "ads", stat: "features_pending" },
   { id: "reklamlar", label: "Reklamlar", icon: Megaphone, perm: "ads", stat: "ads_pending" },
   { id: "kullanicilar", label: "Kullanıcılar", icon: Users, perm: "users", stat: "verifications_pending" },
+  { id: "pro", label: "PRO üyeler", icon: Crown, perm: "users" },
   { id: "icerik", label: "Kaldırılan içerik", icon: Trash2, perm: "content" },
   { id: "etiketler", label: "Etiketler", icon: Hash, perm: "tags" },
   { id: "gruplar", label: "Gruplar", icon: UsersRound, perm: "groups" },
@@ -457,6 +459,7 @@ export default function AdminApp() {
     "one-cikarma": FeaturesSection,
     reklamlar: AdsSection,
     kullanicilar: UsersSection,
+    pro: ProSection,
     icerik: RemovedContentSection,
     etiketler: TagsSection,
     gruplar: GroupsSection,
@@ -536,7 +539,8 @@ function DashboardSection() {
     ["Reklam başvurusu", stats && stats.ads_pending, "Onay bekliyor", "reklamlar", "ads", true],
     ["Tür önerisi", stats && stats.species_suggestions_pending, "Onay bekliyor", "turler", "species", true],
     ["Mavi tik talebi", stats && stats.verifications_pending, "Onay bekliyor", "kullanicilar", "users", true],
-    ["Askıdaki üye", stats && stats.suspended_users, "Şu an askıda", "kullanicilar", "users"]
+    ["Askıdaki üye", stats && stats.suspended_users, "Şu an askıda", "kullanicilar", "users"],
+    ["PRO üye", stats && stats.pro_active, "Son 30 gün alım: " + (stats ? stats.pro_30d || 0 : "…"), "pro", "users"]
   ];
   return (
     <Section title="Özet" subtitle="Sitenin genel durumu ve bekleyen işler.">
@@ -838,7 +842,7 @@ function StatusBadge({ status }) {
   return <Badge tone={tone}>{label}</Badge>;
 }
 
-const PAYMENT_LABELS = { simulated_paid: "Deneme ödemesi", paid: "Ödendi", refunded: "İade edildi", failed: "Başarısız" };
+const PAYMENT_LABELS = { simulated_paid: "Deneme ödemesi", paid: "Ödendi", refunded: "İade edildi", failed: "Başarısız", pro_free: "PRO ücretsiz hakkı", granted: "Ekip tanımladı" };
 
 function FeaturesSection() {
   const { act, ask } = useAdmin();
@@ -1336,6 +1340,117 @@ function RemovedContentSection() {
 /* Etiketler                                                           */
 /* ------------------------------------------------------------------ */
 
+
+/* ------------------------------------------------------------------ */
+/* PRO üyeler                                                          */
+/* ------------------------------------------------------------------ */
+
+const proDaysLeft = (until) => Math.max(0, Math.ceil((new Date(until).getTime() - Date.now()) / 86400000));
+
+function ProSection() {
+  const { act, ask } = useAdmin();
+  const [tab, setTab] = useState("active");
+  const [username, setUsername] = useState("");
+  const [months, setMonths] = useState(1);
+  const state = useLoad(async () => {
+    const [members, purchases] = await Promise.all([
+      must(supabase.from("profiles").select(PROFILE_COLS + ", pro_until, message_bonus").gt("pro_until", new Date().toISOString()).order("pro_until", { ascending: true }).limit(500)),
+      must(supabase.from("pro_purchases").select("*").order("created_at", { ascending: false }).limit(300))
+    ]);
+    const people = await profilesByIds(purchases.flatMap((row) => [row.user_id, row.granted_by]));
+    return { members, purchases, people };
+  }, []);
+
+  async function grant(event) {
+    event.preventDefault();
+    const name = username.trim().replace(/^@/, "").toLowerCase();
+    if (!name) return;
+    const { data: profile } = await supabase.from("profiles").select("id, username").eq("username", name).maybeSingle();
+    if (!profile) return act(Promise.resolve({ error: { message: "@" + name + " bulunamadı." } }));
+    const note = await ask({ title: "@" + profile.username + " için " + months + " ay PRO", text: "Süre mevcut PRO süresinin üstüne eklenir; mesaj kutusu +100 sohbet artar. Üyeye bildirim gider.", placeholder: "Not (isteğe bağlı): kampanya, hediye, ödeme dekontu…", confirm: "PRO tanımla" });
+    if (note === null) return;
+    if (await act(supabase.rpc("admin_grant_pro", { p_user: profile.id, p_months: months, p_note: note || null }), "@" + profile.username + " için PRO tanımlandı")) {
+      setUsername("");
+      state.reload();
+    }
+  }
+
+  async function revoke(row) {
+    const note = await ask({ title: "@" + row.username + " PRO üyeliğini sonlandır", text: "PRO ayrıcalıkları hemen sona erer (mesaj kutusu hakkı korunur).", confirm: "Sonlandır", danger: true });
+    if (note === null) return;
+    if (await act(supabase.rpc("admin_revoke_pro", { p_user: row.id, p_note: note || null }), "PRO üyelik sonlandırıldı")) state.reload();
+  }
+
+  return (
+    <Section title="PRO üyeler" subtitle="Aktif PRO üyeler, alımlar ve elle PRO tanımlama.">
+      <Card className="mb-4">
+        <form onSubmit={grant} className="flex flex-wrap items-end gap-2">
+          <label className="grid gap-1 text-xs font-black text-slate-500">Kullanıcı adı
+            <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="@kullaniciadi" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700" />
+          </label>
+          <label className="grid gap-1 text-xs font-black text-slate-500">Süre
+            <select value={months} onChange={(event) => setMonths(Number(event.target.value))} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-900">
+              {[1, 3, 6, 12].map((value) => <option key={value} value={value}>{value} ay</option>)}
+            </select>
+          </label>
+          <Btn type="submit" tone="primary" disabled={!username.trim()}><Crown size={14} /> PRO tanımla</Btn>
+        </form>
+      </Card>
+      <LoadState state={state}>
+        {(data) => {
+          const revenue = data.purchases.filter((row) => row.payment_status !== "granted").reduce((sum, row) => sum + Number(row.price || 0), 0);
+          const last30 = data.purchases.filter((row) => Date.now() - new Date(row.created_at).getTime() < 30 * 86400000);
+          return (
+            <>
+              <div className="mb-4 grid gap-3 sm:grid-cols-3">
+                <Card><div className="text-xs font-black uppercase tracking-wide text-slate-400">Aktif PRO</div><div className="mt-1 text-3xl font-black">{data.members.length}</div></Card>
+                <Card><div className="text-xs font-black uppercase tracking-wide text-slate-400">Son 30 gün alım</div><div className="mt-1 text-3xl font-black">{last30.length}</div></Card>
+                <Card><div className="text-xs font-black uppercase tracking-wide text-slate-400">Toplam satış (deneme)</div><div className="mt-1 text-3xl font-black">{tl(revenue)}</div><div className="text-xs text-slate-500">Ödeme sistemi gelene kadar tahsil edilmedi</div></Card>
+              </div>
+              <Tabs value={tab} onChange={setTab} items={[["active", "Aktif PRO üyeler"], ["purchases", "Alımlar"]]} />
+              {tab === "active" ? (
+                !data.members.length ? <Empty>Aktif PRO üye yok.</Empty> : (
+                  <Card className="divide-y divide-slate-100 p-0">
+                    {data.members.map((row) => (
+                      <div key={row.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                        <Person profile={row} sub={new Date(row.pro_until).toLocaleDateString("tr-TR") + " tarihine kadar · mesaj kutusu " + (20 + Number(row.message_bonus || 0))} />
+                        <div className="flex-1" />
+                        <Badge tone={proDaysLeft(row.pro_until) <= 7 ? "rose" : "amber"}>{proDaysLeft(row.pro_until)} gün kaldı</Badge>
+                        <Btn small tone="ghostDanger" onClick={() => revoke(row)}>Sonlandır</Btn>
+                      </div>
+                    ))}
+                  </Card>
+                )
+              ) : !data.purchases.length ? <Empty>Henüz PRO alımı yok.</Empty> : (
+                <Card className="overflow-x-auto p-0">
+                  <table className="w-full min-w-[640px] text-sm">
+                    <thead><tr className="border-b border-slate-100 text-left text-xs text-slate-400"><th className="px-4 py-2 font-black">Üye</th><th className="px-2 py-2 font-black">Paket</th><th className="px-2 py-2 font-black">Tutar</th><th className="px-2 py-2 font-black">Ödeme</th><th className="px-2 py-2 font-black">Geçerlilik</th><th className="px-4 py-2 font-black">Tarih</th></tr></thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {data.purchases.map((row) => {
+                        const p = data.people[row.user_id];
+                        const by = row.granted_by && data.people[row.granted_by];
+                        return (
+                          <tr key={row.id}>
+                            <td className="px-4 py-2 font-black">{p ? "@" + p.username : "—"}</td>
+                            <td className="px-2 py-2">{row.months} ay</td>
+                            <td className="px-2 py-2">{tl(row.price)}</td>
+                            <td className="px-2 py-2"><Badge tone={row.payment_status === "granted" ? "violet" : "slate"}>{PAYMENT_LABELS[row.payment_status] || row.payment_status}</Badge>{by && <span className="ml-1 text-xs text-slate-400">@{by.username}</span>}</td>
+                            <td className="px-2 py-2 text-xs text-slate-500">{fmtDay(row.starts_at)} → {fmtDay(row.ends_at)}</td>
+                            <td className="px-4 py-2 text-xs text-slate-500">{fmtDate(row.created_at)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </Card>
+              )}
+            </>
+          );
+        }}
+      </LoadState>
+    </Section>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* Sistem kullanımı (disk, e-posta)                                    */

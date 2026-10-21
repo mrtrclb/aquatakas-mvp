@@ -1,4 +1,5 @@
 import React from "react";
+import { ProBadge } from "../pro.jsx";
 import {
   ArrowLeft,
   MapPin,
@@ -116,6 +117,7 @@ export default function UserListingsPage({
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-2xl font-black tracking-tight">{user.username}</h2>
                   {user.verified && <LocalVerifiedBadge />}
+                  {user.pro && <ProBadge size="lg" />}
                 </div>
 
                 <p className="mt-1 text-sm text-cyan-50/80">

@@ -82,8 +82,22 @@ function DifficultyChip({ value }) {
 function SpeciesCard({ species, kb }) {
   const keepers = keepersOf(kb, species.slug).length;
   const comments = kb.comments.filter((comment) => comment.slug === species.slug).length;
+  const me = kb.currentUserId;
+  const myKeep = Boolean(me) && (kb.keeping[me] || []).includes(species.slug);
+  const myFav = Boolean(me) && (kb.favorites[me] || []).includes(species.slug);
+  const act = (event, fn) => {
+    event.stopPropagation();
+    if (!me) return kb.onAuth && kb.onAuth();
+    return fn(species.slug);
+  };
   return (
-    <button onClick={() => kb.openSpecies(species)} className="group flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-left transition hover:border-cyan-200 hover:shadow-lg">
+    <div
+      role="link"
+      tabIndex={0}
+      onClick={() => kb.openSpecies(species)}
+      onKeyDown={(event) => event.key === "Enter" && kb.openSpecies(species)}
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-left transition hover:border-cyan-200 hover:shadow-lg"
+    >
       <SpeciesImage species={species} className="h-28 text-base" />
       <div className="flex flex-1 flex-col p-3">
         <div className="flex items-start justify-between gap-2">
@@ -96,8 +110,29 @@ function SpeciesCard({ species, kb }) {
           <span className="flex items-center gap-1"><MessageCircle size={12} /> {comments}</span>
           {species.rare && <span className="text-violet-600">💎 nadir</span>}
         </div>
+        <div className="mt-2 flex gap-1.5">
+          <button
+            type="button"
+            onClick={(event) => act(event, kb.onToggleKeep)}
+            aria-pressed={myKeep}
+            title={myKeep ? "Beslediğin türlerden çıkar" : "Beslediğim türlere ekle"}
+            className={"flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[11px] font-black transition " + (myKeep ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-cyan-50 text-cyan-900 hover:bg-cyan-100")}
+          >
+            {myKeep ? <Check size={12} /> : <Fish size={12} />} Besliyorum
+          </button>
+          <button
+            type="button"
+            onClick={(event) => act(event, kb.onToggleFav)}
+            aria-pressed={myFav}
+            aria-label={myFav ? "Favorilerimden çıkar" : "Favori türlerime ekle"}
+            title={myFav ? "Favorilerimden çıkar" : "Favori türlerime ekle"}
+            className={"grid w-9 shrink-0 place-items-center rounded-full transition " + (myFav ? "bg-amber-400 text-white hover:bg-amber-500" : "bg-amber-50 text-amber-600 hover:bg-amber-100")}
+          >
+            <Star size={13} fill={myFav ? "currentColor" : "none"} />
+          </button>
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
 

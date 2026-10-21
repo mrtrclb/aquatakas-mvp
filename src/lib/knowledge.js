@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import { setSpeciesCatalog } from "../species.js";
 
 const ts = (value) => (value ? new Date(value).getTime() : Date.now());
-const PROFILE_COLS = "id, username, city, bio, avatar_url, phone_verified, socials, created_at";
+const PROFILE_COLS = "id, username, city, bio, avatar_url, phone_verified, socials, created_at, pro_until";
 
 // Veritabanı tür satırını arayüzdeki tür nesnesine çevirir (koddaki örnek veriyle aynı biçim)
 export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at";

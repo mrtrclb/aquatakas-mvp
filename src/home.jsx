@@ -275,7 +275,12 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
       // Yakınındaki ilanlar (profil şehri) önce, sonra en yeni
       normal = pool
         .filter((item) => !ctx.featuredListingIds.includes(item.id))
-        .sort((a, b) => (myCity ? (b.city === myCity) - (a.city === myCity) : 0) || new Date(b.date) - new Date(a.date));
+        .sort((a, b) => {
+          // Son 24 saatte üste taşınan ilanlar en başta, sonra yakınındakiler, sonra en yeni
+          const at = (row) => row.sortAt || new Date(row.date).getTime() || 0;
+          const fresh = (row) => (row.bumpedAt && Date.now() - new Date(row.bumpedAt).getTime() < 86400000 ? 1 : 0);
+          return fresh(b) - fresh(a) || (fresh(a) && fresh(b) ? at(b) - at(a) : 0) || (myCity ? (b.city === myCity) - (a.city === myCity) : 0) || at(b) - at(a);
+        });
     }
 
     const result = [];

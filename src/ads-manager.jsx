@@ -3,6 +3,7 @@ import { BarChart3, Clock, ExternalLink, Eye, Hourglass, Loader2, MousePointerCl
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
 import { AD_PLACEMENTS, mapAd } from "./lib/ads";
+import { ProBadge, useProStatus } from "./pro.jsx";
 
 const CTA_OPTIONS = ["İncele", "Detaylar", "Keşfet", "Satın al", "Teklif al", "Oku", "Mağazaya git"];
 const EMPTY = { brand: "", title: "", text: "", cta: "İncele", target_url: "", plan_id: "", image: null, imageFile: null };
@@ -35,6 +36,8 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
   const myId = auth.user && auth.user.id;
   const [rows, setRows] = useState(null);
   const [plans, setPlans] = useState([]);
+  const { status: proStatus, reload: reloadPro } = useProStatus(true);
+  const [useCredit, setUseCredit] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [tab, setTab] = useState("live");
@@ -143,8 +146,12 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
       };
       const { error: err } = editingId
         ? await supabase.from("ads").update(fields).eq("id", editingId)
-        : await supabase.from("ads").insert({ ...fields, plan_id: form.plan_id });
+        : await supabase.from("ads").insert({ ...fields, plan_id: form.plan_id, ...(useCredit ? { payment_status: "pro_free" } : {}) });
       if (err) throw err;
+      if (useCredit) {
+        setUseCredit(false);
+        reloadPro();
+      }
       onToast(editingId ? "Başvuru güncellendi" : "Reklamın incelemeye gönderildi; onaylanınca yayına girer.");
       resetForm();
       setTab("pending");
@@ -240,6 +247,12 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
                   })}
                 </select>
                 {plan && AD_PLACEMENTS[plan.placement] && <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{AD_PLACEMENTS[plan.placement].hint}</p>}
+                {proStatus && proStatus.pro && (
+                  <label className={"mt-2 flex cursor-pointer items-center gap-3 rounded-2xl border p-3 text-sm " + (proStatus.ads_left > 0 ? "border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50" : "border-slate-200 bg-slate-50 opacity-70")}>
+                    <input type="checkbox" checked={useCredit} disabled={proStatus.ads_left < 1} onChange={(event) => setUseCredit(event.target.checked)} className="h-4 w-4 accent-amber-500" />
+                    <span className="flex-1"><b className="flex items-center gap-1.5">PRO ücretsiz reklam hakkımı kullan <ProBadge /></b><span className="text-xs text-slate-500">{proStatus.ads_left > 0 ? "Bu dönem 1 ücretsiz reklam hakkın var; seçtiğin paket ücretsiz olur." : "Bu dönemki ücretsiz reklam hakkını kullandın."}</span></span>
+                  </label>
+                )}
               </div>
             )}
 

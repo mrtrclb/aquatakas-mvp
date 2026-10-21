@@ -42,6 +42,7 @@ export function profileToUser(profile) {
     bio: profile.bio || "",
     avatar: profile.avatar_url || null,
     verified: Boolean(profile.phone_verified),
+    pro: Boolean(profile.pro_until && new Date(profile.pro_until) > new Date()),
     deleted: Boolean(profile.deleted_at) || /^misafir_[0-9a-f]{8}$/.test(String(profile.username || "")),
     joined: profile.created_at ? new Date(profile.created_at).toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "",
     lastSeen: "",
@@ -71,7 +72,10 @@ export function mapListing(row) {
     neighborhood: row.neighborhood || "",
     price: formatPrice(row),
     allowOffer: row.allow_offer,
-    date: (row.created_at || "").slice(0, 10),
+    // Üste taşınan ilan yeni ilan gibi sıralanır
+    date: (row.bumped_at || row.created_at || "").slice(0, 10),
+    sortAt: new Date(row.bumped_at || row.created_at || 0).getTime(),
+    bumpedAt: row.bumped_at && row.bumped_at !== row.created_at ? row.bumped_at : null,
     images: row.images && row.images.length ? row.images : [LISTING_PLACEHOLDER],
     youtube: row.youtube_url || undefined,
     // Süresi geçen ilan, veritabanında henüz "active" olsa bile yayından kalkmış sayılır
@@ -81,7 +85,7 @@ export function mapListing(row) {
   };
 }
 
-const SELECT = "*, owner:profiles!listings_user_id_fkey(id, username, city, bio, avatar_url, phone_verified, socials, created_at)";
+const SELECT = "*, owner:profiles!listings_user_id_fkey(id, username, city, bio, avatar_url, phone_verified, socials, created_at, pro_until)";
 
 // Yayındaki ilanlar + giriş yapan üyenin kendi ilanları (her durumda)
 export function useDbListings(userId) {
@@ -90,7 +94,7 @@ export function useDbListings(userId) {
   const [error, setError] = useState(null);
 
   const reload = useCallback(async () => {
-    let request = supabase.from("listings").select(SELECT).order("created_at", { ascending: false }).limit(500);
+    let request = supabase.from("listings").select(SELECT).order("bumped_at", { ascending: false }).limit(500);
     request = userId ? request.or("status.eq.active,user_id.eq." + userId) : request.eq("status", "active");
     const { data, error: err } = await request;
     if (err) setError(err);

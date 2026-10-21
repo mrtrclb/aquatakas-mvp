@@ -11,6 +11,7 @@ import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
 import AdsManagerPage from "./ads-manager.jsx";
 import { SiteInfoModal, BLOG_URL } from "./site-info.jsx";
 import { OnboardingModal, shouldOnboard } from "./onboarding.jsx";
+import { BumpButton, ProBadge, ProCard, useProStatus } from "./pro.jsx";
 import { VerificationCard } from "./verification.jsx";
 import { AccountSecurity, DeleteAccountDialog } from "./account-security.jsx";
 import { trackVisit } from "./lib/visits";
@@ -250,6 +251,7 @@ function UserName({ user, positive = false }) {
     <span className="inline-flex items-center gap-1">
       <span>{user.username}</span>
       {user.verified && <VerifiedBadge />}
+      {user.pro && <ProBadge />}
       {positive && <span className="text-emerald-700">%{user.positive}</span>}
     </span>
   );
@@ -826,6 +828,8 @@ export default function AquagramApp() {
     openSpecies: (species) => openHashPage("/tur/" + species.slug),
     openMine: () => openHashPage("/bilgi/turlerim"),
     onSuggest: (initial) => (isMember ? setSuggestSpecies(initial || {}) : requireLogin()),
+    currentUserId: isMember ? currentUserId : null,
+    onAuth: requireLogin,
     onToggleKeep: (slug) =>
       myId
         ? toggleSpecies("species_keepers", slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı")
@@ -1295,7 +1299,8 @@ export default function AquagramApp() {
         const bVerified = users[b.userId]?.verified ? 1 : 0;
         if (aVerified !== bVerified) return bVerified - aVerified;
       }
-      return sort === "oldest" ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date);
+      const at = (row) => row.sortAt || new Date(row.date).getTime() || 0;
+      return sort === "oldest" ? at(a) - at(b) : at(b) - at(a);
     });
     return result;
   }, [query, selectedType, selectedCategory, selectedTags, selectedCities, selectedDistricts, selectedNeighborhoods, sort, dbListings]);
@@ -1707,6 +1712,8 @@ export default function AquagramApp() {
     onOpen={openListing}
     onRemove={setRemoveListing}
     onPromote={setPromoteListing}
+    onBumped={() => db.reload()}
+    onToast={setToast}
     onEdit={(item, mode) => setEditListing({ item, mode })}
     onDelete={async (item) => {
       if (!item.dbId || !window.confirm("“" + item.title + "” ilanı kalıcı olarak silinsin mi? Bu işlem geri alınamaz.")) return;
@@ -2635,6 +2642,7 @@ function AccountPage({ auth, onSaved }) {
             </button>
           </div>
           <VerificationCard auth={auth} onToast={onSaved} />
+          <ProCard auth={auth} onToast={onSaved} />
           <div className="mt-4 rounded-2xl border border-slate-200 p-3">
             <div className="mb-2 text-sm font-black text-slate-800">Gizlilik</div>
             <button type="button" role="switch" aria-checked={form.hide_from_search} onClick={toggleHidden} disabled={busy} className="flex w-full items-start justify-between gap-3 text-left">
@@ -2721,7 +2729,7 @@ function SocialInput({ icon, placeholder, value, onChange }) {
   );
 }
 
-function MyListingsPage({ listings = [], endedListings = [], onOpen, onRemove, onPromote, onEdit, onDelete }) {
+function MyListingsPage({ listings = [], endedListings = [], onOpen, onRemove, onPromote, onBumped, onToast, onEdit, onDelete }) {
   const [tab, setTab] = useState("active");
   const [editingListing, setEditingListing] = useState(null);
   const [editingMode, setEditingMode] = useState("edit");
@@ -2851,6 +2859,8 @@ function MyListingsPage({ listings = [], endedListings = [], onOpen, onRemove, o
                       >
                         <Edit3 size={14} /> Düzenle
                       </button>
+
+                      {onToast && <BumpButton listing={item} small onDone={onBumped} onToast={onToast} />}
 
                       <button
                         onClick={() => onPromote(item)}
@@ -3057,6 +3067,25 @@ function nowTime() {
   return new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Mesaj kutusu doluluğu: normal üye 20 sohbet, her PRO alımında +100
+function MessageBoxUsage({ count }) {
+  const { status } = useProStatus(true);
+  if (!status) return null;
+  const limit = status.conversation_limit;
+  const used = Math.max(count, status.conversation_count);
+  const pct = Math.min(100, (used / limit) * 100);
+  return (
+    <div className="mt-3 max-w-sm">
+      <div className="mb-1 flex justify-between text-xs font-bold text-slate-500">
+        <span>Mesaj kutusu {status.pro && <ProBadge />}</span>
+        <span>{used} / {limit} sohbet</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className={"h-full rounded-full " + (pct >= 100 ? "bg-red-500" : pct > 80 ? "bg-amber-500" : "bg-cyan-700")} style={{ width: Math.max(pct, 2) + "%" }} /></div>
+      {pct >= 80 && <p className="mt-1 text-xs text-slate-500">{pct >= 100 ? "Kutun dolu; yeni sohbet için eski sohbetlerinden birini sil" : "Kutun dolmak üzere"}{status.pro ? "." : " ya da PRO ile +100 sohbet hakkı al."}</p>}
+    </div>
+  );
+}
+
 function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, onReview, onReportUser, onToggleBlock }) {
   const [tab, setTab] = useState("active");
   const [draft, setDraft] = useState("");
@@ -3114,6 +3143,7 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
         <p className="mt-1 text-sm text-slate-500">
           İlanlarla ilgili konuşmaları görüntüle, bildir, engelle veya sil.
         </p>
+        <MessageBoxUsage count={conversations.filter((item) => !item.deleted && item.dbId).length} />
       </div>
 
       <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1">
@@ -3334,6 +3364,7 @@ function UserListingsPage({ user, onBack, onOpen, onProfile, onMessage }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-2xl font-black tracking-tight">{user.username}</h2>
                   {user.verified && <VerifiedBadge />}
+                  {user.pro && <ProBadge size="lg" />}
                 </div>
 
                 <p className="mt-1 text-sm text-cyan-50/80">
@@ -3858,6 +3889,8 @@ function RemoveListingModal({ listing, onClose, onDone }) {
 }
 
 function PromoteListingModal({ listing, onClose, onDone }) {
+  const { status: proStatus } = useProStatus(true);
+  const [useCredit, setUseCredit] = useState(false);
   const [plans, setPlans] = useState([]);
   const [plan, setPlan] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -3874,10 +3907,12 @@ function PromoteListingModal({ listing, onClose, onDone }) {
     if (!listing.dbId || !plan) return;
     setBusy(true);
     setError("");
-    const { error: err } = await supabase.from("listing_features").insert({ listing_id: listing.dbId, plan_id: plan });
+    const row = { listing_id: listing.dbId, plan_id: plan };
+    if (useCredit) row.payment_status = "pro_free";
+    const { error: err } = await supabase.from("listing_features").insert(row);
     setBusy(false);
     if (err) return setError(trError(err));
-    onDone("Başvurun alındı. Onaylandığında ilanın öne çıkacak.");
+    onDone(useCredit ? "PRO hakkınla başvurun alındı. Onaylandığında ilanın öne çıkacak. 💎" : "Başvurun alındı. Onaylandığında ilanın öne çıkacak.");
   }
 
   return (
@@ -3894,11 +3929,17 @@ function PromoteListingModal({ listing, onClose, onDone }) {
           {plans.map((item) => (
             <button key={item.id} onClick={() => setPlan(item.id)} className={"rounded-2xl border p-4 text-left transition " + (plan === item.id ? "border-amber-500 bg-amber-50" : "border-slate-200 hover:bg-slate-50")}>
               <div className="text-sm font-black text-slate-900">{item.days} gün</div>
-              <div className="mt-1 text-2xl font-black text-amber-600">{Number(item.price).toLocaleString("tr-TR")} TL</div>
+              <div className="mt-1 text-2xl font-black text-amber-600">{useCredit ? <><span className="mr-1.5 text-base text-slate-400 line-through">{Number(item.price).toLocaleString("tr-TR")} TL</span>Ücretsiz</> : Number(item.price).toLocaleString("tr-TR") + " TL"}</div>
             </button>
           ))}
           {plans.length === 0 && <div className="col-span-2 py-6 text-center text-sm text-slate-400">Paketler yükleniyor…</div>}
         </div>
+        {proStatus && proStatus.pro && (
+          <label className={"mt-3 flex cursor-pointer items-center gap-3 rounded-2xl border p-3 text-sm " + (proStatus.features_left > 0 ? "border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50" : "border-slate-200 bg-slate-50 opacity-70")}>
+            <input type="checkbox" checked={useCredit} disabled={proStatus.features_left < 1} onChange={(event) => setUseCredit(event.target.checked)} className="h-4 w-4 accent-amber-500" />
+            <span className="flex-1"><b className="flex items-center gap-1.5">PRO ücretsiz hakkımı kullan <ProBadge /></b><span className="text-xs text-slate-500">{proStatus.features_left > 0 ? "Bu dönem " + proStatus.features_left + " ücretsiz öne çıkarma hakkın var." : "Bu dönemki ücretsiz haklarını kullandın."}</span></span>
+          </label>
+        )}
         <div className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
           Başvurular yönetici onayından sonra yayına girer. <b>Ödeme sistemi deneme aşamasında:</b> şu an kartından ücret alınmaz.
         </div>

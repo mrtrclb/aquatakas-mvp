@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { categoryById, detectSpecies, speciesBySlug } from "./species.js";
 import { LinkPreviewCard, URL_RE, firstUrl } from "./link-preview.jsx";
+import { ProBadge } from "./pro.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -1503,6 +1504,7 @@ export function UserPostsPage({ user, posts, ctx, onBack, onViewListings }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-2xl font-black tracking-tight">{user.username}</h2>
                   {user.verified && <VerifiedBadge />}
+                  {user.pro && <ProBadge size="lg" />}
                 </div>
                 <p className="mt-1 text-sm text-cyan-50/80">{user.city} · {user.joined} üyesi · {user.online ? "Çevrimiçi" : "Son ziyaret: " + user.lastSeen}</p>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-cyan-50/90">{user.bio || "Bu kullanıcı henüz hakkında bilgisi eklememiş."}</p>

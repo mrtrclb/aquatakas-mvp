@@ -84,7 +84,7 @@ export function useDbCommunity(myId) {
     if (ids.size) {
       const { data } = await supabase
         .from("profiles")
-        .select("id, username, city, bio, avatar_url, phone_verified, socials, created_at")
+        .select("id, username, city, bio, avatar_url, phone_verified, socials, created_at, pro_until")
         .in("id", Array.from(ids));
       profileRows = data || [];
     }

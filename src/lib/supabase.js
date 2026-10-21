@@ -33,6 +33,8 @@ const ERRORS = [
   [/username_check|profiles_username_check/i, "Kullanıcı adı 3-24 karakter olmalı; yalnızca küçük harf, rakam, nokta ve alt çizgi içerebilir."],
   [/failed to fetch|network/i, "Bağlantı kurulamadı. İnternet bağlantını kontrol et."],
   [/row-level security policy for table "messages"/i, "Bu kullanıcıyla mesajlaşamazsın (engellenmiş olabilirsin ya da hesabın kısıtlı)."],
+  [/Mesaj kutun dolu/, null],
+  [/üste taşıma hakkını kullandın|ücretsiz öne çıkarma hakkın kalmadı|ücretsiz reklam hakkın kalmadı|Yalnızca yayındaki ilanlar üste/, null],
   [/Bu hesap silinmiş/, "Bu hesap silinmiş; mesaj gönderilemez."],
   [/Süper yönetici hesabı silinemez/, "Süper yönetici hesabı silinemez. Önce yetkiyi başka bir hesaba devret."],
   [/Çok fazla mesaj gönderdin/, "Çok fazla mesaj gönderdin. Lütfen biraz sonra tekrar dene."],
@@ -47,5 +49,6 @@ const ERRORS = [
 export function trError(error) {
   const message = (error && (error.message || error.error_description || String(error))) || "";
   const hit = ERRORS.find(([pattern]) => pattern.test(message));
+  if (hit && hit[1] === null) return message.replace(/^.*?ERROR:\s*/, "");
   return hit ? hit[1] : "Bir sorun oluştu. Lütfen tekrar dene." + (message ? " (" + message + ")" : "");
 }

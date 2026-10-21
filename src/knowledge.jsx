@@ -28,6 +28,7 @@ import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostC
 import { DIFFICULTY_COLORS, KB_CATEGORIES, KB_SECTIONS, categoryById, detectSpecies } from "./species.js";
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
+import { useCategoryCovers } from "./lib/settings";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -392,6 +393,28 @@ export function KbHome({ kb, section = "tatlisu" }) {
 /* Kategori sayfası                                                    */
 /* ------------------------------------------------------------------ */
 
+// Kategori başlık bandı: yönetimden yüklenen kapak görseli + koyu geçiş; görsel yoksa kategorinin kendi renk geçişi
+function CategoryBand({ category, section, onBack }) {
+  const covers = useCategoryCovers();
+  const cover = covers[category.id];
+  const [failed, setFailed] = useState(false);
+  const showImage = cover && !failed;
+  return (
+    <div className={"sticky top-[60px] z-20 overflow-hidden border-b border-slate-200 lg:top-[72px] " + (showImage ? "bg-slate-900" : "bg-gradient-to-r " + category.tone)} data-testid="category-band">
+      {showImage && <img src={cover} alt="" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />}
+      <div className={"absolute inset-0 " + (showImage ? "bg-gradient-to-r from-slate-950/80 via-slate-950/45 to-slate-950/5" : "bg-gradient-to-r from-black/25 via-black/5 to-transparent")} />
+      {!showImage && <span aria-hidden="true" className="pointer-events-none absolute -bottom-4 right-4 select-none text-7xl opacity-30 sm:text-8xl">{category.emoji}</span>}
+      <div className="relative flex min-h-[76px] items-center gap-3 px-3 py-3 sm:min-h-[92px]">
+        <button onClick={onBack} className="rounded-full bg-white/20 p-2 text-white backdrop-blur hover:bg-white/30" title="Geri"><ArrowLeft size={19} /></button>
+        <div className="min-w-0 text-white [text-shadow:0_1px_6px_rgba(0,0,0,.35)]">
+          <p className="text-[11px] font-black uppercase tracking-wide text-white/80">{section.name}</p>
+          <h2 className="truncate text-xl font-black leading-tight sm:text-2xl">{category.name}</h2>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function KbCategoryPage({ kb, categoryId }) {
   const category = categoryById(categoryId);
   const [difficulty, setDifficulty] = useState("Tümü");
@@ -404,13 +427,7 @@ export function KbCategoryPage({ kb, categoryId }) {
 
   return (
     <div>
-      <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
-        <button onClick={() => kb.openSection(category.section)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Geri"><ArrowLeft size={19} /></button>
-        <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">{section.name}</p>
-          <h2 className="truncate text-lg font-black leading-tight">{category.name}</h2>
-        </div>
-      </div>
+      <CategoryBand category={category} section={section} onBack={() => kb.openSection(category.section)} />
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
         <div className="flex gap-1">
           {["Tümü", "Kolay", "Orta", "Zor"].map((value) => (

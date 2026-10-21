@@ -32,6 +32,8 @@ import {
 import { useAuth, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
+import { loadCategoryCovers } from "./lib/settings";
+import { KB_CATEGORIES } from "./species.js";
 
 /* ------------------------------------------------------------------ */
 /* Sabitler                                                            */
@@ -1859,6 +1861,88 @@ function GroupsSection() {
 /* Türler                                                              */
 /* ------------------------------------------------------------------ */
 
+// Bilgi Bankası kategori başlık bandı kapakları (site_settings.category_covers)
+function CategoryCovers({ categories }) {
+  const { act } = useAdmin();
+  const [covers, setCovers] = useState(null);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const fileRef = useRef(null);
+  const target = useRef("");
+  useEffect(() => {
+    loadCategoryCovers(true).then((value) => setCovers({ ...value }));
+  }, []);
+  async function save(next, message) {
+    const ok = await act(supabase.from("site_settings").update({ value: next }).eq("key", "category_covers").select("key").single(), message);
+    if (ok) {
+      setCovers(next);
+      loadCategoryCovers(true);
+    }
+  }
+  function pick(id) {
+    target.current = id;
+    if (fileRef.current) fileRef.current.click();
+  }
+  async function upload(event) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = "";
+    const id = target.current;
+    if (!file || !id) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return setError("Yalnızca JPG, PNG veya WEBP yükleyebilirsin.");
+    setError("");
+    setBusy(id);
+    try {
+      const blob = await shrinkImage(file, 2000, 0.85);
+      const type = blob.type || "image/jpeg";
+      const path = "categories/" + id + "/" + Date.now() + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+      const { error: upErr } = await supabase.storage.from("species-media").upload(path, blob, { contentType: type });
+      if (upErr) throw upErr;
+      const url = supabase.storage.from("species-media").getPublicUrl(path).data.publicUrl;
+      await save({ ...covers, [id]: url }, "Kapak görseli güncellendi");
+    } catch (err) {
+      setError(trError(err));
+    }
+    setBusy("");
+  }
+  async function remove(id) {
+    const next = { ...covers };
+    delete next[id];
+    await save(next, "Kapak kaldırıldı; kategori rengi gösterilecek");
+  }
+  if (!covers) return <Card><Loader2 className="animate-spin text-slate-400" size={18} /></Card>;
+  const tones = Object.fromEntries(KB_CATEGORIES.map((row) => [row.id, row]));
+  return (
+    <Card className="p-4">
+      <p className="mb-3 text-sm text-slate-600">Kategori sayfasının üstündeki başlık bandında görünür. Yatay (geniş) görseller en iyi sonucu verir; görsel yoksa kategorinin kendi renk geçişi kullanılır.</p>
+      {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={upload} />
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
+        {categories.map((cat) => {
+          const url = covers[cat.id];
+          const tone = (tones[cat.id] && tones[cat.id].tone) || "from-slate-300 to-slate-600";
+          return (
+            <div key={cat.id} className="overflow-hidden rounded-2xl border border-slate-200">
+              <div className={"relative h-20 " + (url ? "bg-slate-900" : "bg-gradient-to-r " + tone)}>
+                {url && <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+                <div className={"absolute inset-0 " + (url ? "bg-gradient-to-r from-slate-950/80 via-slate-950/45 to-slate-950/5" : "bg-gradient-to-r from-black/25 to-transparent")} />
+                <div className="relative flex h-full items-center gap-2 px-3 text-white [text-shadow:0_1px_6px_rgba(0,0,0,.35)]">
+                  <span className="text-xl">{cat.emoji}</span>
+                  <span className="truncate font-black">{cat.name}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+                <Btn small onClick={() => pick(cat.id)} disabled={!!busy}>{busy === cat.id ? <Loader2 className="animate-spin" size={13} /> : <Upload size={13} />} {url ? "Değiştir" : "Görsel yükle"}</Btn>
+                {url && <Btn small tone="ghostDanger" onClick={() => remove(cat.id)} disabled={!!busy}><X size={13} /> Kaldır</Btn>}
+                {!url && <span className="text-xs text-slate-400">Renk geçişi kullanılıyor</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 function SpeciesSection() {
   const { act, ask, param } = useAdmin();
   const [tab, setTab] = useState("species");
@@ -1907,9 +1991,9 @@ function SpeciesSection() {
               <Tabs
                 value={tab}
                 onChange={(key) => (key === "new" ? (window.location.hash = "#/yonetim/turler/yeni") : setTab(key))}
-                items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length], ["new", "＋ Yeni tür ekle"]]}
+                items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length], ["covers", "Kategori kapakları"], ["new", "＋ Yeni tür ekle"]]}
               />
-              {tab === "suggestions" ? (
+              {tab === "covers" ? <CategoryCovers categories={data.categories} /> : tab === "suggestions" ? (
                 !data.suggestions.length ? <Empty>Henüz tür önerisi yok.</Empty> : (
                   <Card className="divide-y divide-slate-100 p-0">
                     {data.suggestions.map((row) => (

@@ -4083,10 +4083,10 @@ function PromoteListingModal({ listing, onClose, onDone }) {
           ))}
           {plans.length === 0 && <div className="col-span-2 py-6 text-center text-sm text-slate-400">Paketler yükleniyor…</div>}
         </div>
-        {proStatus && proStatus.pro && (
+        {proStatus && (proStatus.pro || proStatus.features_balance > 0) && (
           <label className={"mt-3 flex cursor-pointer items-center gap-3 rounded-2xl border p-3 text-sm " + (proStatus.features_left > 0 ? "border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50" : "border-slate-200 bg-slate-50 opacity-70")}>
             <input type="checkbox" checked={useCredit} disabled={proStatus.features_left < 1} onChange={(event) => setUseCredit(event.target.checked)} className="h-4 w-4 accent-amber-500" />
-            <span className="flex-1"><b className="flex items-center gap-1.5">PRO ücretsiz hakkımı kullan <ProBadge /></b><span className="text-xs text-slate-500">{proStatus.features_left > 0 ? "Bu dönem " + proStatus.features_left + " ücretsiz öne çıkarma hakkın var." : "Bu dönemki ücretsiz haklarını kullandın."}</span></span>
+            <span className="flex-1"><b className="flex items-center gap-1.5">PRO ücretsiz hakkımı kullan <ProBadge /></b><span className="text-xs text-slate-500">{proStatus.features_left > 0 ? "Biriken hakkın: " + (proStatus.features_balance ?? proStatus.features_left) + " · bu ay " + proStatus.features_left + " tanesini kullanabilirsin." : (proStatus.features_balance > 0 ? "Bu ayki kullanım sınırına ulaştın (30 günde 2). Biriken " + proStatus.features_balance + " hakkın silinmez." : "Ücretsiz öne çıkarma hakkın kalmadı.")}</span></span>
           </label>
         )}
         <div className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">

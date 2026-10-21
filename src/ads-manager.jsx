@@ -247,10 +247,10 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
                   })}
                 </select>
                 {plan && AD_PLACEMENTS[plan.placement] && <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{AD_PLACEMENTS[plan.placement].hint}</p>}
-                {proStatus && proStatus.pro && (
+                {proStatus && (proStatus.pro || proStatus.ads_balance > 0) && (
                   <label className={"mt-2 flex cursor-pointer items-center gap-3 rounded-2xl border p-3 text-sm " + (proStatus.ads_left > 0 ? "border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50" : "border-slate-200 bg-slate-50 opacity-70")}>
                     <input type="checkbox" checked={useCredit} disabled={proStatus.ads_left < 1} onChange={(event) => setUseCredit(event.target.checked)} className="h-4 w-4 accent-amber-500" />
-                    <span className="flex-1"><b className="flex items-center gap-1.5">PRO ücretsiz reklam hakkımı kullan <ProBadge /></b><span className="text-xs text-slate-500">{proStatus.ads_left > 0 ? "Bu dönem 1 ücretsiz reklam hakkın var; seçtiğin paket ücretsiz olur." : "Bu dönemki ücretsiz reklam hakkını kullandın."}</span></span>
+                    <span className="flex-1"><b className="flex items-center gap-1.5">PRO ücretsiz reklam hakkımı kullan <ProBadge /></b><span className="text-xs text-slate-500">{proStatus.ads_left > 0 ? "Biriken hakkın: " + (proStatus.ads_balance ?? 1) + " · seçtiğin paket ücretsiz olur (30 günde 1)." : (proStatus.ads_balance > 0 ? "Bu ayki kullanım sınırına ulaştın (30 günde 1). Biriken " + proStatus.ads_balance + " hakkın silinmez." : "Ücretsiz reklam hakkın kalmadı.")}</span></span>
                   </label>
                 )}
               </div>

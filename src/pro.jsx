@@ -5,8 +5,8 @@ import { supabase, trError } from "./lib/supabase";
 // Aquagram PRO: rozet, durum, paketler, ilanı üste taşıma
 
 export const PRO_FEATURES = [
-  ["⭐", "Ayda 2 ücretsiz öne çıkarma", "İlanını ücretsiz öne çıkar, listelerin en üstünde görünsün."],
-  ["📣", "Ayda 1 ücretsiz reklam", "İşletmeni ya da üretimini reklam alanlarında tanıt."],
+  ["⭐", "Ayda 2 ücretsiz öne çıkarma", "İlanını ücretsiz öne çıkar. Kullanmadığın haklar silinmez, üyelik bitse de kullanabilirsin (ayda en fazla 2)."],
+  ["📣", "Ayda 1 ücretsiz reklam", "İşletmeni ya da üretimini tanıt. Kullanmadığın hak birikir (ayda en fazla 1)."],
   ["⬆️", "Günde 3 kez üste taşı", "İlanların yeni ilan gibi listelerin ve akışın başına çıksın (normal üyeler günde 1)."],
   ["💬", "+100 sohbet hakkı", "Mesaj kutun 20 sohbetle sınırlı kalmasın; her PRO alımında +100 sohbet."],
   ["💎", "PRO rozeti", "Kullanıcı adının yanında PRO rozeti görünür."]
@@ -81,8 +81,8 @@ export function ProCard({ auth, onToast, className = "mt-4 rounded-2xl" }) {
             <div className="text-xs text-amber-900/70">{fmtDay(until)} tarihine kadar</div>
             {status && (
               <ul className="mt-3 grid gap-1 text-xs text-amber-950">
-                <li className="flex justify-between gap-2"><span>Ücretsiz öne çıkarma</span><b>{status.features_left} / {status.features_total || 2}</b></li>
-                <li className="flex justify-between gap-2"><span>Ücretsiz reklam</span><b>{status.ads_left} / {status.ads_total || 1}</b></li>
+                <li className="flex justify-between gap-2"><span>Ücretsiz öne çıkarma hakkı</span><b>{status.features_balance ?? status.features_left} <span className="font-normal text-amber-900/60">(bu ay {status.features_left})</span></b></li>
+                <li className="flex justify-between gap-2"><span>Ücretsiz reklam hakkı</span><b>{status.ads_balance ?? status.ads_left} <span className="font-normal text-amber-900/60">(bu ay {status.ads_left})</span></b></li>
                 <li className="flex justify-between gap-2"><span>Bugün üste taşıma</span><b>{status.bumps_left} / {status.bump_limit}</b></li>
                 <li className="flex justify-between gap-2"><span>Mesaj kutusu</span><b>{status.conversation_count} / {status.conversation_limit} sohbet</b></li>
               </ul>
@@ -92,6 +92,9 @@ export function ProCard({ auth, onToast, className = "mt-4 rounded-2xl" }) {
         ) : (
           <>
             <p className="mt-1 text-xs leading-relaxed text-cyan-50/80">Ücretsiz öne çıkarma ve reklam, günde 3 kez üste taşıma, +100 sohbet hakkı ve PRO rozeti.</p>
+            {status && (status.features_balance > 0 || status.ads_balance > 0) && (
+              <p className="mt-2 rounded-xl bg-white/10 px-2.5 py-1.5 text-[11px] text-amber-200">Kullanılmamış hakların duruyor: {status.features_balance} öne çıkarma · {status.ads_balance} reklam (ayda en fazla 2 öne çıkarma ve 1 reklam).</p>
+            )}
             {status && <p className="mt-2 text-[11px] text-cyan-50/60">Mesaj kutun: {status.conversation_count} / {status.conversation_limit} sohbet · Bugün üste taşıma: {status.bumps_left} / {status.bump_limit}</p>}
             <button type="button" onClick={() => setOpen(true)} className="mt-3 w-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2.5 text-sm font-black text-white shadow hover:brightness-105">
               PRO'ya yükselt · aylık {tl(monthly(plans[plans.length - 1]))}'den
@@ -137,7 +140,7 @@ export function ProPlansDialog({ plans, pro, onClose, onDone }) {
         <div className="relative bg-gradient-to-br from-slate-900 via-cyan-950 to-cyan-800 px-5 pb-5 pt-6 text-white">
           <button type="button" onClick={onClose} className="absolute right-3 top-3 rounded-full bg-white/10 p-1.5 hover:bg-white/20" aria-label="Kapat"><X size={17} /></button>
           <div className="flex items-center gap-2 text-2xl font-black"><Crown className="text-amber-300" size={24} /> Aquagram PRO</div>
-          <p className="mt-1 text-sm text-cyan-50/80">{pro ? "Yeni süre mevcut sürenin üstüne eklenir; ücretsiz öne çıkarma ve reklam hakların ile +100 sohbet hakkın da yeniden eklenir." : "Hobini bir üst seviyeye taşı."}</p>
+          <p className="mt-1 text-sm text-cyan-50/80">{pro ? "Yeni süre mevcut sürenin üstüne eklenir; her ay için 2 öne çıkarma + 1 reklam hakkı ve +100 sohbet hakkı mevcut haklarına eklenir." : "Hobini bir üst seviyeye taşı."}</p>
         </div>
         <div className="grid gap-2 p-4">
           <ul className="grid gap-2">

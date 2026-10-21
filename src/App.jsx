@@ -3,7 +3,10 @@ import { useAuth, AuthModal, NewPasswordModal, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, uploadListingImages, loadFeaturedPlans } from "./lib/listings";
 import { detectSpecies } from "./species";
+import { useDbCommunity, mapPost, uploadMedia, uploadBlobUrl } from "./lib/community";
+import { useDbMessages, useNotifications, notificationText } from "./lib/social";
 import {
+  Bell,
   ChevronDown,
   PenLine,
   Tag,
@@ -342,7 +345,7 @@ export default function AquagramApp() {
   const [removeListing, setRemoveListing] = useState(null);
   const [promoteListing, setPromoteListing] = useState(null);
   const [editListing, setEditListing] = useState(null); // { item, mode: "edit" | "republish" }
-  const [posts, setPosts] = useState(() => buildInitialPosts());
+  const [demoPosts, setDemoPosts] = useState(() => buildInitialPosts());
   const [communityOpen, setCommunityOpen] = useState(false);
   const [postSlug, setPostSlug] = useState(null);
   const [postsUser, setPostsUser] = useState(null);
@@ -350,7 +353,7 @@ export default function AquagramApp() {
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [communitySearch, setCommunitySearch] = useState("");
-  const [groups, setGroups] = useState(() => buildDefaultGroups());
+  const [localGroups, setGroups] = useState(() => buildDefaultGroups());
   const [groupSlug, setGroupSlug] = useState(null);
   const [communityPage, setCommunityPage] = useState(null); // "tags" | "groups" | null
   const [composerGroupId, setComposerGroupId] = useState(null);
@@ -361,7 +364,7 @@ export default function AquagramApp() {
   const [homeTab, setHomeTab] = useState("foryou");
   const [homeLocation, setHomeLocation] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [followedTags, setFollowedTags] = useState([]);
+  const [demoFollowedTags, setFollowedTags] = useState([]);
   const [kbRoute, setKbRoute] = useState(null); // { section } | { category } | { slug } | { mine }
   const [kbSearch, setKbSearch] = useState("");
   const [kbKeeping, setKbKeeping] = useState(() => ({ ...SEED_KEEPING }));
@@ -373,7 +376,7 @@ export default function AquagramApp() {
   );
   const [drawerOpen, setDrawerOpen] = useState(false); // mobil: sol menü / filtre paneli
   const [mobileShareOpen, setMobileShareOpen] = useState(false);
-  const [conversations, setConversations] = useState(SEED_CONVERSATIONS);
+  const [localConversations, setConversations] = useState([]); // örnek kullanıcılarla (yalnızca bu cihazda) konuşmalar
   const [activeConvId, setActiveConvId] = useState(null);
   const userMenuRef = useRef(null);
   const shareMenuRef = useRef(null);
@@ -389,6 +392,83 @@ export default function AquagramApp() {
   listings = [...dbListings.filter((item) => item.status === "active"), ...(SHOW_DEMO ? demoListings : [])];
   featuredListingIds = [...demoFeaturedIds, ...dbListings.filter((item) => item.featured && item.status === "active").map((item) => item.id)];
   Object.values(users).forEach((user) => { if (user.real) user.listingsCount = listings.filter((item) => item.userId === user.id).length; });
+
+  // ---- Topluluk (gerçek veritabanı) ----
+  const community = useDbCommunity(myId);
+  const msgs = useDbMessages(isMember ? myId : null);
+  const notifs = useNotifications(isMember ? myId : null);
+  [...community.profiles, ...msgs.profiles].forEach((row) => { if (!users[row.id] || users[row.id].real) users[row.id] = profileToUser(row); });
+  if (myId && auth.profile) users[myId] = profileToUser(auth.profile);
+  const dbGroupById = useMemo(() => Object.fromEntries(community.groups.map((group) => [group.id, group])), [community.groups]);
+  const groupKey = (dbGroupId) => {
+    const group = dbGroupById[dbGroupId];
+    return group ? (group.is_official ? String(group.slug) : group.id) : dbGroupId;
+  };
+  const groups = useMemo(() => {
+    const membersOf = (gid) => community.members.filter((row) => row.group_id === gid);
+    const merged = localGroups.map((group) => {
+      const db = community.groups.find((row) => row.is_official && String(row.slug) === group.slug);
+      if (!db) return group;
+      const rows = membersOf(db.id);
+      return {
+        ...group,
+        dbId: db.id,
+        memberIds: Array.from(new Set([...group.memberIds, ...rows.map((row) => row.user_id)])),
+        moderatorIds: Array.from(new Set([...group.moderatorIds, ...rows.filter((row) => row.role !== "member").map((row) => row.user_id)]))
+      };
+    });
+    community.groups
+      .filter((row) => !row.is_official && !row.is_closed)
+      .forEach((row) => {
+        const rows = membersOf(row.id);
+        merged.push({
+          id: row.id,
+          dbId: row.id,
+          slug: String(row.slug),
+          name: row.name,
+          emoji: row.emoji,
+          color: row.color,
+          cover: row.cover_url || null,
+          description: row.description,
+          rules: row.rules || [],
+          ownerId: row.owner_id,
+          moderatorIds: rows.filter((m) => m.role !== "member").map((m) => m.user_id),
+          memberIds: rows.map((m) => m.user_id),
+          createdAt: new Date(row.created_at).getTime()
+        });
+      });
+    return merged;
+  }, [localGroups, community.groups, community.members]);
+  const dbPosts = useMemo(
+    () => community.rows.map((row) => mapPost(row, { ...community.mine, groupKey })),
+    [community.rows, community.mine, dbGroupById] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const posts = useMemo(
+    () => [...dbPosts, ...(SHOW_DEMO ? demoPosts : [])].sort((a, b) => b.createdAt - a.createdAt),
+    [dbPosts, demoPosts]
+  );
+  const followedTags = isMember ? community.mine.tags : demoFollowedTags;
+  const conversations = useMemo(() => [...msgs.conversations, ...localConversations], [msgs.conversations, localConversations]);
+  const isDbPost = (postId) => String(postId).startsWith("dp");
+  const dbIdOf = (postId) => Number(String(postId).slice(2));
+
+  // Veritabanı satırlarında iyimser güncelleme yardımcıları
+  function patchRow(postDbId, fn) {
+    community.setRows((prev) => prev.map((row) => (row.id === postDbId ? fn(row) : row)));
+  }
+  function patchMine(key, fn) {
+    community.setMine((prev) => ({ ...prev, [key]: fn(prev[key]) }));
+  }
+  async function dbCall(promise, rollback) {
+    const { error } = await promise;
+    if (error) {
+      setToast(trError(error));
+      if (rollback) rollback();
+      community.reload();
+      return false;
+    }
+    return true;
+  }
 
   // Bağlantılar: #/paylasim/<sayı>-<ilk-kelimeler>, #/gruplar, #/grup/<ad>, #/etiketler
   useEffect(() => {
@@ -433,6 +513,23 @@ export default function AquagramApp() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [userMenuOpen]);
+
+  // Açılan konuşmayı okundu say
+  useEffect(() => {
+    if (memberPage !== "messages") return;
+    const visible = msgs.conversations.filter((item) => !item.deleted);
+    const active = msgs.conversations.find((item) => item.id === activeConvId) || (activeConvId ? null : visible[0]);
+    if (active && active.unread) msgs.markRead(active.dbId);
+  }, [memberPage, activeConvId, msgs.conversations]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Bildirimler sayfası açılınca hepsi okundu
+  useEffect(() => {
+    if (memberPage === "notifications" && notifs.unread > 0) {
+      const timer = setTimeout(() => notifs.markAllRead(), 1200);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [memberPage, notifs.unread]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // E-postadaki doğrulama bağlantısıyla gelen yeni üye
   useEffect(() => {
@@ -496,6 +593,19 @@ export default function AquagramApp() {
       return;
     }
     if (user.username === users[currentUserId].username) return;
+    const otherId = userIdOf(users, user);
+    if (users[otherId] && users[otherId].real) {
+      const draft = topic && topic.endsWith(" hakkında") ? "Merhaba! " + topic.replace(/ hakkında$/, "") + " beslediğini gördüm, sormak istediğim bir şey var:" : "";
+      const listing = selectedListing && selectedListing.dbId && selectedListing.title === topic ? selectedListing.dbId : null;
+      msgs.start(otherId, topic || "Profil", listing, draft).then((id) => {
+        clearViews();
+        setListingsOpen(false);
+        setMemberPage("messages");
+        setActiveConvId(id);
+        scrollTop();
+      }, (error) => setToast(trError(error)));
+      return;
+    }
     // İlan ve tür konuları ayrı konuşma olur; profilden yazılınca kişiyle son konuşma açılır
     const existing = conversations.find((item) => item.user === user.username && !item.deleted && (topic === "Profil" || item.title === topic));
     let id = existing ? existing.id : Date.now();
@@ -523,6 +633,10 @@ export default function AquagramApp() {
   }
 
   function sendMessage(id, body) {
+    if (String(id).startsWith("dm")) {
+      msgs.send(Number(String(id).slice(2)), body).catch((error) => setToast(trError(error)));
+      return;
+    }
     setConversations((prev) => prev.map((item) => (item.id !== id ? item : {
       ...item,
       last: body,
@@ -538,7 +652,10 @@ export default function AquagramApp() {
       return;
     }
     const following = followedTags.includes(tag);
-    setFollowedTags((prev) => (following ? prev.filter((item) => item !== tag) : [...prev, tag]));
+    if (myId) {
+      patchMine("tags", (prev) => (following ? prev.filter((item) => item !== tag) : [...prev, tag]));
+      dbCall(following ? supabase.from("tag_follows").delete().eq("user_id", myId).eq("tag", tag) : supabase.from("tag_follows").insert({ tag }));
+    } else setFollowedTags((prev) => (following ? prev.filter((item) => item !== tag) : [...prev, tag]));
     setToast(following ? tag + " takibi bırakıldı" : tag + " takip ediliyor · paylaşımlar ana sayfanda");
   }
 
@@ -638,8 +755,11 @@ export default function AquagramApp() {
     setComposerOpen(true);
   }
 
-  function publishPost(post) {
-    setPosts((prev) => [post, ...prev]);
+  async function publishPost(post) {
+    if (myId) {
+      const ok = await publishDbPost(post);
+      if (!ok) return;
+    } else setDemoPosts((prev) => [post, ...prev]);
     setComposerOpen(false);
     const target = post.groupId ? groups.find((group) => group.id === post.groupId) : null;
     setToast(target ? target.name + " grubunda paylaşıldı 🎉" : "Paylaşımın yayında 🎉");
@@ -651,7 +771,44 @@ export default function AquagramApp() {
   }
 
   function updatePost(postId, updater) {
-    setPosts((prev) => prev.map((post) => (post.id === postId ? updater(post) : post)));
+    setDemoPosts((prev) => prev.map((post) => (post.id === postId ? updater(post) : post)));
+  }
+
+  // Paylaşımı veritabanına yazar: önce medya yüklenir, sonra paylaşım ve (varsa) anket seçenekleri
+  async function publishDbPost(post) {
+    try {
+      setToast("Paylaşılıyor…");
+      const media = await uploadMedia(myId, "posts", post.images || [], post.video || null);
+      const group = post.groupId ? groups.find((item) => item.id === post.groupId) : null;
+      if (group && group.dbId && !group.memberIds.includes(myId)) {
+        const joined = await supabase.from("group_members").insert({ group_id: group.dbId });
+        if (joined.error) throw joined.error;
+      }
+      const { data, error } = await supabase
+        .from("posts")
+        .insert({
+          text: post.text || "",
+          images: media.images,
+          video: media.video,
+          group_id: group ? group.dbId || null : null,
+          kind: post.kind || "post",
+          species_slugs: post.speciesSlugs || [],
+          poll_ends_at: post.poll ? new Date(post.poll.endsAt).toISOString() : null
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      if (post.poll) {
+        const options = post.poll.options.map((option, index) => ({ post_id: data.id, position: index + 1, text: option.text }));
+        const res = await supabase.from("poll_options").insert(options);
+        if (res.error) throw res.error;
+      }
+      await community.reload();
+      return true;
+    } catch (error) {
+      setToast(trError(error));
+      return false;
+    }
   }
 
   function toggleJoin(groupId) {
@@ -663,6 +820,17 @@ export default function AquagramApp() {
     if (!group || group.ownerId === currentUserId) return;
     const joined = group.memberIds.includes(currentUserId);
     if (joined && !window.confirm(group.name + " grubundan ayrılmak istediğine emin misin?")) return;
+    if (group.dbId && myId) {
+      (joined
+        ? supabase.from("group_members").delete().eq("group_id", group.dbId).eq("user_id", myId)
+        : supabase.from("group_members").insert({ group_id: group.dbId })
+      ).then(({ error }) => {
+        if (error) setToast(trError(error));
+        else setToast(joined ? group.name + " grubundan ayrıldın" : group.name + " grubuna katıldın 👋");
+        community.reload();
+      });
+      return;
+    }
     setGroups((prev) => prev.map((item) => (item.id !== groupId ? item : {
       ...item,
       memberIds: joined ? item.memberIds.filter((id) => id !== currentUserId) : [...item.memberIds, currentUserId],
@@ -683,7 +851,30 @@ export default function AquagramApp() {
     setGroupForm({ group });
   }
 
-  function saveGroup(group) {
+  async function saveGroup(group) {
+    if (myId) {
+      const isNewDb = !group.dbId;
+      try {
+        let cover = group.cover || null;
+        if (cover && cover.startsWith("blob:")) cover = await uploadBlobUrl(myId, "groups", cover);
+        const fields = { slug: group.slug, name: group.name, emoji: group.emoji, color: group.color, cover_url: cover, description: group.description, rules: group.rules };
+        const res = isNewDb
+          ? await supabase.from("groups").insert({ ...fields, owner_id: myId }).select().single()
+          : await supabase.from("groups").update(fields).eq("id", group.dbId).select().single();
+        if (res.error) throw res.error;
+        const gid = res.data.id;
+        // Moderatörler (yalnızca gerçek üyeler; önce üye olmaları gerekir)
+        const mods = (group.moderatorIds || []).filter((id) => id !== myId && users[id] && users[id].real);
+        if (mods.length) await supabase.from("group_members").update({ role: "moderator" }).eq("group_id", gid).in("user_id", mods);
+        await community.reload();
+        setGroupForm(null);
+        setToast(isNewDb ? group.name + " grubu oluşturuldu 🎉" : "Grup bilgileri güncellendi");
+        openGroup({ ...group, id: gid, slug: String(res.data.slug) });
+      } catch (error) {
+        setToast(trError(error));
+      }
+      return;
+    }
     const isNew = !groups.some((item) => item.id === group.id);
     setGroups((prev) => (isNew ? [...prev, group] : prev.map((item) => (item.id === group.id ? group : item))));
     setGroupForm(null);
@@ -705,17 +896,41 @@ export default function AquagramApp() {
     onCompose: openComposer,
     onOpenPost: openPost,
     onToast: setToast,
-    onLike: (postId) =>
-      updatePost(postId, (post) => ({ ...post, likedByMe: !post.likedByMe, likes: post.likes + (post.likedByMe ? -1 : 1) })),
-    onLikeComment: (postId, commentId) =>
-      updatePost(postId, (post) => ({
+    onLike: (postId) => {
+      if (!isDbPost(postId)) return updatePost(postId, (post) => ({ ...post, likedByMe: !post.likedByMe, likes: post.likes + (post.likedByMe ? -1 : 1) }));
+      if (!myId) return requireLogin();
+      const id = dbIdOf(postId);
+      const liked = community.mine.likes.has(id);
+      patchMine("likes", (set) => { const next = new Set(set); liked ? next.delete(id) : next.add(id); return next; });
+      patchRow(id, (row) => ({ ...row, like_count: Math.max(0, row.like_count + (liked ? -1 : 1)) }));
+      return dbCall(liked ? supabase.from("post_likes").delete().eq("post_id", id).eq("user_id", myId) : supabase.from("post_likes").insert({ post_id: id }));
+    },
+    onLikeComment: (postId, commentId) => {
+      if (isDbPost(postId)) {
+        if (!myId) return requireLogin();
+        const cid = Number(String(commentId).slice(2));
+        const liked = community.mine.commentLikes.has(cid);
+        patchMine("commentLikes", (set) => { const next = new Set(set); liked ? next.delete(cid) : next.add(cid); return next; });
+        patchRow(dbIdOf(postId), (row) => ({ ...row, comments: row.comments.map((c) => (c.id === cid ? { ...c, like_count: Math.max(0, c.like_count + (liked ? -1 : 1)) } : c)) }));
+        return dbCall(liked ? supabase.from("comment_likes").delete().eq("comment_id", cid).eq("user_id", myId) : supabase.from("comment_likes").insert({ comment_id: cid }));
+      }
+      return updatePost(postId, (post) => ({
         ...post,
         comments: post.comments.map((comment) =>
           comment.id === commentId ? { ...comment, likedByMe: !comment.likedByMe, likes: comment.likes + (comment.likedByMe ? -1 : 1) } : comment
         )
-      })),
-    onVote: (postId, optionId) =>
-      updatePost(postId, (post) => {
+      }));
+    },
+    onVote: (postId, optionId) => {
+      if (isDbPost(postId)) {
+        if (!myId) return requireLogin();
+        const id = dbIdOf(postId);
+        if (community.mine.votes.has(id)) return undefined;
+        patchMine("votes", (map) => new Map(map).set(id, optionId));
+        patchRow(id, (row) => ({ ...row, poll_options: row.poll_options.map((o) => (o.id === optionId ? { ...o, vote_count: o.vote_count + 1 } : o)) }));
+        return dbCall(supabase.from("poll_votes").insert({ post_id: id, option_id: optionId }));
+      }
+      return updatePost(postId, (post) => {
         if (!post.poll || post.poll.votedId !== null) return post;
         return {
           ...post,
@@ -725,26 +940,60 @@ export default function AquagramApp() {
             options: post.poll.options.map((option) => (option.id === optionId ? { ...option, votes: option.votes + 1 } : option))
           }
         };
-      }),
-    onReply: (postId, { text, images = [], video = null }) =>
+      });
+    },
+    onReply: async (postId, { text, images = [], video = null }) => {
+      if (isDbPost(postId) && myId) {
+        try {
+          const media = await uploadMedia(myId, "comments", images, video);
+          const { error } = await supabase.from("comments").insert({ post_id: dbIdOf(postId), text: text || "", images: media.images, video: media.video });
+          if (error) throw error;
+          await community.reload();
+        } catch (error) {
+          setToast(trError(error));
+        }
+        return;
+      }
       updatePost(postId, (post) => ({
         ...post,
         comments: [...post.comments, { id: "c" + Date.now(), userId: currentUserId, text, images, video, createdAt: Date.now(), likes: 0, likedByMe: false }]
-      })),
+      }));
+    },
     onDeleteComment: (postId, commentId) => {
       if (!window.confirm("Bu yorumu silmek istediğine emin misin?")) return;
+      if (isDbPost(postId)) {
+        const cid = Number(String(commentId).slice(2));
+        const post = posts.find((item) => item.id === postId);
+        const comment = post && post.comments.find((item) => item.id === commentId);
+        const mineComment = comment && comment.userId === myId;
+        patchRow(dbIdOf(postId), (row) => ({ ...row, comments: row.comments.filter((c) => c.id !== cid) }));
+        dbCall(mineComment ? supabase.from("comments").delete().eq("id", cid) : supabase.rpc("moderate_remove_comment", { p_comment_id: cid, p_reason: "Moderatör kaldırdı" })).then((ok) => ok && setToast("Yorum silindi"));
+        return;
+      }
       updatePost(postId, (post) => ({ ...post, comments: post.comments.filter((comment) => comment.id !== commentId) }));
       setToast("Yorum silindi");
     },
     onSave: (postId) => {
       const target = posts.find((post) => post.id === postId);
       if (!target) return;
-      updatePost(postId, (post) => ({ ...post, savedByMe: !post.savedByMe }));
+      if (isDbPost(postId)) {
+        if (!myId) return requireLogin();
+        const id = dbIdOf(postId);
+        const saved = community.mine.saves.has(id);
+        patchMine("saves", (set) => { const next = new Set(set); saved ? next.delete(id) : next.add(id); return next; });
+        dbCall(saved ? supabase.from("post_saves").delete().eq("post_id", id).eq("user_id", myId) : supabase.from("post_saves").insert({ post_id: id }));
+      } else updatePost(postId, (post) => ({ ...post, savedByMe: !post.savedByMe }));
       setToast(target.savedByMe ? "Kayıtlardan çıkarıldı" : "Kaydedildi · Paylaşımlarım > Kaydettiklerim");
     },
     onReport: setReportTarget,
     onSearch: searchCommunity,
     onEditComment: (postId, commentId, text) => {
+      if (isDbPost(postId)) {
+        const cid = Number(String(commentId).slice(2));
+        patchRow(dbIdOf(postId), (row) => ({ ...row, comments: row.comments.map((c) => (c.id === cid ? { ...c, text, edited_at: new Date().toISOString() } : c)) }));
+        dbCall(supabase.from("comments").update({ text }).eq("id", cid)).then((ok) => ok && setToast("Yorum güncellendi"));
+        return;
+      }
       updatePost(postId, (post) => ({
         ...post,
         comments: post.comments.map((comment) => (comment.id === commentId ? { ...comment, text, editedAt: Date.now() } : comment))
@@ -766,8 +1015,14 @@ export default function AquagramApp() {
     featuredListingIds,
     priceLabel,
     formatDate,
-    onJoinGroup: (groupId) =>
-      setGroups((prev) => prev.map((item) => (item.id === groupId && !item.memberIds.includes(currentUserId) ? { ...item, memberIds: [...item.memberIds, currentUserId] } : item))),
+    onJoinGroup: (groupId) => {
+      const group = groups.find((item) => item.id === groupId);
+      if (group && group.dbId && myId) {
+        if (!group.memberIds.includes(myId)) supabase.from("group_members").insert({ group_id: group.dbId }).then(() => community.reload());
+        return;
+      }
+      setGroups((prev) => prev.map((item) => (item.id === groupId && !item.memberIds.includes(currentUserId) ? { ...item, memberIds: [...item.memberIds, currentUserId] } : item)));
+    },
     onMyPosts: () => openMemberPage("posts"),
     onMyListings: () => openMemberPage("listings"),
     onMessages: () => openMemberPage("messages"),
@@ -784,7 +1039,10 @@ export default function AquagramApp() {
     },
     onDelete: (post, moderated = false) => {
       if (!window.confirm(moderated ? "Bu paylaşımı moderatör olarak gruptan kaldırmak istediğine emin misin?" : "Bu paylaşımı silmek istediğine emin misin?")) return;
-      setPosts((prev) => prev.filter((item) => item.id !== post.id));
+      if (post.dbId) {
+        community.setRows((prev) => prev.filter((row) => row.id !== post.dbId));
+        dbCall(moderated && post.userId !== myId ? supabase.rpc("moderate_remove_post", { p_post_id: post.dbId, p_reason: "Moderatör kaldırdı" }) : supabase.from("posts").delete().eq("id", post.dbId));
+      } else setDemoPosts((prev) => prev.filter((item) => item.id !== post.id));
       setToast(moderated ? "Paylaşım gruptan kaldırıldı" : "Paylaşım silindi");
       if (postSlug === post.slug) closePost();
     },
@@ -1013,6 +1271,18 @@ export default function AquagramApp() {
                 </button>
               ))}
             </nav>
+            {isMember && (
+              <button
+                onClick={() => openMemberPage("notifications")}
+                title="Bildirimler"
+                className={"relative grid h-10 w-10 shrink-0 place-items-center rounded-full transition " + (effectiveMemberPage === "notifications" ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-100")}
+              >
+                <Bell size={20} />
+                {notifs.unread + msgs.unreadCount > 0 && (
+                  <span className="absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white ring-2 ring-white">{Math.min(99, notifs.unread + msgs.unreadCount)}</span>
+                )}
+              </button>
+            )}
             {isMember ? (
               <div ref={userMenuRef} className="relative">
                 <button
@@ -1025,13 +1295,15 @@ export default function AquagramApp() {
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
-                    {[["account", "Hesabım"], ["posts", "Paylaşımlarım"], ["listings", "İlanlarım"], ["species", "Türlerim"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
+                    {[["account", "Hesabım"], ["notifications", "Bildirimler"], ["posts", "Paylaşımlarım"], ["listings", "İlanlarım"], ["species", "Türlerim"], ["messages", "Mesajlarım"], ["ads", "Reklamlarım"]].map(([key, label]) => (
                       <button
                         key={key}
                         onClick={() => { if (key === "species") { setUserMenuOpen(false); kb.openMine(); } else openMemberPage(key); }}
                         className={"flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-black " + (effectiveMemberPage === key ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-50")}
                       >
-                        {label}
+                        <span className="flex-1">{label}</span>
+                        {key === "messages" && msgs.unreadCount > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[11px] font-black text-white">{msgs.unreadCount}</span>}
+                        {key === "notifications" && notifs.unread > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[11px] font-black text-white">{notifs.unread}</span>}
                       </button>
                     ))}
                     <div className="my-1 border-t border-slate-100" />
@@ -1165,9 +1437,20 @@ export default function AquagramApp() {
     setActiveId={setActiveConvId}
     onSend={sendMessage}
     onDelete={(id) => {
-      setConversations((prev) => prev.map((item) => (item.id === id ? { ...item, deleted: true } : item)));
+      if (String(id).startsWith("dm")) msgs.setHidden(Number(String(id).slice(2)), true);
+      else setConversations((prev) => prev.map((item) => (item.id === id ? { ...item, deleted: true } : item)));
       setToast("Konuşma silinmiş mesajlara taşındı");
     }}
+  />
+) : effectiveMemberPage === "notifications" ? (
+  <NotificationsPage
+    notifs={notifs}
+    onOpen={(item) => {
+      if (item.post) openPost({ slug: item.post.slug });
+      else if (item.grp) openGroup({ slug: String(item.grp.slug) });
+      else if (item.listing_id) openMemberPage("listings");
+    }}
+    onProfile={(actor) => actor && users[actor.id] && setProfileUser(users[actor.id])}
   />
 ) : effectiveMemberPage === "ads" ? (
   <AdsManagerPage />
@@ -1273,9 +1556,23 @@ export default function AquagramApp() {
         <ReportModal
           target={reportTarget}
           onClose={() => setReportTarget(null)}
-          onSubmit={() => {
+          onSubmit={async ({ reason, note } = {}) => {
+            const kind = reportTarget.kind || "listing";
+            const item = kind === "post" ? reportTarget.post : kind === "comment" ? reportTarget.comment : reportTarget.listing;
+            if (item && item.dbId) {
+              if (!myId) {
+                setReportTarget(null);
+                return requireLogin();
+              }
+              const { error } = await supabase.from("reports").insert({ target_type: kind, target_id: String(item.dbId), reason: (reason || "Diğer").slice(0, 120), note: note ? note.slice(0, 500) : null });
+              if (error && !/duplicate|unique/i.test(error.message)) {
+                setToast(trError(error));
+                return undefined;
+              }
+            }
             setReportTarget(null);
             setToast("Bildirimin alındı, ekibimiz inceleyecek. Teşekkürler!");
+            return undefined;
           }}
         />
       )}
@@ -2946,7 +3243,7 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete }
   );
 }
 function UserListingsPage({ user, onBack, onOpen, onProfile, onMessage }) {
-  const userId = Number(Object.keys(users).find((id) => users[id].username === user.username));
+  const userId = userIdOf(users, user);
   const userListings = listings.filter((item) => item.userId === userId);
 
   return (
@@ -3437,7 +3734,7 @@ function ReportModal({ target, onClose, onSubmit }) {
           <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={300} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700" placeholder="Kısaca açıklayın..." />
         </label>
         <p className="mt-2 text-xs leading-relaxed text-slate-400">Bildirimler gizlidir; içerik sahibi kimin bildirdiğini görmez.</p>
-        <button onClick={onSubmit} disabled={!reason} className="mt-4 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Bildir</button>
+        <button onClick={() => onSubmit({ reason, note })} disabled={!reason} className="mt-4 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Bildir</button>
       </div>
     </div>
   );
@@ -3715,6 +4012,62 @@ function AddListingModal({ auth, listing = null, republish = false, onClose, onC
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function timeAgoTr(value) {
+  const diff = Math.max(0, Date.now() - new Date(value).getTime());
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "şimdi";
+  if (min < 60) return min + " dk";
+  const hours = Math.floor(min / 60);
+  if (hours < 24) return hours + " sa";
+  const days = Math.floor(hours / 24);
+  if (days < 7) return days + " g";
+  return new Date(value).toLocaleDateString("tr-TR");
+}
+
+function NotificationsPage({ notifs, onOpen, onProfile }) {
+  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", system: "🔔" };
+  return (
+    <div className="mx-auto max-w-2xl p-5">
+      <div className="mb-4 flex items-end justify-between gap-3 border-b border-slate-200 pb-4">
+        <div>
+          <h2 className="text-2xl font-black tracking-tight">Bildirimler</h2>
+          <p className="mt-1 text-sm text-slate-500">Beğeniler, yorumlar, grup katılımları ve ilan başvuruların.</p>
+        </div>
+        {notifs.unread > 0 && (
+          <button onClick={notifs.markAllRead} className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50">Tümünü okundu say</button>
+        )}
+      </div>
+      {notifs.items.length === 0 ? (
+        <div className="rounded-[24px] bg-slate-50 p-10 text-center">
+          <Bell className="mx-auto mb-3 text-slate-300" size={32} />
+          <div className="font-black text-slate-700">Henüz bildirimin yok</div>
+          <p className="mt-1 text-sm text-slate-500">Paylaşımların beğenildiğinde ya da yorum aldığında burada göreceksin.</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-slate-100 overflow-hidden rounded-[24px] border border-slate-200 bg-white">
+          {notifs.items.map((item) => (
+            <button key={item.id} onClick={() => onOpen(item)} className={"flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50 " + (item.read_at ? "" : "bg-cyan-50/60")}>
+              <span
+                onClick={(event) => { if (item.actor) { event.stopPropagation(); onProfile(item.actor); } }}
+                className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-cyan-950 text-sm font-black text-white"
+              >
+                {item.actor && item.actor.avatar_url ? <img src={item.actor.avatar_url} alt="" className="h-full w-full object-cover" /> : (item.actor ? item.actor.username.slice(0, 1).toUpperCase() : "A")}
+                <span className="absolute -bottom-0.5 -right-0.5 text-sm">{icons[item.type] || "🔔"}</span>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm leading-snug text-slate-800">{notificationText(item)}</span>
+                {item.post && item.post.text && item.type !== "post_comment" && <span className="mt-0.5 line-clamp-1 block text-xs text-slate-500">“{item.post.text}”</span>}
+                <span className="mt-1 block text-xs font-bold text-slate-400">{timeAgoTr(item.created_at)}</span>
+              </span>
+              {!item.read_at && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-500" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

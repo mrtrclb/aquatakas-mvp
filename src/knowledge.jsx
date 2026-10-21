@@ -39,7 +39,7 @@ export function searchSpecies(species, query) {
 function keepersOf(kb, slug) {
   return Object.entries(kb.keeping)
     .filter(([, slugs]) => slugs.includes(slug))
-    .map(([id]) => Number(id));
+    .map(([id]) => (/^\d+$/.test(id) ? Number(id) : id));
 }
 
 // Bir ilan/paylaşımın bu türle ilgili olup olmadığı: paylaşımda kayıtlı türler ya da metinden otomatik tanıma

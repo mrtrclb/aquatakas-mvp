@@ -547,7 +547,7 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
   }, [onClose]);
 
   const candidates = Object.entries(users)
-    .map(([id, user]) => ({ id: Number(id), user }))
+    .map(([id, user]) => ({ id: /^\d+$/.test(id) ? Number(id) : id, user }))
     .filter(({ id, user }) => id !== currentUserId && !mods.includes(id) && (!modQuery.trim() || normalizeTr(user.username).includes(normalizeTr(modQuery.trim()))))
     .slice(0, 5);
 

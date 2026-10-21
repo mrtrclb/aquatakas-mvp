@@ -1092,7 +1092,7 @@ export function CommunityFeed({ posts, members, ctx, search = "", embedded = fal
       if (slot === 1 && !membersShown && !searching && members.length) {
         membersShown = true;
         items.push({ kind: "members", key: "members" });
-      } else {
+      } else if (ctx.adPool.length) {
         items.push({ kind: "ad", ad: ctx.adPool[slot % ctx.adPool.length], key: "ad-" + slot });
       }
     }

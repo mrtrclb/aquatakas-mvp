@@ -43,11 +43,13 @@ export function useDbMessages(myId) {
       setConversations([]);
       return;
     }
-    const [convRes, partRes, msgRes] = await Promise.all([
+    const [convRes, partRes, msgRes, reviewRes] = await Promise.all([
       supabase.from("conversations").select("id, topic, listing_id, species_id, last_message_at").in("id", ids),
       supabase.from("conversation_participants").select("conversation_id, user_id").in("conversation_id", ids).neq("user_id", myId),
-      supabase.from("messages").select("id, conversation_id, sender_id, body, created_at").in("conversation_id", ids).order("created_at").limit(3000)
+      supabase.from("messages").select("id, conversation_id, sender_id, body, created_at").in("conversation_id", ids).order("created_at").limit(3000),
+      supabase.from("reviews").select("id, conversation_id, rating, comment, created_at").eq("reviewer_id", myId).in("conversation_id", ids)
     ]);
+    const myReviews = Object.fromEntries((reviewRes.data || []).map((row) => [row.conversation_id, row]));
     const others = partRes.data || [];
     const otherIds = Array.from(new Set(others.map((row) => row.user_id)));
     let profileRows = [];
@@ -80,6 +82,9 @@ export function useDbMessages(myId) {
         sortAt: new Date(last ? last.created_at : conv.last_message_at).getTime(),
         unread,
         deleted: Boolean(me.hidden_at),
+        listingId: conv.listing_id || null,
+        bothSent: msgs.some((row) => row.sender_id === myId) && msgs.some((row) => row.sender_id !== myId),
+        myReview: myReviews[conv.id] || null,
         draft: drafts.current[conv.id] || "",
         messages: msgs.map((row) => ({ from: row.sender_id === myId ? "sen" : otherName, body: row.body, time: hhmm(row.created_at) }))
       };
@@ -183,6 +188,8 @@ export function notificationText(item) {
       return "Öne çıkarma başvurun onaylandı" + (item.listing ? ": " + item.listing.title : "");
     case "feature_rejected":
       return "Öne çıkarma başvurun reddedildi" + (item.listing ? ": " + item.listing.title : "") + (item.body ? " (" + item.body + ")" : "");
+    case "review":
+      return actor + " seninle yaptığı alışverişi değerlendirdi" + (item.body ? ": " + item.body : "") + (item.listing ? " · " + item.listing.title : "");
     case "group_join":
       return actor + (item.grp ? " " + item.grp.name + " grubuna" : " grubuna") + " katıldı";
     default:

@@ -334,7 +334,8 @@ function MemberRow({ userId, group, ctx }) {
 export function GroupPage({ group, posts, ctx, search = "" }) {
   const [tab, setTab] = useState("feed");
   const [sort, setSort] = useState("new");
-  const isOwner = ctx.isMember && group.ownerId === ctx.currentUserId;
+  // Kurucu ya da grup yönetme yetkili ekip üyesi (süper yönetici, "Gruplar" yetkili moderatör) düzenleyebilir
+  const canEdit = ctx.isMember && (group.ownerId === ctx.currentUserId || (ctx.canManageGroups && Boolean(group.dbId)));
   const groupPosts = posts.filter((post) => post.groupId === group.id);
   const query = search.trim();
   const visible = (query ? searchPosts(groupPosts, ctx.users, query) : groupPosts)
@@ -363,7 +364,7 @@ export function GroupPage({ group, posts, ctx, search = "" }) {
           <GroupTile group={group} size="lg" />
           <div className="flex items-center gap-2">
             <button onClick={() => ctx.onShareGroup(group)} title="Bağlantıyı kopyala" className="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><Link2 size={16} /></button>
-            {isOwner && (
+            {canEdit && (
               <button onClick={() => ctx.onEditGroup(group)} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"><Pencil size={14} /> Grubu düzenle</button>
             )}
             <JoinButton group={group} ctx={ctx} />
@@ -528,14 +529,15 @@ export function TagsPage({ posts, ctx }) {
 /* Grup oluşturma / düzenleme                                          */
 /* ------------------------------------------------------------------ */
 
-export function GroupFormModal({ group, users, groups, currentUserId, onClose, onSave }) {
+export function GroupFormModal({ group, users, groups, currentUserId, onClose, onSave, canManageMods = true }) {
   const editing = Boolean(group);
   const [name, setName] = useState(group ? group.name : "");
   const [description, setDescription] = useState(group ? group.description : "");
   const [emoji, setEmoji] = useState(group ? group.emoji : GROUP_EMOJIS[0]);
   const [cover, setCover] = useState(group ? group.cover : COVER_PRESETS[0]);
   const [rules, setRules] = useState(group && group.rules.length ? group.rules : [""]);
-  const [mods, setMods] = useState(group ? group.moderatorIds.filter((id) => id !== currentUserId) : []);
+  const ownerId = group ? group.ownerId : currentUserId;
+  const [mods, setMods] = useState(group ? group.moderatorIds.filter((id) => id !== ownerId) : []);
   const [modQuery, setModQuery] = useState("");
   const [error, setError] = useState("");
   const fileInput = useRef(null);
@@ -548,7 +550,7 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
 
   const candidates = Object.entries(users)
     .map(([id, user]) => ({ id: /^\d+$/.test(id) ? Number(id) : id, user }))
-    .filter(({ id, user }) => id !== currentUserId && !mods.includes(id) && (!modQuery.trim() || normalizeTr(user.username).includes(normalizeTr(modQuery.trim()))))
+    .filter(({ id, user }) => id !== ownerId && !mods.includes(id) && (!modQuery.trim() || normalizeTr(user.username).includes(normalizeTr(modQuery.trim()))))
     .slice(0, 5);
 
   function uploadCover(event) {
@@ -564,18 +566,19 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
     if (groups.some((item) => item.id !== (group && group.id) && normalizeTr(item.name) === normalizeTr(cleanName))) return setError("Bu adla bir grup zaten var.");
     if (description.trim().length < 10) return setError("Kısa bir açıklama yaz (en az 10 karakter).");
     const cleanRules = rules.map((rule) => rule.trim()).filter(Boolean);
-    const moderatorIds = [currentUserId, ...mods];
+    const moderatorIds = [ownerId, ...mods].filter(Boolean);
     onSave({
       ...(group || {}),
       id: group ? group.id : "g" + Date.now(),
-      slug: uniqueGroupSlug(cleanName, groups, group && group.id),
+      // Düzenlemede grup adresi değişmez (paylaşılan bağlantılar bozulmasın)
+      slug: group ? group.slug : uniqueGroupSlug(cleanName, groups, null),
       name: cleanName,
       description: description.trim(),
       emoji,
       color: group ? group.color : GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)],
       cover,
       rules: cleanRules,
-      ownerId: currentUserId,
+      ownerId,
       moderatorIds,
       memberIds: Array.from(new Set([...(group ? group.memberIds : []), ...moderatorIds])),
       createdAt: group ? group.createdAt : Date.now()
@@ -652,28 +655,32 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
             {rules.length < MAX_GROUP_RULES && <button type="button" onClick={() => setRules((prev) => [...prev, ""])} className="mt-2 text-sm font-black text-cyan-800 hover:underline">+ Kural ekle</button>}
           </div>
 
+          {canManageMods ? (
           <div>
-            <div className="mb-1 flex justify-between text-xs font-black text-slate-500">Moderatörler <span className="text-slate-400">kurucu olarak sen otomatik moderatörsün · en fazla {MAX_GROUP_MODS}</span></div>
-            {mods.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{mods.map((id) => <UserTag key={id} id={id} />)}</div>}
-            {mods.length < MAX_GROUP_MODS && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50">
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <Search size={14} className="text-slate-400" />
-                  <input value={modQuery} onChange={(event) => setModQuery(event.target.value)} placeholder="Kullanıcı adıyla ara" className="w-full bg-transparent text-sm outline-none" />
-                </div>
-                {modQuery.trim() && (
-                  <div className="border-t border-slate-200 p-1">
-                    {candidates.length ? candidates.map(({ id, user }) => (
-                      <button key={id} type="button" onClick={() => { setMods((prev) => [...prev, id]); setModQuery(""); }} className="flex w-full items-center justify-between rounded-xl px-2 py-1.5 text-left text-sm hover:bg-white">
-                        <span className="font-black text-slate-800">{user.username} <span className="font-semibold text-slate-400">· {user.city}</span></span>
-                        <Plus size={14} className="text-cyan-800" />
-                      </button>
-                    )) : <p className="px-2 py-1.5 text-xs text-slate-400">Kullanıcı bulunamadı.</p>}
+              <div className="mb-1 flex justify-between text-xs font-black text-slate-500">Moderatörler <span className="text-slate-400">kurucu olarak sen otomatik moderatörsün · en fazla {MAX_GROUP_MODS}</span></div>
+              {mods.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{mods.map((id) => <UserTag key={id} id={id} />)}</div>}
+              {mods.length < MAX_GROUP_MODS && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50">
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <Search size={14} className="text-slate-400" />
+                    <input value={modQuery} onChange={(event) => setModQuery(event.target.value)} placeholder="Kullanıcı adıyla ara" className="w-full bg-transparent text-sm outline-none" />
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  {modQuery.trim() && (
+                    <div className="border-t border-slate-200 p-1">
+                      {candidates.length ? candidates.map(({ id, user }) => (
+                        <button key={id} type="button" onClick={() => { setMods((prev) => [...prev, id]); setModQuery(""); }} className="flex w-full items-center justify-between rounded-xl px-2 py-1.5 text-left text-sm hover:bg-white">
+                          <span className="font-black text-slate-800">{user.username} <span className="font-semibold text-slate-400">· {user.city}</span></span>
+                          <Plus size={14} className="text-cyan-800" />
+                        </button>
+                      )) : <p className="px-2 py-1.5 text-xs text-slate-400">Kullanıcı bulunamadı.</p>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">Grup moderatörlerini yalnızca kurucu belirler.</p>
+          )}
 
           {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</p>}
 

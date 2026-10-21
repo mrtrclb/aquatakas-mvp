@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
   Check,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Fish,
@@ -53,6 +54,14 @@ export function relatedPosts(posts, slug) {
 /* Görsel yer tutucu: kategori renk geçişi + simge */
 export function SpeciesImage({ species, className = "", round = false, label = true }) {
   const category = categoryById(species.category);
+  const cover = species.images && species.images[0];
+  if (cover) {
+    return (
+      <div className={"relative overflow-hidden bg-slate-100 " + (round ? "rounded-full " : "") + className}>
+        <img src={cover} alt={species.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+      </div>
+    );
+  }
   return (
     <div className={"relative grid place-items-center overflow-hidden bg-gradient-to-br text-white " + category.tone + " " + (round ? "rounded-full " : "") + className}>
       <span className="select-none text-[2.4em] drop-shadow-sm">{category.emoji}</span>
@@ -359,31 +368,165 @@ function KeeperRow({ userId, species, ctx, kb }) {
   );
 }
 
-function KeepersSection({ keepers, species, kb, ctx }) {
-  const [all, setAll] = useState(false);
+const KEEPERS_PREVIEW = 5;
+const KEEPERS_PAGE = 20;
+
+function sortKeepers(keepers, ctx) {
   const me = ctx.isMember ? ctx.users[ctx.currentUserId] : null;
-  // Önce aynı şehirdekiler, sonra diğerleri
-  const sorted = keepers.slice().sort((a, b) => (me ? (ctx.users[b].city === me.city) - (ctx.users[a].city === me.city) : 0));
-  const visible = all ? sorted : sorted.slice(0, 4);
+  // Önce sen, sonra aynı şehirdekiler, sonra diğerleri
+  return keepers
+    .filter((id) => ctx.users[id])
+    .slice()
+    .sort((a, b) => {
+      if (ctx.isMember && (a === ctx.currentUserId || b === ctx.currentUserId)) return a === ctx.currentUserId ? -1 : 1;
+      return me ? (ctx.users[b].city === me.city) - (ctx.users[a].city === me.city) : 0;
+    });
+}
+
+function KeepersSection({ keepers, species, kb, ctx }) {
+  const [open, setOpen] = useState(false);
+  const sorted = sortKeepers(keepers, ctx);
   return (
     <section className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-        <h3 className="flex items-center gap-2 text-sm font-black text-slate-800"><Users size={15} /> Bu türü besleyenler <span className="text-slate-400">({keepers.length})</span></h3>
+        <h3 className="flex items-center gap-2 text-sm font-black text-slate-800"><Users size={15} /> Bu türü besleyenler <span className="text-slate-400">({sorted.length})</span></h3>
         <span className="text-[11px] font-semibold text-slate-400">Takas, yavru ve deneyim için ulaş</span>
       </div>
-      {keepers.length ? (
+      {sorted.length ? (
         <div className="divide-y divide-slate-100">
-          {visible.map((id) => <KeeperRow key={id} userId={id} species={species} ctx={ctx} kb={kb} />)}
+          {sorted.slice(0, KEEPERS_PREVIEW).map((id) => <KeeperRow key={id} userId={id} species={species} ctx={ctx} kb={kb} />)}
         </div>
       ) : (
         <p className="px-4 py-5 text-center text-sm text-slate-400">Henüz kimse eklemedi. İlk sen ekle!</p>
       )}
-      {keepers.length > 4 && (
-        <button onClick={() => setAll((value) => !value)} className="w-full border-t border-slate-100 py-2.5 text-xs font-black text-cyan-800 hover:bg-slate-50">
-          {all ? "Daha az göster" : "Tümünü gör (" + keepers.length + ")"}
+      {sorted.length > KEEPERS_PREVIEW && (
+        <button onClick={() => setOpen(true)} className="w-full border-t border-slate-100 py-2.5 text-xs font-black text-cyan-800 hover:bg-slate-50">
+          Herkesi gör ({sorted.length})
         </button>
       )}
+      {open && <KeepersModal keepers={sorted} species={species} kb={kb} ctx={ctx} onClose={() => setOpen(false)} />}
     </section>
+  );
+}
+
+// Kompakt pencere: aşağı kaydırdıkça 20'şer kişi daha yüklenir; ada ya da şehre göre aranabilir
+function KeepersModal({ keepers, species, kb, ctx, onClose }) {
+  const [count, setCount] = useState(KEEPERS_PAGE);
+  const [query, setQuery] = useState("");
+  const sentinel = useRef(null);
+  const scroller = useRef(null);
+  const q = normalizeTr(query.trim());
+  const filtered = q ? keepers.filter((id) => normalizeTr(ctx.users[id].username + " " + (ctx.users[id].city || "")).includes(q)) : keepers;
+  const visible = filtered.slice(0, count);
+
+  useEffect(() => {
+    const onKey = (event) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    setCount(KEEPERS_PAGE);
+    if (scroller.current) scroller.current.scrollTop = 0;
+  }, [q]);
+
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || !scroller.current || typeof IntersectionObserver === "undefined") return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) setCount((value) => (value < filtered.length ? value + KEEPERS_PAGE : value));
+      },
+      { root: scroller.current, rootMargin: "120px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [filtered.length]);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/50 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div role="dialog" aria-label="Bu türü besleyenler" className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-t-[28px] bg-white shadow-2xl sm:rounded-[28px]">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-black">{species.name} besleyenler</h3>
+            <p className="text-xs text-slate-500">{keepers.length} üye</p>
+          </div>
+          <button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200" title="Pencereyi kapat" aria-label="Pencereyi kapat"><X size={17} /></button>
+        </div>
+        {keepers.length > 8 && (
+          <label className="mx-4 mt-3 flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2">
+            <Search size={15} className="text-slate-400" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Kullanıcı adı ya da şehir" className="w-full bg-transparent text-sm outline-none" />
+          </label>
+        )}
+        <div ref={scroller} className="mt-1 flex-1 divide-y divide-slate-100 overflow-y-auto overscroll-contain">
+          {visible.map((id) => <KeeperRow key={id} userId={id} species={species} ctx={ctx} kb={kb} />)}
+          {!filtered.length && <p className="p-6 text-center text-sm text-slate-400">Eşleşen üye yok.</p>}
+          <div ref={sentinel} className="h-6" />
+          {visible.length < filtered.length && <p className="pb-3 text-center text-xs font-bold text-slate-400">Yükleniyor…</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Tür görselleri: kaydırmalı galeri (dokunarak kaydırma, oklar, noktalar, tam ekran) */
+function SpeciesGallery({ species }) {
+  const images = species.images || [];
+  const [index, setIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(null);
+  const track = useRef(null);
+
+  useEffect(() => {
+    setIndex(0);
+    if (track.current) track.current.scrollLeft = 0;
+  }, [species.slug]);
+
+  if (images.length === 0) return <SpeciesImage species={species} className="aspect-video w-full self-start rounded-3xl text-3xl sm:aspect-square" />;
+
+  function go(next) {
+    const target = Math.max(0, Math.min(images.length - 1, next));
+    const node = track.current;
+    if (node) node.scrollTo({ left: target * node.clientWidth, behavior: "smooth" });
+    setIndex(target);
+  }
+
+  return (
+    <div className="relative self-start">
+      <div
+        ref={track}
+        onScroll={(event) => {
+          const node = event.currentTarget;
+          const next = Math.round(node.scrollLeft / Math.max(1, node.clientWidth));
+          if (next !== index) setIndex(next);
+        }}
+        className="flex aspect-video w-full snap-x snap-mandatory overflow-x-auto rounded-3xl bg-slate-100 [scrollbar-width:none] sm:aspect-square [&::-webkit-scrollbar]:hidden"
+      >
+        {images.map((url, i) => (
+          <button key={url + i} type="button" onClick={() => setLightbox(i)} className="relative h-full w-full shrink-0 snap-center" aria-label={species.name + " görseli " + (i + 1)}>
+            <img src={url} alt={species.name + " " + (i + 1)} loading={i === 0 ? "eager" : "lazy"} className="absolute inset-0 h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+      {images.length > 1 && (
+        <>
+          <button type="button" onClick={() => go(index - 1)} disabled={index === 0} className="absolute left-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow disabled:opacity-0" aria-label="Önceki görsel"><ChevronLeft size={18} /></button>
+          <button type="button" onClick={() => go(index + 1)} disabled={index === images.length - 1} className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow disabled:opacity-0" aria-label="Sonraki görsel"><ChevronRight size={18} /></button>
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/30 px-2 py-1">
+            {images.map((url, i) => (
+              <button key={url + "-dot-" + i} type="button" onClick={() => go(i)} className={"h-1.5 rounded-full transition-all " + (i === index ? "w-4 bg-white" : "w-1.5 bg-white/60")} aria-label={"Görsel " + (i + 1)} />
+            ))}
+          </div>
+          <span className="absolute right-2 top-2 rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-black text-white">{index + 1}/{images.length}</span>
+        </>
+      )}
+      {lightbox !== null && <Lightbox images={images} start={lightbox} onClose={() => setLightbox(null)} />}
+    </div>
   );
 }
 
@@ -462,7 +605,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
       </div>
 
       <div className="grid gap-4 p-4 sm:grid-cols-[220px_1fr]">
-        <SpeciesImage species={species} className="aspect-video w-full rounded-3xl text-3xl sm:aspect-square" />
+        <SpeciesGallery species={species} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <DifficultyChip value={species.difficulty} />
@@ -491,7 +634,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
           <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
             {keepers.length > 0 && (
               <span className="flex -space-x-2">
-                {keepers.slice(0, 5).map((id) => <span key={id} className="rounded-full ring-2 ring-white"><Avatar user={ctx.users[id]} size={24} onClick={() => ctx.onProfile(ctx.users[id])} /></span>)}
+                {keepers.filter((id) => ctx.users[id]).slice(0, 5).map((id) => <span key={id} className="rounded-full ring-2 ring-white"><Avatar user={ctx.users[id]} size={24} onClick={() => ctx.onProfile(ctx.users[id])} /></span>)}
               </span>
             )}
             <span><strong className="text-slate-900">{keepers.length}</strong> üye bu türü besliyor</span>

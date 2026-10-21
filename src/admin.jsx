@@ -1,8 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Ban,
   Check,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   Fish,
   Flag,
@@ -19,12 +21,14 @@ import {
   Settings,
   ShieldCheck,
   Trash2,
+  Upload,
   Users,
   UsersRound,
   X
 } from "lucide-react";
 import { useAuth, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
+import { shrinkImage } from "./lib/listings";
 
 /* ------------------------------------------------------------------ */
 /* Sabitler                                                            */
@@ -65,6 +69,7 @@ const TARGET_LABELS = {
   user: "Kullanıcı",
   group: "Grup",
   ad: "Reklam",
+  review: "Değerlendirme",
   tag: "Etiket",
   setting: "Ayar",
   species: "Tür",
@@ -474,7 +479,7 @@ export default function AdminApp() {
             </div>
           )}
           <main className="min-w-0">
-            <View key={current.id} />
+            <View key={current.id + "/" + (route.param || "")} />
           </main>
         </div>
 
@@ -533,7 +538,8 @@ function DashboardSection() {
 /* Şikâyetler                                                          */
 /* ------------------------------------------------------------------ */
 
-const REMOVABLE = new Set(["listing", "post", "comment", "species_comment"]);
+const REMOVABLE = new Set(["listing", "post", "comment", "species_comment", "review"]);
+const RATING_LABELS = { positive: "Olumlu", neutral: "Nötr", negative: "Olumsuz" };
 
 async function loadReportTargets(groups) {
   const idsOf = (type) => groups.filter((group) => group.type === type).map((group) => group.id);
@@ -569,6 +575,12 @@ async function loadReportTargets(groups) {
     rows.forEach((row) => {
       const sp = byId[row.species_id];
       out["species_comment:" + row.id] = { title: sp ? sp.name : null, text: row.text, image: (row.images || [])[0], userId: row.user_id, removed: row.is_removed, href: sp ? "/tur/" + sp.slug : null };
+    });
+  }
+  const reviewIds = num(idsOf("review"));
+  if (reviewIds.length) {
+    (await must(supabase.from("reviews").select("id, reviewer_id, reviewee_id, rating, comment, listing_title, is_hidden").in("id", reviewIds))).forEach((row) => {
+      out["review:" + row.id] = { title: RATING_LABELS[row.rating] + " değerlendirme" + (row.listing_title ? " · " + row.listing_title : ""), text: row.comment || "(yorum yok)", userId: row.reviewer_id, removed: row.is_hidden };
     });
   }
   const userIds = idsOf("user");
@@ -1084,6 +1096,14 @@ function RemovedContentSection() {
       rows = await must(supabase.from("comments").select("id, post_id, text, images, user_id, removed_reason, created_at").eq("is_removed", true).order("created_at", { ascending: false }).limit(100));
     } else if (type === "listing") {
       rows = (await must(supabase.from("listings").select("id, title, description, images, user_id, removed_reason, updated_at, created_at").eq("status", "removed").order("updated_at", { ascending: false }).limit(100))).map((row) => ({ ...row, text: row.description, href: "/ilan/" + row.id }));
+    } else if (type === "review") {
+      rows = (await must(supabase.from("reviews").select("id, reviewer_id, rating, comment, listing_title, hidden_reason, updated_at, created_at").eq("is_hidden", true).order("updated_at", { ascending: false }).limit(100))).map((row) => ({
+        ...row,
+        user_id: row.reviewer_id,
+        title: RATING_LABELS[row.rating] + " değerlendirme" + (row.listing_title ? " · " + row.listing_title : ""),
+        text: row.comment,
+        removed_reason: row.hidden_reason
+      }));
     } else {
       rows = await must(supabase.from("species_comments").select("id, species_id, text, images, user_id, removed_reason, created_at").eq("is_removed", true).order("created_at", { ascending: false }).limit(100));
     }
@@ -1097,7 +1117,7 @@ function RemovedContentSection() {
 
   return (
     <Section title="Kaldırılan içerik" subtitle="Yanlışlıkla kaldırılan içeriği buradan geri yayına alabilirsin.">
-      <Tabs value={type} onChange={setType} items={[["post", "Paylaşımlar"], ["comment", "Yorumlar"], ["listing", "İlanlar"], ["species_comment", "Tür deneyimleri"]]} />
+      <Tabs value={type} onChange={setType} items={[["post", "Paylaşımlar"], ["comment", "Yorumlar"], ["listing", "İlanlar"], ["species_comment", "Tür deneyimleri"], ["review", "Değerlendirmeler"]]} />
       <LoadState state={state}>
         {(data) =>
           !data.rows.length ? (
@@ -1279,6 +1299,11 @@ function GroupsSection() {
                           <span>{fmtDay(row.created_at)}</span>
                         </div>
                       </div>
+                      {!row.is_closed && (
+                        <a href={siteLink("/grup/" + row.slug)} target="_blank" rel="noreferrer" title="Grup sayfasındaki 'Grubu düzenle' ile görsel, açıklama ve kuralları değiştirebilirsin" className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">
+                          Sitede düzenle <ExternalLink size={12} />
+                        </a>
+                      )}
                       {row.is_closed ? (
                         <Btn small onClick={() => setClosed(row, false)}><RotateCcw size={13} /> Yeniden aç</Btn>
                       ) : (
@@ -1301,25 +1326,30 @@ function GroupsSection() {
 /* ------------------------------------------------------------------ */
 
 function SpeciesSection() {
-  const { act, ask } = useAdmin();
-  const [tab, setTab] = useState("suggestions");
+  const { act, ask, param } = useAdmin();
+  const [tab, setTab] = useState("species");
   const [query, setQuery] = useState("");
   const state = useLoad(async () => {
     const [suggestions, species, categories] = await Promise.all([
       must(supabase.from("species_suggestions").select("*").order("created_at", { ascending: false }).limit(200)),
-      must(supabase.from("species").select("id, slug, name, latin, category_id, status, is_rare, keeper_count, comment_count").order("name")),
-      must(supabase.from("kb_categories").select("id, name"))
+      must(supabase.from("species").select("id, slug, name, latin, category_id, status, is_rare, keeper_count, comment_count, image_url").order("name")),
+      must(supabase.from("kb_categories").select("id, section, name, emoji").order("position"))
     ]);
     const profiles = await profilesByIds(suggestions.map((row) => row.user_id));
-    return { suggestions, species, categories: Object.fromEntries(categories.map((row) => [row.id, row.name])), profiles };
+    return { suggestions, species, categories, categoryNames: Object.fromEntries(categories.map((row) => [row.id, row.name])), profiles };
   }, []);
+
+  if (param) return <SpeciesEditor param={param} />;
 
   async function review(row, approve) {
     const note = approve
-      ? await ask({ title: "Öneriyi onayla", text: "Öneri onaylandı olarak işaretlenir. Tür sayfası içerik ekibince hazırlanıp eklenir.", input: false, confirm: "Onayla" })
+      ? await ask({ title: "Öneriyi onayla", text: "Öneri onaylandı olarak işaretlenir ve tür profili oluşturma ekranı öneriden doldurularak açılır.", input: false, confirm: "Onayla" })
       : await ask({ title: "Öneriyi reddet", presets: ["Zaten mevcut", "Yanlış / eksik bilgi", "Akvaryum türü değil"], confirm: "Reddet", danger: true, input: false });
     if (note === null) return;
-    if (await act(supabase.from("species_suggestions").update({ status: approve ? "approved" : "rejected", reviewed_at: new Date().toISOString() }).eq("id", row.id), approve ? "Öneri onaylandı" : "Öneri reddedildi")) state.reload();
+    if (await act(supabase.from("species_suggestions").update({ status: approve ? "approved" : "rejected", reviewed_at: new Date().toISOString() }).eq("id", row.id), approve ? "Öneri onaylandı" : "Öneri reddedildi")) {
+      if (approve) window.location.hash = "#/yonetim/turler/oneri-" + row.id;
+      else state.reload();
+    }
   }
   async function toggleStatus(row) {
     const next = row.status === "published" ? "draft" : "published";
@@ -1330,13 +1360,17 @@ function SpeciesSection() {
   }
 
   return (
-    <Section title="Türler" subtitle="Üyelerin tür önerileri ve Bilgi Bankası'ndaki türlerin yayın durumu.">
+    <Section
+      title="Türler"
+      subtitle="Bilgi Bankası tür profilleri ve üyelerin tür önerileri."
+      actions={<a href="#/yonetim/turler/yeni" className="inline-flex items-center gap-1.5 rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white hover:bg-cyan-900"><Plus size={15} /> Yeni tür</a>}
+    >
       <LoadState state={state}>
         {(data) => {
           const pending = data.suggestions.filter((row) => row.status === "pending");
           return (
             <>
-              <Tabs value={tab} onChange={setTab} items={[["suggestions", "Tür önerileri", pending.length], ["species", "Türler (" + data.species.length + ")"]]} />
+              <Tabs value={tab} onChange={setTab} items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length]]} />
               {tab === "suggestions" ? (
                 !data.suggestions.length ? <Empty>Henüz tür önerisi yok.</Empty> : (
                   <Card className="divide-y divide-slate-100 p-0">
@@ -1347,7 +1381,7 @@ function SpeciesSection() {
                             <span className="font-black">{row.name}</span>
                             {row.latin && <span className="text-sm italic text-slate-500">{row.latin}</span>}
                             <StatusBadge status={row.status} />
-                            {row.category_id && <Badge>{data.categories[row.category_id] || row.category_id}</Badge>}
+                            {row.category_id && <Badge>{data.categoryNames[row.category_id] || row.category_id}</Badge>}
                           </div>
                           {row.note && <p className="mt-1 text-sm text-slate-600">{row.note}</p>}
                           <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -1361,6 +1395,9 @@ function SpeciesSection() {
                             <Btn small tone="ghostDanger" onClick={() => review(row, false)}><X size={13} /> Reddet</Btn>
                           </div>
                         )}
+                        {row.status === "approved" && (
+                          <a href={"#/yonetim/turler/oneri-" + row.id} className="text-xs font-black text-cyan-800 hover:underline">Profil oluştur →</a>
+                        )}
                       </div>
                     ))}
                   </Card>
@@ -1373,17 +1410,19 @@ function SpeciesSection() {
                   </label>
                   <Card className="divide-y divide-slate-100 p-0">
                     {data.species
-                      .filter((row) => !query.trim() || (row.name + " " + row.latin).toLocaleLowerCase("tr").includes(query.trim().toLocaleLowerCase("tr")))
+                      .filter((row) => !query.trim() || (row.name + " " + (row.latin || "")).toLocaleLowerCase("tr").includes(query.trim().toLocaleLowerCase("tr")))
                       .map((row) => (
                         <div key={row.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                          {row.image_url ? <img src={row.image_url} alt="" className="h-10 w-10 rounded-xl object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-300"><Fish size={18} /></span>}
                           <div className="min-w-0 flex-1">
-                            <a href={siteLink("/tur/" + row.slug)} target="_blank" rel="noreferrer" className="font-black hover:underline">{row.name}</a>
+                            <a href={"#/yonetim/turler/" + row.id} className="font-black hover:underline">{row.name}</a>
                             <span className="ml-2 text-sm italic text-slate-500">{row.latin}</span>
-                            <div className="text-xs text-slate-500">{data.categories[row.category_id] || row.category_id} · {row.keeper_count} besleyen · {row.comment_count} deneyim</div>
+                            <div className="text-xs text-slate-500">{data.categoryNames[row.category_id] || row.category_id} · {row.keeper_count} besleyen · {row.comment_count} deneyim</div>
                           </div>
                           {row.status === "draft" && <Badge tone="amber">Taslak</Badge>}
                           <Btn small onClick={() => toggleRare(row)}>{row.is_rare ? "💎 Nadir" : "Nadir işaretle"}</Btn>
                           <Btn small onClick={() => toggleStatus(row)}>{row.status === "published" ? "Taslağa al" : "Yayınla"}</Btn>
+                          <a href={"#/yonetim/turler/" + row.id} className="inline-flex items-center gap-1 rounded-full bg-cyan-950 px-3 py-1.5 text-xs font-black text-white hover:bg-cyan-900">Düzenle</a>
                         </div>
                       ))}
                   </Card>
@@ -1394,6 +1433,272 @@ function SpeciesSection() {
         }}
       </LoadState>
     </Section>
+  );
+}
+
+/* Tür profili düzenleyici ------------------------------------------------ */
+
+const FACT_TEMPLATES = {
+  fish: ["Yetişkin boy", "Sıcaklık", "pH", "Min. akvaryum", "Huy", "Beslenme", "Üreme", "Köken", "Ömür"],
+  plant: ["Işık", "CO2", "Büyüme hızı", "Yerleşim", "Sıcaklık", "pH", "Çoğaltma"],
+  coral: ["Işık", "Akıntı", "Sıcaklık", "Tuzluluk (SG)", "Besleme", "Agresiflik", "Yerleşim"]
+};
+const KIND_LABELS = { fish: "Balık / omurgasız", plant: "Bitki", coral: "Mercan" };
+const MAX_SPECIES_IMAGES = 12;
+const TR_ASCII = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", â: "a", î: "i", û: "u" };
+const slugify = (text) =>
+  (text || "")
+    .toLocaleLowerCase("tr")
+    .replace(/[çğıöşüâîû]/g, (c) => TR_ASCII[c])
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+function SpeciesEditor({ param }) {
+  const { act } = useAdmin();
+  const isNew = param === "yeni" || param.startsWith("oneri-");
+  const [form, setForm] = useState(null);
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef(null);
+
+  const state = useLoad(async () => {
+    const categories = await must(supabase.from("kb_categories").select("id, section, name, emoji").order("position"));
+    const existing = await must(supabase.from("species").select("slug"));
+    let row = null;
+    let suggestion = null;
+    if (!isNew) row = await must(supabase.from("species").select("*").eq("id", Number(param)).maybeSingle());
+    if (param.startsWith("oneri-")) suggestion = await must(supabase.from("species_suggestions").select("*").eq("id", Number(param.slice(6))).maybeSingle());
+    return { categories, slugs: new Set(existing.map((item) => String(item.slug))), row, suggestion };
+  }, [param]);
+
+  useEffect(() => {
+    if (!state.data) return;
+    const { row, suggestion, categories } = state.data;
+    if (row) {
+      const images = Array.isArray(row.images) && row.images.length ? row.images : row.image_url ? [row.image_url] : [];
+      setForm({
+        slug: String(row.slug), name: row.name, latin: row.latin || "", category_id: row.category_id, kind: row.kind, difficulty: row.difficulty || "Kolay",
+        temperament: row.temperament || "", description: row.description || "", facts: Array.isArray(row.facts) ? row.facts.map((pair) => [pair[0], pair[1]]) : [],
+        keywords: (row.keywords || []).join(", "), is_rare: Boolean(row.is_rare), status: row.status, images
+      });
+      setSlugTouched(true);
+    } else {
+      setForm({
+        slug: suggestion ? slugify(suggestion.latin || suggestion.name) : "", name: suggestion ? suggestion.name : "", latin: suggestion ? suggestion.latin || "" : "",
+        category_id: (suggestion && suggestion.category_id) || (categories[0] && categories[0].id) || "", kind: "fish", difficulty: "Kolay", temperament: "",
+        description: suggestion && suggestion.note ? suggestion.note : "", facts: FACT_TEMPLATES.fish.map((label) => [label, ""]), keywords: "", is_rare: false, status: "draft", images: []
+      });
+    }
+  }, [state.data]);
+
+  if (!form) {
+    return <LoadState state={state}>{() => null}</LoadState>;
+  }
+
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const slugTaken = isNew && state.data.slugs.has(form.slug);
+  const problems = [];
+  if (form.name.trim().length < 2) problems.push("Türkçe ad");
+  if (!/^[a-z0-9-]{3,80}$/.test(form.slug)) problems.push("adres (en az 3 karakter; küçük harf, rakam, tire)");
+  if (slugTaken) problems.push("bu adres zaten kullanılıyor");
+  if (!form.category_id) problems.push("kategori");
+  if (form.description.trim().length < 20) problems.push("açıklama (en az 20 karakter)");
+
+  async function addImages(event) {
+    const files = Array.from(event.target.files || []).filter((file) => /^image\/(jpeg|png|webp)$/.test(file.type));
+    event.target.value = "";
+    const room = MAX_SPECIES_IMAGES - form.images.length;
+    if (!files.length || room <= 0) return;
+    setError("");
+    setUploading(Math.min(room, files.length));
+    const uploaded = [];
+    for (const file of files.slice(0, room)) {
+      try {
+        const blob = await shrinkImage(file, 1800, 0.86);
+        const type = blob.type || "image/jpeg";
+        const path = "species/" + (form.slug || "yeni") + "/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+        const { error: upErr } = await supabase.storage.from("species-media").upload(path, blob, { contentType: type });
+        if (upErr) throw upErr;
+        uploaded.push(supabase.storage.from("species-media").getPublicUrl(path).data.publicUrl);
+      } catch (err) {
+        setError(trError(err));
+      }
+      setUploading((value) => Math.max(0, value - 1));
+    }
+    if (uploaded.length) setForm((prev) => ({ ...prev, images: [...prev.images, ...uploaded].slice(0, MAX_SPECIES_IMAGES) }));
+  }
+
+  function moveImage(index, delta) {
+    setForm((prev) => {
+      const images = prev.images.slice();
+      const target = index + delta;
+      if (target < 0 || target >= images.length) return prev;
+      [images[index], images[target]] = [images[target], images[index]];
+      return { ...prev, images };
+    });
+  }
+
+  async function save(status) {
+    if (problems.length || saving) return;
+    setSaving(true);
+    setError("");
+    const payload = {
+      slug: form.slug,
+      name: form.name.trim(),
+      latin: form.latin.trim() || null,
+      category_id: form.category_id,
+      kind: form.kind,
+      difficulty: form.difficulty,
+      temperament: form.temperament.trim() || null,
+      description: form.description.trim(),
+      facts: form.facts.map(([label, value]) => [label.trim(), String(value).trim()]).filter(([label, value]) => label && value),
+      keywords: Array.from(new Set(form.keywords.split(",").map((word) => word.trim().toLocaleLowerCase("tr")).filter(Boolean))),
+      is_rare: form.is_rare,
+      status,
+      images: form.images,
+      image_url: form.images[0] || null
+    };
+    const ok = await act(
+      isNew ? supabase.from("species").insert(payload) : supabase.from("species").update(payload).eq("id", Number(param)),
+      status === "published" ? payload.name + " yayında" : payload.name + " taslak olarak kaydedildi"
+    );
+    setSaving(false);
+    if (ok) window.location.hash = "#/yonetim/turler";
+  }
+
+  const input = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-cyan-700";
+  const sections = Array.from(new Set(state.data.categories.map((cat) => cat.section)));
+  const SECTION_NAMES = { tatlisu: "Tatlı su balıkları", omurgasiz: "Omurgasızlar", deniz: "Deniz canlıları", bitki: "Bitkiler" };
+
+  return (
+    <div>
+      <a href="#/yonetim/turler" className="mb-3 inline-flex items-center gap-1.5 text-sm font-black text-slate-500 hover:text-slate-800"><ArrowLeft size={15} /> Türler</a>
+      <Section
+        title={isNew ? "Yeni tür profili" : form.name}
+        subtitle={isNew ? "Kaydettiğin profil Bilgi Bankası'nda yayınlandığında herkes görür." : "Değişiklikler kaydedildiği anda sitede güncellenir (ziyaretçi sayfayı yenilediğinde)."}
+        actions={!isNew && <a href={siteLink("/tur/" + form.slug)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-black text-cyan-800 hover:underline">Sitede aç <ExternalLink size={13} /></a>}
+      >
+        <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
+          <div className="grid content-start gap-4">
+            <Card>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1 text-xs font-black text-slate-500">Türkçe ad
+                  <input className={input} value={form.name} maxLength={80} onChange={(event) => { set("name", event.target.value); if (!slugTouched && !form.latin) set("slug", slugify(event.target.value)); }} placeholder="Örn. Ember Tetra" />
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500">Latince ad
+                  <input className={input + " italic"} value={form.latin} maxLength={120} onChange={(event) => { set("latin", event.target.value); if (!slugTouched) set("slug", slugify(event.target.value || form.name)); }} placeholder="Hyphessobrycon amandae" />
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500">Sayfa adresi
+                  <span className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-normal text-slate-400">
+                    /tur/
+                    <input className="w-full bg-transparent py-2.5 text-slate-900 outline-none disabled:text-slate-500" value={form.slug} disabled={!isNew} onChange={(event) => { setSlugTouched(true); set("slug", slugify(event.target.value)); }} />
+                  </span>
+                  {!isNew && <span className="font-normal text-slate-400">Paylaşılan bağlantılar bozulmasın diye adres değiştirilemez.</span>}
+                  {slugTaken && <span className="font-bold text-rose-600">Bu adres zaten kullanılıyor.</span>}
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500">Kategori
+                  <select className={input} value={form.category_id} onChange={(event) => set("category_id", event.target.value)}>
+                    {sections.map((section) => (
+                      <optgroup key={section} label={SECTION_NAMES[section] || section}>
+                        {state.data.categories.filter((cat) => cat.section === section).map((cat) => <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500">Canlı türü
+                  <select className={input} value={form.kind} onChange={(event) => set("kind", event.target.value)}>
+                    {Object.entries(KIND_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500">Bakım zorluğu
+                  <select className={input} value={form.difficulty} onChange={(event) => set("difficulty", event.target.value)}>
+                    {["Kolay", "Orta", "Zor"].map((value) => <option key={value}>{value}</option>)}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Huy / kısa not (isteğe bağlı)
+                  <input className={input} value={form.temperament} maxLength={60} onChange={(event) => set("temperament", event.target.value)} placeholder="Örn. Barışçıl, sürü balığı" />
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Açıklama
+                  <textarea className={input} rows={5} value={form.description} maxLength={2000} onChange={(event) => set("description", event.target.value)} placeholder="Türü tanıtan, bakımda dikkat edilmesi gerekenleri anlatan birkaç cümle." />
+                  <span className="text-right font-normal text-slate-400">{form.description.length}/2000</span>
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Arama kelimeleri
+                  <input className={input} value={form.keywords} onChange={(event) => set("keywords", event.target.value)} placeholder="virgülle: ember, ember tetra, amandae" />
+                  <span className="font-normal text-slate-400">Paylaşım ve ilanlarda bu kelimeler geçince tür otomatik etiketlenir.</span>
+                </label>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-black">Bakım künyesi</h2>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(KIND_LABELS).map(([key, label]) => (
+                    <Btn key={key} small onClick={() => set("facts", FACT_TEMPLATES[key].map((name) => [name, (form.facts.find(([l]) => l === name) || [])[1] || ""]))}>{label} şablonu</Btn>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                {form.facts.map(([label, value], index) => (
+                  <div key={index} className="grid grid-cols-[1fr_1.4fr_auto] gap-2">
+                    <input className={input} value={label} maxLength={40} onChange={(event) => set("facts", form.facts.map((pair, i) => (i === index ? [event.target.value, pair[1]] : pair)))} placeholder="Başlık" />
+                    <input className={input} value={value} maxLength={80} onChange={(event) => set("facts", form.facts.map((pair, i) => (i === index ? [pair[0], event.target.value] : pair)))} placeholder="Değer (ör. 24–28 °C)" />
+                    <button type="button" onClick={() => set("facts", form.facts.filter((_, i) => i !== index))} className="rounded-full p-2 text-slate-400 hover:bg-slate-100" title="Satırı sil" aria-label="Satırı sil"><X size={15} /></button>
+                  </div>
+                ))}
+              </div>
+              {form.facts.length < 16 && <div className="mt-2"><Btn small onClick={() => set("facts", [...form.facts, ["", ""]])}><Plus size={13} /> Satır ekle</Btn></div>}
+              <p className="mt-2 text-xs text-slate-400">Boş bırakılan satırlar kaydedilmez.</p>
+            </Card>
+          </div>
+
+          <div className="grid content-start gap-4">
+            <Card>
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="font-black">Görseller</h2>
+                <span className="text-xs font-bold text-slate-400">{form.images.length}/{MAX_SPECIES_IMAGES}</span>
+              </div>
+              <p className="mb-3 text-xs text-slate-500">İlk görsel kapak olur; tür sayfasında hepsi kaydırmalı gösterilir. Yatay ya da kare, net görseller seç; telif hakkına dikkat et.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {form.images.map((url, index) => (
+                  <div key={url} className="group relative aspect-square overflow-hidden rounded-xl bg-slate-100">
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    {index === 0 && <span className="absolute left-1 top-1 rounded-full bg-cyan-950 px-1.5 py-0.5 text-[10px] font-black text-white">Kapak</span>}
+                    <div className="absolute inset-x-1 bottom-1 flex justify-between gap-1">
+                      <button type="button" onClick={() => moveImage(index, -1)} disabled={index === 0} className="grid h-6 w-6 place-items-center rounded-full bg-white/90 text-slate-700 shadow disabled:opacity-30" title="Öne al" aria-label="Öne al"><ChevronLeft size={14} /></button>
+                      <button type="button" onClick={() => set("images", form.images.filter((_, i) => i !== index))} className="grid h-6 w-6 place-items-center rounded-full bg-white/90 text-rose-600 shadow" title="Görseli kaldır" aria-label="Görseli kaldır"><Trash2 size={13} /></button>
+                      <button type="button" onClick={() => moveImage(index, 1)} disabled={index === form.images.length - 1} className="grid h-6 w-6 place-items-center rounded-full bg-white/90 text-slate-700 shadow disabled:opacity-30" title="Arkaya al" aria-label="Arkaya al"><ChevronRight size={14} /></button>
+                    </div>
+                  </div>
+                ))}
+                {form.images.length < MAX_SPECIES_IMAGES && (
+                  <button type="button" onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading > 0} className="grid aspect-square place-items-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 hover:border-cyan-700 hover:text-cyan-800">
+                    {uploading > 0 ? <Loader2 className="animate-spin" size={20} /> : <span className="grid place-items-center gap-1 text-[11px] font-black"><Upload size={18} /> Görsel ekle</span>}
+                  </button>
+                )}
+              </div>
+              <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={addImages} />
+            </Card>
+
+            <Card>
+              <label className="flex items-center gap-2 text-sm font-bold">
+                <input type="checkbox" className="h-4 w-4 accent-cyan-900" checked={form.is_rare} onChange={(event) => set("is_rare", event.target.checked)} /> Nadir tür olarak işaretle 💎
+              </label>
+              <div className="mt-3 text-xs text-slate-500">Durum: <strong className="text-slate-800">{form.status === "published" ? "Yayında" : "Taslak"}</strong></div>
+              {error && <div className="mt-3 rounded-2xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">{error}</div>}
+              {problems.length > 0 && <p className="mt-3 text-xs font-bold text-slate-400">Eksik: {problems.join(", ")}</p>}
+              <div className="mt-3 grid gap-2">
+                <Btn tone="primary" disabled={problems.length > 0 || saving || uploading > 0} onClick={() => save("published")}><Check size={14} /> {form.status === "published" ? "Kaydet" : "Kaydet ve yayınla"}</Btn>
+                <Btn disabled={problems.length > 0 || saving || uploading > 0} onClick={() => save("draft")}>{form.status === "published" ? "Taslağa al ve kaydet" : "Taslak olarak kaydet"}</Btn>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </Section>
+    </div>
   );
 }
 

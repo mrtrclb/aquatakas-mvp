@@ -458,9 +458,10 @@ export function TagsPage({ posts, ctx }) {
   const [filter, setFilter] = useState("");
   const all = useMemo(() => extractTags(posts), [posts]);
   const max = all.length ? all[0].count : 1;
-  const q = normalizeTr(filter.trim().replace(/^#/, ""));
+  const fold = (text) => normalizeTr(text).replace(/[çğıöşü]/g, (ch) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[ch]);
+  const q = fold(filter.trim().replace(/^#/, ""));
   const list = all
-    .filter(({ tag }) => !q || tag.includes(q))
+    .filter(({ tag }) => !q || fold(tag).includes(q))
     .slice()
     .sort((a, b) => (sort === "alpha" ? a.tag.localeCompare(b.tag, "tr") : b.count - a.count || a.tag.localeCompare(b.tag, "tr")));
 

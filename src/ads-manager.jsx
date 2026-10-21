@@ -228,22 +228,18 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
             {!editingId && (
               <div>
                 <div className="mb-1.5 text-xs font-black text-slate-500">Reklam paketi</div>
-                <div className="grid gap-2">
+                <select
+                  value={form.plan_id}
+                  onChange={(event) => setForm((prev) => ({ ...prev, plan_id: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-black text-slate-900 outline-none focus:border-cyan-700"
+                  aria-label="Reklam paketi"
+                >
                   {plans.map((item) => {
-                    const meta = AD_PLACEMENTS[item.placement] || { label: item.placement, hint: "" };
-                    const active = form.plan_id === item.id;
-                    return (
-                      <label key={item.id} className={"flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition " + (active ? "border-cyan-700 bg-cyan-50" : "border-slate-200 bg-slate-50 hover:border-slate-300")}>
-                        <input type="radio" name="ad-plan" checked={active} onChange={() => setForm((prev) => ({ ...prev, plan_id: item.id }))} className="h-4 w-4 accent-cyan-900" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-black text-slate-900">{meta.label} · {item.days} gün</span>
-                          <span className="block text-xs text-slate-500">{meta.hint}</span>
-                        </span>
-                        <span className="text-sm font-black text-slate-900">{tl(item.price)}</span>
-                      </label>
-                    );
+                    const meta = AD_PLACEMENTS[item.placement] || { label: item.placement };
+                    return <option key={item.id} value={item.id}>{meta.label} · {item.days} gün · {tl(item.price)}</option>;
                   })}
-                </div>
+                </select>
+                {plan && AD_PLACEMENTS[plan.placement] && <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{AD_PLACEMENTS[plan.placement].hint}</p>}
               </div>
             )}
 
@@ -272,7 +268,7 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
             <h3 className="mb-1 text-lg font-black">Canlı önizleme</h3>
             <p className="mb-3 text-xs text-slate-500">{placement ? (AD_PLACEMENTS[placement] || {}).label + " alanında böyle görünür" : "Paket seç"}</p>
             <div className="pointer-events-none overflow-hidden rounded-2xl bg-white">
-              {placement === "feed" ? <FeedAdCard ad={previewAd} /> : placement === "detail" ? <div className="p-2 [&>div]:mb-0"><DetailBannerAd ad={previewAd} /></div> : <SidebarAd ad={previewAd} />}
+              {placement === "feed" ? <FeedAdCard ad={previewAd} /> : ["detail", "post", "species"].includes(placement) ? <div className="p-2 [&>div]:mb-0"><DetailBannerAd ad={previewAd} /></div> : <SidebarAd ad={previewAd} />}
             </div>
           </div>
         </div>

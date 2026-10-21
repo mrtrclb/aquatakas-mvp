@@ -4,7 +4,8 @@ import { Check, ChevronDown, X } from "lucide-react";
 // Yasal metinler. Yayına almadan önce bir hukukçuya kontrol ettirilmelidir.
 // Köşeli parantezli alanlar ([...]) doldurulmalıdır.
 export const LEGAL_VERSION = "2026-10-21";
-const CONTACT = "info@aquagram.com.tr";
+export const CONTACT_EMAIL = "bilgi@aquagram.com.tr";
+const CONTACT = CONTACT_EMAIL;
 const CONTROLLER = "[VERİ SORUMLUSUNUN ADI SOYADI / UNVANI]";
 const ADDRESS = "[YAZIŞMA ADRESİ]";
 
@@ -55,7 +56,7 @@ export const LEGAL_DOCS = {
       ]],
       ["8. Ücretli hizmetler", [
         "İlan öne çıkarma ve reklam gibi ücretli hizmetlerin süresi ve fiyatı başvuru sırasında gösterilir. Başvurular ekip incelemesinden sonra yayına alınır; reddedilen başvurularda ödeme alınmışsa iade edilir.",
-        "Yayındaki bir reklamın veren tarafından durdurulması hâlinde kalan süre için iade yapılmaz. Mesafeli sözleşmelere ilişkin yasal haklar saklıdır."
+        "Onaylanıp yayına alınan bir reklamın, süresi dolmadan reklam veren tarafından yayından kaldırılması hâlinde kısmi ya da tam ücret iadesi yapılmaz. Mesafeli sözleşmelere ilişkin yasal haklar saklıdır."
       ]],
       ["9. Sorumluluğun sınırlandırılması", [
         "Platform \"olduğu gibi\" sunulur. Aquagram, kesintisiz ya da hatasız çalışmayı garanti etmez.",
@@ -63,7 +64,7 @@ export const LEGAL_DOCS = {
       ]],
       ["10. Değişiklikler ve fesih", [
         "Aquagram bu koşulları değiştirebilir. Önemli değişiklikler Platform üzerinden duyurulur; değişiklikten sonra Platform'u kullanmaya devam etmen güncel koşulları kabul ettiğin anlamına gelir.",
-        "Hesabını dilediğin zaman kapatabilirsin. Hesap kapatma talepleri " + CONTACT + " adresine iletilebilir."
+        "Hesabını dilediğin zaman Hesabım sayfasındaki \"Hesabımı sil\" düğmesiyle kapatabilirsin. Hesap kapatıldığında e-posta adresin, şifren ve profil bilgilerin silinir, yayındaki ilanların kaldırılır. Topluluk sohbetlerinin bütünlüğü için paylaşım, yorum, tür deneyimi ve değerlendirmelerin \"misafir_…\" biçiminde anonim bir kullanıcı adıyla yayında kalır; bunları hesabını silmeden önce kendin silebilirsin."
       ]],
       ["11. Uygulanacak hukuk", [
         "Bu koşullar Türkiye Cumhuriyeti hukukuna tabidir. Uyuşmazlıklarda tüketici işlemleri bakımından Tüketici Hakem Heyetleri ve Tüketici Mahkemeleri, diğer hâllerde İstanbul Mahkemeleri ve İcra Daireleri yetkilidir.",
@@ -102,7 +103,8 @@ export const LEGAL_DOCS = {
         "Kişisel verileriniz; kayıt formu, profil sayfası, ilan ve paylaşım formları, mesajlaşma ve diğer Platform özellikleri aracılığıyla elektronik ortamda, kısmen otomatik yollarla toplanır."
       ]],
       ["Saklama süresi", [
-        "Verileriniz üyeliğiniz süresince ve üyeliğin sona ermesinden sonra ilgili mevzuatta öngörülen ya da olası uyuşmazlıklar için gereken süre boyunca saklanır; süre dolduğunda silinir, yok edilir ya da anonim hâle getirilir."
+        "Verileriniz üyeliğiniz süresince ve üyeliğin sona ermesinden sonra ilgili mevzuatta öngörülen ya da olası uyuşmazlıklar için gereken süre boyunca saklanır; süre dolduğunda silinir, yok edilir ya da anonim hâle getirilir.",
+        "Hesabınızı Hesabım sayfasından sildiğinizde e-posta adresiniz, şifreniz, profil bilgileriniz, telefon numaranız ve kişisel listeleriniz silinir. Paylaşım, yorum, tür deneyimi ve değerlendirmeleriniz kimliğinizle ilişkilendirilmeyen anonim bir kullanıcı adıyla (\"misafir_…\") yayında kalır."
       ]],
       ["Haklarınız", [
         "KVKK'nın 11. maddesi uyarınca; kişisel verilerinizin işlenip işlenmediğini öğrenme, işlenmişse bilgi talep etme, işlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme, yurt içinde veya yurt dışında aktarıldığı üçüncü kişileri bilme, eksik veya yanlış işlenmişse düzeltilmesini, KVKK'nın 7. maddesindeki şartlar çerçevesinde silinmesini veya yok edilmesini isteme, bu işlemlerin aktarılan üçüncü kişilere bildirilmesini isteme, münhasıran otomatik sistemlerle analiz edilmesi sonucu aleyhinize bir sonucun ortaya çıkmasına itiraz etme ve kanuna aykırı işleme nedeniyle zarara uğramanız hâlinde zararın giderilmesini talep etme haklarına sahipsiniz.",
@@ -116,7 +118,11 @@ export const LEGAL_DOCS = {
     accept: "Anladım",
     sections: [
       ["Özet", [
-        "Aquagram'da reklam amaçlı takip çerezi, üçüncü taraf analiz aracı ya da profilleme yoktur. Kişisel verilerin işlenmesine ilişkin ayrıntılar Kişisel Verilerin Korunması Aydınlatma Metni'nde yer alır."
+        "Aquagram'da reklam amaçlı takip çerezi, üçüncü taraf analiz aracı ya da profilleme yoktur. Kişisel verilerin işlenmesine ilişkin ayrıntılar Kişisel Verilerin Korunması Aydınlatma Metni'nde yer alır.",
+        "Bizimle paylaştığınız veri oldukça sınırlıdır. Kart ya da banka bilgilerinizi saklamayız; verilerinizi reklam şirketlerine satmaz, ticari amaçla üçüncü kişilerle paylaşmayız. Verileriniz yalnızca hizmeti sunmak, güvenliği sağlamak ve platformu iyileştirmek için kullanılır."
+      ]],
+      ["Bot koruması", [
+        "Giriş, kayıt ve şifre işlemlerinde otomatik saldırıları önlemek için Cloudflare Turnstile kullanılır. Turnstile, isteğin bir insandan geldiğini anlamak için tarayıcı ve cihaz sinyallerini kısa süreli olarak inceler; reklam ya da takip amacıyla kullanılmaz."
       ]],
       ["Tarayıcıda saklanan bilgiler", [
         "Oturumunuzun açık kalması için tarayıcınızın yerel deposunda (localStorage) bir oturum anahtarı saklanır. Bu zorunlu bir teknik kayıttır; çıkış yaptığınızda silinir.",
@@ -128,7 +134,8 @@ export const LEGAL_DOCS = {
         "Mesajlarınızı yalnızca konuşmanın tarafları görebilir. Ekip, şikâyet incelemesi dışında mesaj içeriklerine erişmez."
       ]],
       ["Dış bağlantılar", [
-        "Reklamlar ve ilanlar başka sitelere bağlantı içerebilir. Bu sitelerin gizlilik uygulamalarından Aquagram sorumlu değildir."
+        "Reklamlar ve ilanlar başka sitelere bağlantı içerebilir. Bu sitelerin gizlilik uygulamalarından Aquagram sorumlu değildir.",
+        "Paylaşımlara eklenen bağlantılar için başlık, açıklama ve görselden oluşan bir önizleme kartı gösterilir. Önizleme bilgisi sunucumuz tarafından alınır; kart görseli ise ilgili siteden yüklenir. YouTube videoları yalnızca oynat düğmesine bastığınızda, çerez kullanımı azaltılmış (youtube-nocookie.com) oynatıcıyla açılır."
       ]],
       ["İletişim", ["Sorularınız için: " + CONTACT]]
     ]
@@ -148,8 +155,14 @@ export const LEGAL_DOCS = {
         "Görselde yoğun metin, telefon numarası, fiyat listesi ya da başka platformların logolarını öne çıkaran tasarımlar."
       ]],
       ["Yayın ve ölçüm", [
-        "Onaylanan reklam seçilen alanda paket süresince gösterilir; süre onay anında başlar. Gösterim ve tıklama sayıları reklam verene Reklamlarım sayfasında gösterilir.",
+        "Onaylanan reklam seçilen alanda paket süresince gösterilir; süre onay anında başlar. Aynı alanda birden fazla reklam varsa sıralama her sayfa açılışında karıştırılır ve reklamlar dönüşümlü gösterilir.",
+        "Gösterim ve tıklama sayıları reklam verene Reklamlarım sayfasında gösterilir.",
         "Aquagram, yayındaki bir reklamı kurallara aykırı hâle gelmesi durumunda yayından kaldırabilir."
+      ]],
+      ["Ücret ve iade", [
+        "Reddedilen başvurularda ödeme alınmışsa ücretin tamamı iade edilir.",
+        "Reklam veren, onaylanıp yayına alınmış reklamını Reklamlarım sayfasından dilediği zaman yayından kaldırabilir. Kendi isteğinizle süresi tamamlanmadan yayından kaldırılan reklamlar için kısmi ya da tamamen ücret iadesi yapılmaz.",
+        "Reklamın kurallara aykırılık nedeniyle Aquagram tarafından yayından kaldırılması hâlinde de kalan süre için iade yapılmaz. Mesafeli sözleşmelere ilişkin yasal haklarınız saklıdır."
       ]]
     ]
   }

@@ -25,6 +25,7 @@ import {
   X
 } from "lucide-react";
 import { categoryById, detectSpecies, speciesBySlug } from "./species.js";
+import { LinkPreviewCard, URL_RE, firstUrl } from "./link-preview.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -406,9 +407,13 @@ export function Avatar({ user, size = 44, onClick }) {
 }
 
 function RichText({ text, onTag }) {
-  const parts = text.split(/(#[\p{L}\p{N}_]+)/u);
+  const parts = text.split(new RegExp("(" + URL_RE.source + "|#[\\p{L}\\p{N}_]+)", "giu"));
   return parts.map((part, index) =>
-    part.startsWith("#") ? (
+    /^https?:\/\//i.test(part) ? (
+      <a key={index} href={part} target="_blank" rel="noopener noreferrer nofollow" onClick={(event) => event.stopPropagation()} className="break-all text-cyan-700 hover:underline">
+        {part.replace(/^https?:\/\/(www\.)?/, "").slice(0, 48) + (part.replace(/^https?:\/\/(www\.)?/, "").length > 48 ? "…" : "")}
+      </a>
+    ) : part.startsWith("#") ? (
       <button
         key={index}
         type="button"
@@ -751,6 +756,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false }) {
 
         <ImageGrid images={post.images} onOpen={(index) => setLightbox(index)} />
         <VideoBlock video={post.video} />
+        {!post.video && !(post.images && post.images.length) && firstUrl(post.text) && <LinkPreviewCard url={firstUrl(post.text)} />}
         <PollBlock post={post} ctx={ctx} />
         <SpeciesChips slugs={post.speciesSlugs} ctx={ctx} />
 
@@ -1387,6 +1393,11 @@ export function PostDetailPage({ post, ctx, onBack }) {
         </div>
       </div>
       <PostCard post={post} ctx={ctx} detail />
+      {ctx.adsFor && ctx.adsFor("post").length > 0 && (
+        <div className="px-3 pt-3 sm:px-4 [&>div]:mb-3">
+          <ctx.DetailBannerAd ad={ctx.adsFor("post")[(Number(post.dbId) || post.id.length || 0) % ctx.adsFor("post").length]} />
+        </div>
+      )}
       <ReplyBox post={post} ctx={ctx} />
       {comments.length === 0 ? (
         <p className="p-6 text-center text-sm font-semibold text-slate-400">Henüz yanıt yok. İlk yanıtı sen yaz!</p>
@@ -1499,7 +1510,7 @@ export function UserPostsPage({ user, posts, ctx, onBack, onViewListings }) {
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={onViewListings} className="rounded-full border border-white/30 px-4 py-2 text-sm font-black text-white hover:bg-white/10">İlanlarını gör</button>
-              <button onClick={() => ctx.onMessage(user, "Profil")} className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50"><MessageCircle size={16} /> Mesaj gönder</button>
+              {!user.deleted && <button onClick={() => ctx.onMessage(user, "Profil")} className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50"><MessageCircle size={16} /> Mesaj gönder</button>}
             </div>
           </div>
         </div>
@@ -1563,6 +1574,11 @@ function ToolButton({ icon: Icon, label, onClick, disabled, active, compact = fa
 
 export function ComposerModal({ user, userId, groups = [], defaultGroupId = null, defaultKind = "post", onClose, onPublish }) {
   const [text, setText] = useState("");
+  const [previewUrl, setPreviewUrl] = useState(null);
+  useEffect(() => {
+    const timer = setTimeout(() => setPreviewUrl(firstUrl(text)), 600);
+    return () => clearTimeout(timer);
+  }, [text]);
   const [groupId, setGroupId] = useState(defaultGroupId);
   const [kind, setKind] = useState(defaultKind);
   const [removedSpecies, setRemovedSpecies] = useState([]);
@@ -1729,6 +1745,8 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
               placeholder={pollOn ? "Anket sorunu yaz" : kind === "question" ? "Sorunu yaz: tank hacmi, su değerleri ve belirtileri eklemeyi unutma" : "Akvaryumunda neler oluyor?"}
               className="w-full resize-none bg-transparent py-2 text-lg leading-relaxed outline-none placeholder:text-slate-400"
             />
+
+            {previewUrl && !video && images.length === 0 && !pollOn && <LinkPreviewCard url={previewUrl} compact />}
 
             {images.length > 0 && (
               <div className="mb-3 grid grid-cols-3 gap-2">

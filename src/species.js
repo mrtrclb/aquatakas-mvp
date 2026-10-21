@@ -243,12 +243,12 @@ export const SEED_SPECIES_COMMENTS = [
 const lower = (text) => (text || "").toLocaleLowerCase("tr");
 const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// Her tür için: Latince ad + anahtar kelimeler. Kelime başından eşleşir (Türkçe ekler için sonu serbest);
+// Her tür için: Latince ad + Türkçe ad + anahtar kelimeler. Kelime başından eşleşir (Türkçe ekler için sonu serbest);
 // 4 harften kısa ifadeler yalnızca tam kelime olarak eşleşir.
 function buildMatchers(list) {
   return list.map((item) => ({
   slug: item.slug,
-  patterns: [(item.latin || "").replace(/ sp\.$/, ""), ...(item.keywords || [])]
+  patterns: [(item.latin || "").replace(/ sp\.$/, ""), item.name, ...(item.keywords || [])]
     .filter(Boolean)
     .map((word) => {
       const w = escapeRe(lower(word).replace(/['’]/g, ""));

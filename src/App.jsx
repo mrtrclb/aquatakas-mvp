@@ -9,9 +9,9 @@ import { useDbKnowledge } from "./lib/knowledge";
 import { useSiteSettings } from "./lib/settings";
 import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
 import AdsManagerPage from "./ads-manager.jsx";
-import { LEGAL_DOCS, LegalBody } from "./legal.jsx";
+import { SiteInfoModal, BLOG_URL } from "./site-info.jsx";
 import { VerificationCard } from "./verification.jsx";
-import { AccountSecurity } from "./account-security.jsx";
+import { AccountSecurity, DeleteAccountDialog } from "./account-security.jsx";
 import { trackVisit } from "./lib/visits";
 import { absoluteUrl, navigate, onRoute, routePath, upgradeLegacyHash } from "./lib/router";
 import { ListingDetailAside } from "./listing-aside.jsx";
@@ -217,7 +217,7 @@ const adPool = [
 ];
 
 // Yayındaki gerçek reklamlar (yerleşime göre); yoksa örnek reklamlar gösterilir
-let livePools = { feed: [], sidebar: [], detail: [] };
+let livePools = {};
 function adsFor(placement) {
   const live = livePools[placement] || [];
   return live.length ? live : SHOW_DEMO ? adPool : [];
@@ -1079,6 +1079,8 @@ export default function AquagramApp() {
     UserName,
     VerifiedBadge,
     FeedAdCard,
+    DetailBannerAd,
+    adsFor,
     adPool: adsFor("feed"),
     isMember,
     currentUserId,
@@ -1335,6 +1337,15 @@ export default function AquagramApp() {
     setMemberPage(key);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  // Site bilgileri penceresinden (ör. "Reklam başvurusu yap") gelen sayfa açma isteği
+  const openMemberPageRef = useRef(openMemberPage);
+  openMemberPageRef.current = openMemberPage;
+  useEffect(() => {
+    const onOpen = (event) => openMemberPageRef.current(event.detail);
+    window.addEventListener("aq:member-page", onOpen);
+    return () => window.removeEventListener("aq:member-page", onOpen);
+  }, []);
 
   function changeHomeFilter(value) {
     setHomeFilter(value);
@@ -2336,99 +2347,21 @@ function RightSidebar({ children, minimal = false }) {
         </div>
       </div>}
       <div className={(minimal ? "mt-4 border-t border-slate-100 pt-3 " : "mt-3 ") + "flex flex-wrap gap-1.5 opacity-75 transition hover:opacity-100"}>
-        {footerLinks.map(([key, label]) => (
-          <button key={key} onClick={() => openInfo(key)} className="rounded-xl px-2.5 py-2 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">
-            {label}
-          </button>
-        ))}
+        {footerLinks.map(([key, label]) =>
+          key === "blog" ? (
+            <a key={key} href={BLOG_URL} target="_blank" rel="noopener" className="rounded-xl px-2.5 py-2 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">
+              {label}
+            </a>
+          ) : (
+            <button key={key} onClick={() => openInfo(key)} className="rounded-xl px-2.5 py-2 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">
+              {label}
+            </button>
+          )
+        )}
       </div>
       {!minimal && children}
       {infoOpen && <SiteInfoModal activeTab={infoTab} setActiveTab={setInfoTab} onClose={() => setInfoOpen(false)} />}
     </aside>
-  );
-}
-
-function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
-  const tabs = [
-    ["nedir", "Nedir?"],
-    ["contact", "Bize ulaşın"],
-    ["terms", "Kullanım şartları"],
-    ["ads", "Reklam verin"],
-    ["adpolicy", "Reklam politikası"],
-    ["warnings", "Önemli uyarılar"],
-    ["privacy", "Gizlilik politikası"],
-    ["kvkk", "KVKK aydınlatma"]
-  ];
-
-  const content = {
-    nedir: [
-      "Aquagram nedir?",
-      "Akvaryum hobisine odaklanan; canlı, bitki, ekipman, yem, kimyasal ve dekor ilanlarının aynı çatı altında toplandığı niş bir ilan platformudur. Amaç genel pazar yeri kalabalığını azaltıp hobicilerin birbirini daha hızlı bulmasını sağlamaktır."
-    ],
-    contact: [
-      "Bize ulaşın",
-      "Destek, öneri, ilan bildirimi ve iş birliği talepleri için iletişim formu burada konumlanır. MVP aşamasında bu alan temsilidir; canlıda destek talepleri ayrı kayıt altında izlenebilir."
-    ],
-    terms: [
-      "Kullanım şartları",
-      "İlan veren kullanıcı, paylaştığı görsel ve metinlerden sorumludur. Canlı gönderimi, ödeme, teslimat ve iade koşulları taraflar arasında netleştirilmelidir. Platform şüpheli ilanları incelemeye alabilir."
-    ],
-    ads: [
-      "Reklam verin",
-      "Akvaryum hobisine doğrudan ulaşan hedefli reklam alanları sunulur. Sidebar, ilan arası reklam kartı ve ilan detay banner alanları marka görünürlüğü için kullanılabilir."
-    ],
-    adpolicy: [
-      "Reklam politikası",
-      "Reklam görsellerinde okunabilir telefon, WhatsApp, fiyat etiketi veya yoğun kampanya metni bulunmamalıdır. Görsel sade ürün, marka veya mağaza atmosferi taşımalı; iletişim ve fiyat bilgileri reklam metni ya da hedef sayfada verilmelidir. Uygun bulunmayan reklamlar incelemede reddedilebilir veya düzenleme istenebilir."
-    ],
-    warnings: [
-      "Önemli uyarılar",
-      "Canlı satışı, canlı gönderimi, ödeme, teslimat ve iade süreçleri kullanıcıların sorumluluğundadır. Platform; yanıltıcı, yoğun metinli, fiyat odaklı, iletişim bilgisi taşıyan veya topluluk güvenliğini zedeleyen reklamları incelemeye alabilir, reddedebilir ya da yayından kaldırabilir."
-    ],
-    privacy: [
-      "Gizlilik politikası",
-      "E-posta, telefon, mesajlaşma ve doğrulama bilgileri kullanıcı güvenliği için işlenir. Canlıya geçişte KVKK uyumlu açık rıza, aydınlatma metni ve veri saklama politikası gerekecektir."
-    ],
-    blog: [
-      "Blog",
-      "Kurulum rehberleri, tür tanıtımları, bakım notları, yeni başlayanlara öneriler ve ilan güvenliği yazıları bu bölümde yer alabilir. Blog, platforma organik trafik kazandıran güçlü bir içerik katmanı olur."
-    ]
-  };
-
-  const legalKey = { terms: "terms", privacy: "privacy", adpolicy: "ads", kvkk: "kvkk" }[activeTab];
-  const current = legalKey ? [LEGAL_DOCS[legalKey].title, ""] : content[activeTab] || content.nedir;
-
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="grid max-h-[86vh] w-full max-w-4xl overflow-hidden rounded-[32px] bg-white shadow-2xl md:grid-cols-[190px_1fr]">
-        <aside className="border-b border-slate-200 bg-slate-50 p-4 md:border-b-0 md:border-r md:sticky md:top-0">
-          <div className="mb-3 flex justify-end md:hidden">
-            <button onClick={onClose} className="rounded-full bg-white p-2 text-slate-500 hover:bg-slate-100"><X size={18} /></button>
-          </div>
-          <div className="grid gap-1">
-            {tabs.map(([key, label]) => (
-              <button key={key} onClick={() => setActiveTab(key)} className={"rounded-2xl px-3 py-2 text-left text-sm font-black " + (activeTab === key ? "bg-cyan-950 text-white" : "text-slate-600 hover:bg-white")}>{label}</button>
-            ))}
-          </div>
-        </aside>
-        <section className="overflow-y-auto p-6">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-black tracking-tight">{current[0]}</h2>
-              {current[1] && <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{current[1]}</p>}
-            </div>
-            <button onClick={onClose} className="hidden rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 md:block"><X size={18} /></button>
-          </div>
-          {legalKey && <LegalBody docKey={legalKey} />}
-          {activeTab === "nedir" && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"><div className="font-black">Güven</div><p className="mt-1 text-sm leading-relaxed text-slate-600">Doğrulama, bildirim, engelleme ve işlem sonrası değerlendirme akışlarıyla topluluk kalitesi korunur.</p></div>
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"><div className="font-black">Odak</div><p className="mt-1 text-sm leading-relaxed text-slate-600">Sadece akvaryum hobisine ait kategori ve filtreler kullanıldığı için ilan bulmak daha hızlıdır.</p></div>
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
   );
 }
 
@@ -2577,6 +2510,7 @@ function DetailBannerAd({ ad }) {
 
 function AccountPage({ auth, onSaved }) {
   const profile = auth.profile;
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -2696,7 +2630,18 @@ function AccountPage({ auth, onSaved }) {
               </span>
             </button>
           </div>
-          <button onClick={() => onSaved("Hesap silme yakında eklenecek. Şimdilik bize ulaşın sayfasından talep oluşturabilirsin.")} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100"><Trash2 size={16} /> Hesabımı sil</button>
+          <button onClick={() => setDeleting(true)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100"><Trash2 size={16} /> Hesabımı sil</button>
+          {deleting && (
+            <DeleteAccountDialog
+              auth={auth}
+              onClose={() => setDeleting(false)}
+              onDeleted={() => {
+                setDeleting(false);
+                onSaved("Hesabın silindi. Aquagram'ı kullandığın için teşekkürler, yolun açık olsun! 🐟");
+                navigate("/", { replace: true });
+              }}
+            />
+          )}
         </div>
         <div className="grid gap-4">
           <form onSubmit={(event) => { event.preventDefault(); save(); }} className="rounded-[28px] border border-slate-200 bg-white p-4">
@@ -3377,9 +3322,13 @@ function UserListingsPage({ user, onBack, onOpen, onProfile, onMessage }) {
               </div>
             </div>
 
-            <button onClick={() => onMessage(user, "Profil")} className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50">
-              <MessageCircle size={16} /> Mesaj gönder
-            </button>
+            {user.deleted ? (
+              <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-black text-white">Silinmiş hesap</span>
+            ) : (
+              <button onClick={() => onMessage(user, "Profil")} className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-950 hover:bg-cyan-50">
+                <MessageCircle size={16} /> Mesaj gönder
+              </button>
+            )}
           </div>
         </div>
 
@@ -3751,9 +3700,11 @@ function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSp
             İlanları
           </button>
 
-          <button onClick={() => onMessage(user, "Profil")} className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-3 py-3 text-sm font-black text-white hover:bg-cyan-900">
-            <MessageCircle size={17} /> Mesaj gönder
-          </button>
+          {!user.deleted && (
+            <button onClick={() => onMessage(user, "Profil")} className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-3 py-3 text-sm font-black text-white hover:bg-cyan-900">
+              <MessageCircle size={17} /> Mesaj gönder
+            </button>
+          )}
         </div>
       </div>
     </div>

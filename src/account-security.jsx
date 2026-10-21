@@ -138,3 +138,59 @@ function PasswordForm({ auth, onDone }) {
     </form>
   );
 }
+
+// Hesabımı sil: şifre + "SİL" onayıyla. Profil anonimleşir, paylaşımlar "misafir_…" adıyla kalır.
+export function DeleteAccountDialog({ auth, onClose, onDeleted }) {
+  const captcha = useCaptcha();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const valid = password.length >= 6 && confirm.trim().toLocaleUpperCase("tr") === "SİL";
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!valid || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await checkPassword(auth.email, password, captcha);
+      const { error: err } = await supabase.rpc("delete_my_account");
+      if (err) throw err;
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      onDeleted();
+    } catch (err) {
+      setError(err.message === "Mevcut şifren hatalı." ? err.message : trError(err));
+      captcha.reset();
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && !busy && onClose()} role="dialog" aria-modal="true" aria-label="Hesabımı sil">
+      <form onSubmit={submit} className="grid w-full max-w-md gap-3 rounded-[28px] bg-white p-5 shadow-2xl">
+        <h2 className="text-xl font-black text-slate-950">Hesabını silmek istediğine emin misin?</h2>
+        <ul className="grid gap-1.5 rounded-2xl bg-red-50 p-3 text-xs leading-relaxed text-red-900">
+          <li>• E-posta adresin, şifren, profil bilgilerin, beslediğin ve favori türlerin, kayıtların ve bildirimlerin <b>kalıcı olarak silinir</b>.</li>
+          <li>• Yayındaki ilanların ve reklamların kaldırılır, mesajlaşmaların kapanır.</li>
+          <li>• Paylaşım, yorum, tür deneyimi ve değerlendirmelerin sitede kalır ama kim olduğun görünmez; <b>“misafir_…”</b> şeklinde anonim bir kullanıcı adıyla gösterilir. Bunları tamamen kaldırmak istiyorsan önce kendin silebilirsin.</li>
+          <li>• Bu işlem geri alınamaz.</li>
+        </ul>
+        <label className="grid gap-1 text-xs font-black text-slate-500">Şifren
+          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className={field} required />
+        </label>
+        <label className="grid gap-1 text-xs font-black text-slate-500">Onaylamak için <span className="text-red-700">SİL</span> yaz
+          <input value={confirm} onChange={(event) => setConfirm(event.target.value)} className={field} autoComplete="off" required />
+        </label>
+        <div ref={captcha.box} className="flex justify-center empty:hidden" />
+        {error && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</div>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={busy} className="rounded-full px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-100">Vazgeç</button>
+          <button type="submit" disabled={!valid || busy} className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2.5 text-sm font-black text-white enabled:hover:bg-red-700 disabled:opacity-40">
+            {busy && <Loader2 size={15} className="animate-spin" />} Hesabımı kalıcı olarak sil
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

@@ -50,10 +50,10 @@ function keepersOf(kb, slug) {
 
 // Bir ilan/paylaşımın bu türle ilgili olup olmadığı: paylaşımda kayıtlı türler ya da metinden otomatik tanıma
 export function relatedListings(listings, slug) {
-  return listings.filter((item) => detectSpecies(item.title + " " + item.description).includes(slug));
+  return listings.filter((item) => (item.speciesSlugs || []).includes(slug) || detectSpecies(item.title + " " + item.description).includes(slug));
 }
 export function relatedPosts(posts, slug) {
-  return posts.filter((post) => (post.speciesSlugs || detectSpecies(post.text)).includes(slug));
+  return posts.filter((post) => (post.speciesSlugs || []).includes(slug) || detectSpecies(post.text).includes(slug));
 }
 
 /* Görsel yer tutucu: kategori renk geçişi + simge */
@@ -491,7 +491,7 @@ function KeeperRow({ userId, species, ctx, kb }) {
           {otherCount > 0 && <span>+{otherCount} tür daha</span>}
         </span>
       </button>
-      {!isMe && (
+      {!isMe && !user.deleted && (
         <button
           onClick={() => ctx.onMessage(user, species.name + " hakkında")}
           className="flex shrink-0 items-center gap-1.5 rounded-full bg-cyan-950 px-3 py-1.5 text-xs font-black text-white hover:bg-cyan-900"
@@ -739,6 +739,11 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
         </div>
       </div>
 
+      {ctx.adsFor && ctx.adsFor("species").length > 0 && (
+        <div className="px-4 pt-4 [&>div]:mb-0">
+          <ctx.DetailBannerAd ad={ctx.adsFor("species")[species.slug.length % ctx.adsFor("species").length]} />
+        </div>
+      )}
       <div className="grid gap-4 p-4 sm:grid-cols-[220px_1fr]">
         <SpeciesGallery species={species} />
         <div className="min-w-0">

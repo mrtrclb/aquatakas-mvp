@@ -4,8 +4,11 @@ import { supabase } from "./supabase";
 export const AD_PLACEMENTS = {
   feed: { label: "Akış içi", hint: "Ana sayfa, topluluk ve ilan akışında her birkaç gönderide bir" },
   sidebar: { label: "Yan sütun", hint: "Sağ sütunun en üstünde, masaüstünde sürekli görünür" },
-  detail: { label: "İlan detayı", hint: "İlan detay sayfasının üstünde geniş şerit" }
+  detail: { label: "İlan detayı", hint: "İlan detay sayfasının üstünde geniş şerit" },
+  post: { label: "Paylaşım detayı", hint: "Topluluk paylaşımı açıldığında, yorumlardan hemen önce geniş şerit" },
+  species: { label: "Bilgi Bankası tür sayfası", hint: "Tür detay sayfasının en üstünde geniş şerit" }
 };
+const EMPTY_POOLS = () => Object.fromEntries(Object.keys(AD_PLACEMENTS).map((key) => [key, []]));
 
 export function mapAd(row) {
   return {
@@ -23,7 +26,7 @@ export function mapAd(row) {
 
 // Şu an yayında olan reklamlar (onaylı ve süresi dolmamış), yerleşime göre gruplu
 export function useLiveAds() {
-  const [ads, setAds] = useState({ feed: [], sidebar: [], detail: [] });
+  const [ads, setAds] = useState(EMPTY_POOLS);
   useEffect(() => {
     let cancelled = false;
     const nowIso = new Date().toISOString();
@@ -36,7 +39,7 @@ export function useLiveAds() {
       .limit(60)
       .then(({ data }) => {
         if (cancelled || !data) return;
-        const next = { feed: [], sidebar: [], detail: [] };
+        const next = EMPTY_POOLS();
         // Her yüklemede farklı sırada: reklam verenler arasında adil dağılım
         data
           .map((row) => ({ row, key: Math.random() }))

@@ -42,6 +42,7 @@ export function profileToUser(profile) {
     bio: profile.bio || "",
     avatar: profile.avatar_url || null,
     verified: Boolean(profile.phone_verified),
+    deleted: Boolean(profile.deleted_at) || /^misafir_[0-9a-f]{8}$/.test(String(profile.username || "")),
     joined: profile.created_at ? new Date(profile.created_at).toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "",
     lastSeen: "",
     online: false,

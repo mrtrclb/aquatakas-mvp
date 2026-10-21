@@ -12,6 +12,7 @@ import {
   History,
   LayoutDashboard,
   Loader2,
+  Mail,
   Megaphone,
   Menu,
   Pin,
@@ -19,6 +20,7 @@ import {
   RotateCcw,
   Search,
   Settings,
+  HardDrive,
   ShieldCheck,
   Trash2,
   Upload,
@@ -42,7 +44,8 @@ export const PERMISSIONS = [
   ["tags", "Etiketler"],
   ["species", "Türler"],
   ["ads", "Öne çıkarma ve reklam"],
-  ["settings", "Ayarlar"]
+  ["settings", "Ayarlar"],
+  ["contact", "İletişim mesajları"]
 ];
 
 // Her yetkinin tam olarak neye izin verdiği (Ekip ve yetkiler sayfasında gösterilir)
@@ -54,12 +57,14 @@ export const PERMISSION_HELP = {
   tags: "Etiketleri yasaklar, yasağı kaldırır, yazım farkı olan etiketleri birleştirir.",
   species: "Bilgi Bankası'na tür ekler, türleri düzenler, yayından kaldırır; üyelerin tür önerilerini onaylar ya da reddeder.",
   ads: "İlan öne çıkarma ve reklam başvurularını görür, onaylar ya da gerekçeyle reddeder.",
-  settings: "Duyuru bandını, topluluk kurallarını, yasaklı kelimeleri ve öne çıkarma/reklam fiyatlarını değiştirir."
+  settings: "Duyuru bandını, topluluk kurallarını, yasaklı kelimeleri ve öne çıkarma/reklam fiyatlarını değiştirir; disk ve e-posta kullanımını görür.",
+  contact: "Bize ulaşın formundan gelen mesajları (gönderenin adı ve e-posta adresi dahil) okur, yanıtlandı ya da kapatıldı olarak işaretler."
 };
 
 const SECTIONS = [
   { id: "ozet", label: "Özet", icon: LayoutDashboard, perm: null },
   { id: "sikayetler", label: "Şikâyetler", icon: Flag, perm: "reports", stat: "reports_open" },
+  { id: "iletisim", label: "İletişim", icon: Mail, perm: "contact", stat: "contact_open" },
   { id: "one-cikarma", label: "Öne çıkarma", icon: Pin, perm: "ads", stat: "features_pending" },
   { id: "reklamlar", label: "Reklamlar", icon: Megaphone, perm: "ads", stat: "ads_pending" },
   { id: "kullanicilar", label: "Kullanıcılar", icon: Users, perm: "users", stat: "verifications_pending" },
@@ -448,6 +453,7 @@ export default function AdminApp() {
   const views = {
     ozet: DashboardSection,
     sikayetler: ReportsSection,
+    iletisim: ContactSection,
     "one-cikarma": FeaturesSection,
     reklamlar: AdsSection,
     kullanicilar: UsersSection,
@@ -525,6 +531,7 @@ function DashboardSection() {
     ["Yayındaki ilan", stats && stats.listings_active, "Son 7 gün: " + (stats ? stats.listings_7d : "…"), null, null],
     ["Paylaşım (7 gün)", stats && stats.posts_7d, "Topluluk akışı", null, null],
     ["Açık şikâyet", stats && stats.reports_open, "İncelenmeyi bekliyor", "sikayetler", "reports", true],
+    ["İletişim mesajı", stats && stats.contact_open, "Yanıt bekliyor", "iletisim", "contact", true],
     ["Öne çıkarma başvurusu", stats && stats.features_pending, "Onay bekliyor", "one-cikarma", "ads", true],
     ["Reklam başvurusu", stats && stats.ads_pending, "Onay bekliyor", "reklamlar", "ads", true],
     ["Tür önerisi", stats && stats.species_suggestions_pending, "Onay bekliyor", "turler", "species", true],
@@ -546,6 +553,7 @@ function DashboardSection() {
         })}
       </div>
       <VisitsCard />
+      {can("settings") && <SystemCard />}
     </Section>
   );
 }
@@ -904,7 +912,7 @@ function FeaturesSection() {
 /* Reklamlar                                                           */
 /* ------------------------------------------------------------------ */
 
-const PLACEMENT_LABELS = { feed: "Akış içi", sidebar: "Yan sütun", detail: "İlan detayı" };
+const PLACEMENT_LABELS = { feed: "Akış içi", sidebar: "Yan sütun", detail: "İlan detayı", post: "Paylaşım detayı", species: "Tür sayfası" };
 
 function AdsSection() {
   const { act, ask } = useAdmin();
@@ -1328,7 +1336,197 @@ function RemovedContentSection() {
 /* Etiketler                                                           */
 /* ------------------------------------------------------------------ */
 
+
+/* ------------------------------------------------------------------ */
+/* Sistem kullanımı (disk, e-posta)                                    */
+/* ------------------------------------------------------------------ */
+
+const FREE_LIMITS = { db: 500 * 1024 * 1024, storage: 1024 * 1024 * 1024, emailsPerDay: 300 };
+
+function fmtBytes(bytes) {
+  const value = Number(bytes) || 0;
+  if (value < 1024) return value + " B";
+  const units = ["KB", "MB", "GB", "TB"];
+  let n = value / 1024;
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024;
+    i += 1;
+  }
+  return n.toLocaleString("tr-TR", { maximumFractionDigits: n < 10 ? 2 : 1 }) + " " + units[i];
+}
+
+function UsageBar({ label, used, limit, detail }) {
+  const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
+  const tone = pct > 85 ? "bg-rose-500" : pct > 60 ? "bg-amber-500" : "bg-cyan-700";
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
+        <span className="font-black text-slate-800">{label}</span>
+        <span className="font-bold text-slate-500">{fmtBytes(used)} / {fmtBytes(limit)} <span className="text-slate-400">(%{pct.toLocaleString("tr-TR", { maximumFractionDigits: 1 })})</span></span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-slate-100"><div className={"h-full rounded-full " + tone} style={{ width: Math.max(pct, 0.8) + "%" }} /></div>
+      {detail && <div className="mt-1 text-xs text-slate-500">{detail}</div>}
+    </div>
+  );
+}
+
+const TABLE_LABELS = { posts: "Paylaşımlar", comments: "Yorumlar", listings: "İlanlar", messages: "Mesajlar", notifications: "Bildirimler", species: "Türler", profiles: "Profiller", site_visits_daily: "Ziyaret sayaçları", admin_audit_log: "İşlem kaydı", species_comments: "Tür deneyimleri", post_likes: "Beğeniler", conversations: "Konuşmalar", contact_messages: "İletişim mesajları", reports: "Şikâyetler", ads: "Reklamlar" };
+const BUCKET_LABELS = { "listing-images": "İlan görselleri", "post-media": "Paylaşım görselleri", avatars: "Profil resimleri", "ad-images": "Reklam görselleri", "species-images": "Tür görselleri" };
+
+function SystemCard() {
+  const state = useLoad(() => must(supabase.rpc("admin_system_stats")), []);
+  return (
+    <Card className="mt-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 font-black"><HardDrive size={17} /> Sistem kullanımı</h2>
+        <Btn small onClick={state.reload}><RotateCcw size={13} /> Yenile</Btn>
+      </div>
+      <LoadState state={state}>
+        {(data) => {
+          const storageBytes = data.storage.reduce((sum, row) => sum + Number(row.bytes || 0), 0);
+          const storageFiles = data.storage.reduce((sum, row) => sum + Number(row.files || 0), 0);
+          const e = data.emails || {};
+          const sent24 = (e.confirm_24h || 0) + (e.recovery_24h || 0) + (e.change_24h || 0);
+          const sent30 = (e.confirm_30d || 0) + (e.recovery_30d || 0) + (e.change_30d || 0);
+          return (
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="grid content-start gap-4">
+                <UsageBar label="Veritabanı" used={data.db_bytes} limit={FREE_LIMITS.db} detail="Ücretsiz plan sınırı 500 MB. Metinler, ilanlar, mesajlar ve kayıtlar burada tutulur." />
+                <UsageBar label="Dosya depolama" used={storageBytes} limit={FREE_LIMITS.storage} detail={storageFiles.toLocaleString("tr-TR") + " dosya · ücretsiz plan sınırı 1 GB"} />
+                {data.storage.length > 0 && (
+                  <div className="grid gap-1 text-xs">
+                    {data.storage.map((row) => (
+                      <div key={row.bucket} className="flex justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5"><span className="font-bold text-slate-600">{BUCKET_LABELS[row.bucket] || row.bucket}</span><span className="text-slate-500">{Number(row.files).toLocaleString("tr-TR")} dosya · {fmtBytes(row.bytes)}</span></div>
+                    ))}
+                  </div>
+                )}
+                <div>
+                  <div className="mb-1 text-xs font-black uppercase tracking-wide text-slate-400">En büyük tablolar</div>
+                  <div className="grid gap-1 text-xs">
+                    {data.tables.map((row) => (
+                      <div key={row.table} className="flex justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5"><span className="font-bold text-slate-600">{TABLE_LABELS[row.table] || row.table}</span><span className="text-slate-500">{Number(row.rows).toLocaleString("tr-TR")} satır · {fmtBytes(row.bytes)}</span></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="grid content-start gap-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-2xl bg-slate-50 p-3"><div className="text-xs font-black uppercase tracking-wide text-slate-400">E-posta · 24 saat</div><div className="mt-1 text-2xl font-black">{sent24}</div><div className="text-xs text-slate-500">Günlük sınır {FREE_LIMITS.emailsPerDay} (Brevo)</div></div>
+                  <div className="rounded-2xl bg-slate-50 p-3"><div className="text-xs font-black uppercase tracking-wide text-slate-400">E-posta · 30 gün</div><div className="mt-1 text-2xl font-black">{sent30}</div><div className="text-xs text-slate-500">Yaklaşık (en az)</div></div>
+                </div>
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left text-xs text-slate-400"><th className="py-1 font-black">Tür</th><th className="py-1 text-right font-black">24 saat</th><th className="py-1 text-right font-black">30 gün</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[["Kayıt doğrulama", e.confirm_24h, e.confirm_30d], ["Şifre sıfırlama", e.recovery_24h, e.recovery_30d], ["E-posta değişikliği", e.change_24h, e.change_30d]].map(([label, a, b]) => (
+                      <tr key={label}><td className="py-1.5 font-bold text-slate-700">{label}</td><td className="py-1.5 text-right">{a || 0}</td><td className="py-1.5 text-right">{b || 0}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  Doğrulanmamış hesap: <b>{e.unconfirmed || 0}</b> · Silinmiş hesap: <b>{data.deleted_accounts || 0}</b>. Supabase her üye için yalnızca son gönderim zamanını tuttuğundan sayılar alt sınırdır (aynı kişiye giden tekrar e-postalar bir kez sayılır). Kesin gönderim, açılma ve teslim raporları için{" "}
+                  <a href="https://app.brevo.com/statistics/transactional" target="_blank" rel="noreferrer" className="font-black text-cyan-800 underline">Brevo istatistiklerine</a> bak.
+                </p>
+              </div>
+            </div>
+          );
+        }}
+      </LoadState>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* İletişim mesajları                                                  */
+/* ------------------------------------------------------------------ */
+
+const CONTACT_TOPIC_LABELS = { destek: "Destek / hesap", oneri: "Öneri", hata: "Hata bildirimi", ilan: "İlan / içerik bildirimi", reklam: "Reklam", isbirligi: "İş birliği", kvkk: "KVKK başvurusu", diger: "Diğer" };
+const CONTACT_STATUS = { open: ["Yanıt bekliyor", "rose"], answered: ["Yanıtlandı", "emerald"], closed: ["Kapatıldı", "slate"] };
+
+function ContactSection() {
+  const { act, ask } = useAdmin();
+  const [tab, setTab] = useState("open");
+  const [topic, setTopic] = useState("");
+  const [openId, setOpenId] = useState(null);
+  const state = useLoad(async () => {
+    let request = supabase.from("contact_messages").select("*").order("created_at", { ascending: false }).limit(200);
+    if (tab !== "all") request = request.eq("status", tab);
+    if (topic) request = request.eq("topic", topic);
+    const rows = await must(request);
+    const people = await profilesByIds(rows.flatMap((row) => [row.user_id, row.handled_by]));
+    return { rows, people };
+  }, [tab, topic]);
+
+  async function setStatus(row, status) {
+    const note = status === "open" ? "" : await ask({ title: status === "answered" ? "Yanıtlandı olarak işaretle" : "Mesajı kapat", text: "İsteğe bağlı olarak ekip için kısa bir not bırakabilirsin.", confirm: status === "answered" ? "Yanıtlandı" : "Kapat" });
+    if (note === null) return;
+    if (await act(supabase.rpc("admin_update_contact", { p_id: row.id, p_status: status, p_note: note || null }), status === "open" ? "Mesaj yeniden açıldı" : status === "answered" ? "Yanıtlandı olarak işaretlendi" : "Mesaj kapatıldı")) state.reload();
+  }
+
+  const replyLink = (row) =>
+    "mailto:" + encodeURIComponent(row.email) +
+    "?subject=" + encodeURIComponent("Re: Aquagram · " + (CONTACT_TOPIC_LABELS[row.topic] || "Mesajın")) +
+    "&body=" + encodeURIComponent("Merhaba " + row.name + ",\n\n\n\n—\nAquagram ekibi\n\n> " + row.body.split("\n").join("\n> "));
+
+  return (
+    <Section title="İletişim mesajları" subtitle="Bize ulaşın formundan gelen mesajlar. Yanıtı e-posta programından gönderip burada işaretle.">
+      <div className="mb-1 flex flex-wrap items-start gap-3">
+        <Tabs value={tab} onChange={setTab} items={[["open", "Yanıt bekleyen"], ["answered", "Yanıtlanan"], ["closed", "Kapatılan"], ["all", "Tümü"]]} />
+        <select value={topic} onChange={(event) => setTopic(event.target.value)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600" aria-label="Konu">
+          <option value="">Tüm konular</option>
+          {Object.entries(CONTACT_TOPIC_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        </select>
+      </div>
+      <LoadState state={state}>
+        {(data) =>
+          !data.rows.length ? <Empty>Bu listede mesaj yok.</Empty> : (
+            <div className="grid gap-2">
+              {data.rows.map((row) => {
+                const expanded = openId === row.id;
+                const [statusLabel, statusTone] = CONTACT_STATUS[row.status] || CONTACT_STATUS.open;
+                const member = row.user_id && data.people[row.user_id];
+                const handler = row.handled_by && data.people[row.handled_by];
+                return (
+                  <Card key={row.id} className="p-0">
+                    <button type="button" onClick={() => setOpenId(expanded ? null : row.id)} className="flex w-full flex-wrap items-center gap-2 px-4 py-3 text-left">
+                      <Badge tone={statusTone}>{statusLabel}</Badge>
+                      <Badge tone="cyan">{CONTACT_TOPIC_LABELS[row.topic] || row.topic}</Badge>
+                      <span className="font-black text-slate-900">{row.name}</span>
+                      <span className="text-sm text-slate-500">{row.email}</span>
+                      <span className="flex-1" />
+                      <span className="text-xs text-slate-400">{fmtDate(row.created_at)}</span>
+                      {!expanded && <span className="basis-full truncate text-sm text-slate-600">{row.body}</span>}
+                    </button>
+                    {expanded && (
+                      <div className="border-t border-slate-100 px-4 py-3">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{row.body}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          {member ? <span>Üye: <a href={"#/yonetim/kullanicilar/" + member.id} className="font-black text-cyan-800 hover:underline">@{member.username}</a></span> : <span>Üye değil (misafir)</span>}
+                          {handler && <span>· {row.status === "answered" ? "Yanıtlayan" : "Kapatan"}: @{handler.username} ({fmtDate(row.handled_at)})</span>}
+                        </div>
+                        {row.note && <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">Ekip notu: {row.note}</p>}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <a href={replyLink(row)} className="inline-flex items-center gap-1.5 rounded-full bg-cyan-950 px-3 py-1.5 text-xs font-black text-white hover:bg-cyan-900"><Mail size={13} /> E-postayla yanıtla</a>
+                          {row.status !== "answered" && <Btn small tone="success" onClick={() => setStatus(row, "answered")}><Check size={13} /> Yanıtlandı</Btn>}
+                          {row.status !== "closed" && <Btn small onClick={() => setStatus(row, "closed")}><X size={13} /> Kapat</Btn>}
+                          {row.status !== "open" && <Btn small onClick={() => setStatus(row, "open")}><RotateCcw size={13} /> Yeniden aç</Btn>}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )
+        }
+      </LoadState>
+    </Section>
+  );
+}
+
 const cleanTag = (value) => value.trim().replace(/^#+/, "").toLocaleLowerCase("tr");
+// Aramada Türkçe karakter ve büyük/küçük harf farkı gözetilmez (ör. "bitkı" → #bitkili)
+const foldTag = (value) => cleanTag(value).replace(/[çğıöşüâî]/g, (ch) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", â: "a", î: "i" })[ch]);
 
 function TagsSection() {
   const { act, ask } = useAdmin();
@@ -1349,6 +1547,11 @@ function TagsSection() {
     if (reason === null) return;
     if (await act(supabase.rpc("admin_ban_tag", { p_tag: tag, p_reason: reason || null }), "#" + tag + " yasaklandı")) state.reload();
   }
+  async function removeTag(tag, count) {
+    const ok = await ask({ title: "#" + tag + " etiketini kaldır", text: count + " paylaşımdaki #" + tag + " etiketi kaldırılır (metindeki kelime kalır, yalnızca # işareti silinir) ve etiketi takip edenlerin takibi biter. Etiket yasaklanmaz; ileride biri yeniden kullanabilir.", input: false, confirm: "Kaldır", danger: true });
+    if (ok === null) return;
+    if (await act(supabase.rpc("admin_remove_tag", { p_tag: tag }), "#" + tag + " kaldırıldı")) state.reload();
+  }
   async function unban(tag) {
     if (await act(supabase.rpc("admin_unban_tag", { p_tag: tag }), "#" + tag + " yasağı kaldırıldı")) state.reload();
   }
@@ -1367,18 +1570,22 @@ function TagsSection() {
   }
 
   return (
-    <Section title="Etiketler" subtitle="Popüler etiketleri izle, uygunsuz olanları yasakla, yazım farklarını birleştir.">
+    <Section title="Etiketler" subtitle="Üyelerin kullandığı etiketleri izle. Kaldır: paylaşımlardan siler. Yasakla: siler ve bir daha kullanılmasını engeller. Birleştir: yazım farklarını tek etikette toplar.">
       <Card className="mb-4">
         <form onSubmit={merge} className="flex flex-wrap items-end gap-2">
           <label className="grid gap-1 text-xs font-black text-slate-500">Birleştirilecek
-            <input value={from} onChange={(event) => setFrom(event.target.value)} placeholder="#bitkilitank" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700" />
+            <input value={from} onChange={(event) => setFrom(event.target.value)} list="aq-tag-list" placeholder="#bitkilitank" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700" />
           </label>
           <span className="pb-2 font-black text-slate-400">→</span>
           <label className="grid gap-1 text-xs font-black text-slate-500">Hedef etiket
-            <input value={to} onChange={(event) => setTo(event.target.value)} placeholder="#bitkili" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700" />
+            <input value={to} onChange={(event) => setTo(event.target.value)} list="aq-tag-list" placeholder="#bitkili" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700" />
           </label>
           <Btn type="submit" tone="primary" disabled={!cleanTag(from) || !cleanTag(to) || cleanTag(from) === cleanTag(to)}>Birleştir</Btn>
         </form>
+        <datalist id="aq-tag-list">
+          {((state.data && state.data.counts) || []).map((row) => <option key={row.tag} value={"#" + row.tag}>{row.post_count + " paylaşım"}</option>)}
+        </datalist>
+        <p className="mt-2 text-xs text-slate-400">Yazmaya başlayınca mevcut etiketler önerilir.</p>
       </Card>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <Tabs value={tab} onChange={setTab} items={[["popular", "Kullanılan etiketler"], ["banned", "Yasaklı etiketler"]]} />
@@ -1407,10 +1614,16 @@ function TagsSection() {
               </Card>
             );
           }
-          const q = cleanTag(query);
-          const list = data.counts.filter((row) => !q || String(row.tag).includes(q));
-          return !list.length ? <Empty>{q ? "Eşleşen etiket yok." : "Henüz etiket kullanılmamış."}</Empty> : (
+          const q = foldTag(query);
+          const list = data.counts.filter((row) => !q || foldTag(String(row.tag)).includes(q));
+          return !list.length ? (
+            <Empty>
+              {q ? "“" + query + "” içeren etiket yok." : "Henüz üyeler tarafından etiket kullanılmamış."}
+              <span className="mt-2 block text-xs font-normal">Sitede gördüğün örnek (demo) paylaşımların etiketleri veritabanında olmadığı için burada listelenmez; demo içerik kapatıldığında sitede de görünmez.</span>
+            </Empty>
+          ) : (
             <Card className="divide-y divide-slate-100 p-0">
+              <div className="px-4 py-2 text-xs font-bold text-slate-400">{list.length} etiket{q ? " · “" + query + "” araması" : ""}</div>
               {list.map((row) => (
                 <div key={row.tag} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                   <a href={siteLink("/etiketler")} target="_blank" rel="noreferrer" className="font-black text-cyan-900 hover:underline">#{row.tag}</a>
@@ -1418,7 +1631,8 @@ function TagsSection() {
                   <span className="text-xs text-slate-400">Son: {fmtDay(row.last_used_at)}</span>
                   <div className="flex-1" />
                   <Btn small onClick={() => setFrom("#" + row.tag)}>Birleştir…</Btn>
-                  <Btn small tone="ghostDanger" onClick={() => ban(String(row.tag))}><Ban size={13} /> Yasakla</Btn>
+                  <Btn small onClick={() => removeTag(String(row.tag), row.post_count)} title="Paylaşımlardan kaldır, yasaklama"><Trash2 size={13} /> Kaldır</Btn>
+                  <Btn small tone="ghostDanger" onClick={() => ban(String(row.tag))} title="Kaldır ve bir daha kullanılmasını engelle"><Ban size={13} /> Yasakla</Btn>
                 </div>
               ))}
             </Card>

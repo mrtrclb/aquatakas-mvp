@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { CheckCircle2, Eye, EyeOff, Loader2, Mail, X } from "lucide-react";
 import { supabase, siteUrl, trError } from "./lib/supabase";
+import { useCaptcha } from "./lib/captcha";
 import { LEGAL_VERSION, LegalModal } from "./legal.jsx";
 
 // ---------------------------------------------------------------------------
@@ -148,6 +149,7 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(null); // "signup" | "reset"
+  const captcha = useCaptcha();
 
   const isLogin = mode === "login";
   const isRegister = mode === "register";
@@ -163,7 +165,8 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
     setBusy(true);
     try {
       if (isLogin) {
-        const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        const captchaToken = await captcha.getToken();
+        const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password, options: { captchaToken } });
         if (err) throw err;
         onSuccess();
       } else if (isRegister) {
@@ -176,12 +179,14 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
         }
         const { data: taken } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
         if (taken) throw new Error("profiles_username_key");
+        const captchaToken = await captcha.getToken();
         const { data, error: err } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
             data: { username: name, city: city.trim(), terms_version: LEGAL_VERSION, terms_accepted_at: termsAt, kvkk_read_at: kvkkAt },
-            emailRedirectTo: siteUrl()
+            emailRedirectTo: siteUrl(),
+            captchaToken
           }
         });
         if (err) throw err;
@@ -192,13 +197,15 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
         if (data.session) onSuccess();
         else setSent("signup");
       } else if (isReset) {
-        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: siteUrl() });
+        const captchaToken = await captcha.getToken();
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: siteUrl(), captchaToken });
         if (err) throw err;
         setSent("reset");
       }
     } catch (err) {
       setError(trError(err));
     } finally {
+      captcha.reset();
       setBusy(false);
     }
   }
@@ -326,6 +333,7 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
                     </div>
                   )}
 
+                  <div ref={captcha.box} className="flex justify-center empty:hidden" />
                   {error && <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
 
                   <button type="submit" disabled={busy} className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-5 py-3.5 text-sm font-black text-white transition hover:bg-cyan-900 disabled:opacity-60">

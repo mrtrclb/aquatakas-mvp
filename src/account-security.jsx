@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { KeyRound, Loader2, Mail } from "lucide-react";
 import { supabase, siteUrl, trError } from "./lib/supabase";
+import { useCaptcha } from "./lib/captcha";
 
 // Hesabım → Hesap güvenliği: e-posta adresini ve şifreyi değiştirme
 export function AccountSecurity({ auth, onToast }) {
@@ -40,12 +41,14 @@ function Row({ icon, title, value, open, onToggle, action }) {
 const field = "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-700";
 
 // Mevcut şifreyi doğrular (oturumu değiştirmeden aynı kullanıcıyla yeniden giriş)
-async function checkPassword(email, password) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+async function checkPassword(email, password, captcha) {
+  const captchaToken = await captcha.getToken();
+  const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
   if (error) throw new Error(/invalid login credentials/i.test(error.message) ? "Mevcut şifren hatalı." : error.message);
 }
 
 function EmailForm({ auth, onDone }) {
+  const captcha = useCaptcha();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -59,13 +62,14 @@ function EmailForm({ auth, onDone }) {
     setBusy(true);
     setError("");
     try {
-      await checkPassword(auth.email, password);
+      await checkPassword(auth.email, password, captcha);
       const { error: err } = await supabase.auth.updateUser({ email: next }, { emailRedirectTo: siteUrl() });
       if (err) throw err;
       onDone("Onay bağlantısı gönderildi. Hem eski hem yeni adresine gelen e-postalardaki bağlantıya tıkla; ikisi de onaylanınca e-postan değişir.");
     } catch (err) {
       setError(err.message === "Mevcut şifren hatalı." ? err.message : trError(err));
     }
+    captcha.reset();
     setBusy(false);
   }
 
@@ -78,6 +82,7 @@ function EmailForm({ auth, onDone }) {
         <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className={field} required />
       </label>
       <p className="text-xs leading-relaxed text-slate-500">Güvenliğin için eski ve yeni adresine birer onay e-postası gider. İkisi de onaylanana kadar mevcut adresinle giriş yapmaya devam edersin.</p>
+      <div ref={captcha.box} className="flex justify-center empty:hidden" />
       {error && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</div>}
       <button type="submit" disabled={!valid || busy} className="flex items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-2.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
         {busy && <Loader2 size={15} className="animate-spin" />} Onay bağlantısı gönder
@@ -87,6 +92,7 @@ function EmailForm({ auth, onDone }) {
 }
 
 function PasswordForm({ auth, onDone }) {
+  const captcha = useCaptcha();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [again, setAgain] = useState("");
@@ -101,13 +107,14 @@ function PasswordForm({ auth, onDone }) {
     setBusy(true);
     setError("");
     try {
-      await checkPassword(auth.email, current);
+      await checkPassword(auth.email, current, captcha);
       const { error: err } = await supabase.auth.updateUser({ password: next });
       if (err) throw err;
       onDone("Şifren değiştirildi.");
     } catch (err) {
       setError(err.message === "Mevcut şifren hatalı." ? err.message : trError(err));
     }
+    captcha.reset();
     setBusy(false);
   }
 
@@ -123,6 +130,7 @@ function PasswordForm({ auth, onDone }) {
         <input type="password" value={again} onChange={(event) => setAgain(event.target.value)} autoComplete="new-password" className={field} required />
       </label>
       {mismatch && <p className="text-xs font-bold text-red-600">Şifreler aynı değil.</p>}
+      <div ref={captcha.box} className="flex justify-center empty:hidden" />
       {error && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</div>}
       <button type="submit" disabled={!valid || busy} className="flex items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-2.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
         {busy && <Loader2 size={15} className="animate-spin" />} Şifreyi değiştir

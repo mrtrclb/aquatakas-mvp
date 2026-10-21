@@ -50,7 +50,7 @@ export function makeSlug(text, number) {
 }
 
 export function postUrl(post) {
-  return window.location.origin + window.location.pathname + "#/paylasim/" + post.slug;
+  return window.location.origin + "/paylasim/" + post.slug;
 }
 
 export function timeAgo(ts) {

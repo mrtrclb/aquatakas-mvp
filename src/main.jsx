@@ -5,6 +5,10 @@ import App from "./App.jsx";
 
 // Yönetim paneli ayrı bir parça olarak yalnızca açıldığında indirilir
 const AdminApp = lazy(() => import("./admin.jsx"));
+// Yönetim paneli /#/yonetim adresinde çalışır; /yonetim yazılırsa oraya yönlendirilir
+if (/^\/yonetim(\/|$)/.test(window.location.pathname)) {
+  window.history.replaceState(null, "", "/#" + window.location.pathname + window.location.search);
+}
 const isAdminHash = () => /^#\/yonetim(\/|$)/.test(window.location.hash);
 
 function Root() {
@@ -12,7 +16,11 @@ function Root() {
   useEffect(() => {
     const onHash = () => setAdmin(isAdminHash());
     window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    window.addEventListener("popstate", onHash);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      window.removeEventListener("popstate", onHash);
+    };
   }, []);
   if (!admin) return <App />;
   return (

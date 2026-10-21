@@ -9,6 +9,11 @@ import { useDbKnowledge } from "./lib/knowledge";
 import { useSiteSettings } from "./lib/settings";
 import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
 import AdsManagerPage from "./ads-manager.jsx";
+import { LEGAL_DOCS, LegalBody } from "./legal.jsx";
+import { VerificationCard } from "./verification.jsx";
+import { trackVisit } from "./lib/visits";
+import { absoluteUrl, navigate, onRoute, routePath, upgradeLegacyHash } from "./lib/router";
+import { ListingDetailAside } from "./listing-aside.jsx";
 import { ReviewModal, ReviewStrip, ReviewSummary, ReviewList, useProfileReviews } from "./reviews.jsx";
 import {
   Bell,
@@ -75,7 +80,7 @@ import {
 } from "./community.jsx";
 import { GroupFormModal, GroupPage, GroupsPage, TagsPage, buildDefaultGroups } from "./groups.jsx";
 import { HomeAside, HomeFeed, HomeTopBar, loadHomeFilter, saveHomeFilter } from "./home.jsx";
-import { KbAside, KbCategoryPage, KbHome, KbMinePage, KbWidgets, KeptSpeciesChips, SpeciesPage } from "./knowledge.jsx";
+import { KbAside, KbCategoryPage, KbHome, KbMinePage, KbWidgets, KeptSpeciesChips, SpeciesPage, SuggestSpeciesModal } from "./knowledge.jsx";
 import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, speciesBySlug } from "./species.js";
 
 const locations = {
@@ -395,6 +400,7 @@ export default function AquagramApp() {
   const [localConversations, setConversations] = useState([]); // örnek kullanıcılarla (yalnızca bu cihazda) konuşmalar
   const [activeConvId, setActiveConvId] = useState(null);
   const [reviewConv, setReviewConv] = useState(null);
+  const [suggestSpecies, setSuggestSpecies] = useState(null); // { category, name }
   const userMenuRef = useRef(null);
   const shareMenuRef = useRef(null);
   const cameFromApp = useRef(false);
@@ -497,30 +503,44 @@ export default function AquagramApp() {
     return true;
   }
 
-  // Bağlantılar: #/paylasim/<sayı>-<ilk-kelimeler>, #/gruplar, #/grup/<ad>, #/etiketler
+  // Adresler: /paylasim/<sayı>-<kelimeler>, /gruplar, /grup/<ad>, /etiketler, /bilgi..., /tur/<ad>, /ilan/<no>, /ilanlar, /topluluk
   useEffect(() => {
-    function syncFromHash() {
-      const hash = window.location.hash;
-      const post = hash.match(/^#\/paylasim\/(.+)$/);
-      const group = hash.match(/^#\/grup\/([^/]+)$/);
-      setPostSlug(post ? decodeURIComponent(post[1]) : null);
-      setGroupSlug(group ? decodeURIComponent(group[1]) : null);
-      setCommunityPage(hash === "#/gruplar" ? "groups" : hash === "#/etiketler" ? "tags" : null);
-      const kbSection = hash.match(/^#\/bilgi(?:\/b\/([^/]+))?$/);
-      const kbCategory = hash.match(/^#\/bilgi\/k\/([^/]+)$/);
-      const species = hash.match(/^#\/tur\/([^/]+)$/);
+    upgradeLegacyHash();
+    function syncFromRoute(kind) {
+      const path = routePath();
+      const post = path.match(/^\/paylasim\/(.+)$/);
+      const group = path.match(/^\/grup\/([^/]+)$/);
+      setPostSlug(post ? post[1] : null);
+      setGroupSlug(group ? group[1] : null);
+      setCommunityPage(path === "/gruplar" ? "groups" : path === "/etiketler" ? "tags" : null);
+      const kbSection = path.match(/^\/bilgi(?:\/b\/([^/]+))?$/);
+      const kbCategory = path.match(/^\/bilgi\/k\/([^/]+)$/);
+      const species = path.match(/^\/tur\/([^/]+)$/);
       setKbRoute(
-        species ? { slug: decodeURIComponent(species[1]) }
-          : kbCategory ? { category: decodeURIComponent(kbCategory[1]) }
-          : hash === "#/bilgi/turlerim" ? { mine: true }
+        species ? { slug: species[1] }
+          : kbCategory ? { category: kbCategory[1] }
+          : path === "/bilgi/turlerim" ? { mine: true }
           : kbSection ? { section: kbSection[1] || "tatlisu" }
           : null
       );
+      if (kind === "pop") {
+        // Tarayıcının geri/ileri tuşu ya da ilk açılış: görünümü adrese göre baştan kur
+        setMemberPage(null);
+        setViewUser(null);
+        setProfileUser(null);
+        setPostsUser(null);
+        setMenuOpen(false);
+        if (!/^\/ilan\/\d+$/.test(path)) setSelectedListing(null);
+        setListingsOpen(path === "/ilanlar");
+        setCommunityOpen(path === "/topluluk");
+      } else {
+        if (path === "/ilanlar") setListingsOpen(true);
+        if (path === "/topluluk") setCommunityOpen(true);
+      }
       setDrawerOpen(false);
     }
-    syncFromHash();
-    window.addEventListener("hashchange", syncFromHash);
-    return () => window.removeEventListener("hashchange", syncFromHash);
+    syncFromRoute("pop");
+    return onRoute(syncFromRoute);
   }, []);
 
   useEffect(() => {
@@ -548,20 +568,26 @@ export default function AquagramApp() {
     return () => window.removeEventListener("aquagram:open-ads", onOpenAds);
   });
 
-  // Doğrudan ilan bağlantısı: #/ilan/<no> (paylaşılan bağlantılar, yönetim paneli)
+  // İlan adresi: /ilan/<no> (paylaşılan bağlantılar, arama motorları, geri/ileri tuşları)
+  const selectedListingRef = useRef(null);
+  selectedListingRef.current = selectedListing;
   useEffect(() => {
-    function openFromHash() {
-      const match = window.location.hash.match(/^#\/ilan\/(\d+)$/);
+    function openFromRoute() {
+      const match = routePath().match(/^\/ilan\/(\d+)$/);
       if (!match) return;
+      const current = selectedListingRef.current;
+      if (current && current.dbId === Number(match[1])) return;
       const item = dbListings.find((row) => row.dbId === Number(match[1]));
       if (item) {
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
-        openListing(item);
+        clearViews();
+        setListingsOpen(false);
+        setSelectedListing(item);
+        setActiveImage(0);
+        window.scrollTo({ top: 0 });
       }
     }
-    openFromHash();
-    window.addEventListener("hashchange", openFromHash);
-    return () => window.removeEventListener("hashchange", openFromHash);
+    openFromRoute();
+    return onRoute(openFromRoute);
   }, [dbListings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Açılan konuşmayı okundu say
@@ -596,7 +622,6 @@ export default function AquagramApp() {
   }, [toast]);
 
   function clearPostHash() {
-    if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     setPostSlug(null);
     setGroupSlug(null);
     setCommunityPage(null);
@@ -621,18 +646,24 @@ export default function AquagramApp() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // Adresi olmayan görünümlere (üye sayfaları, kullanıcı ilanları vb.) geçerken adres çubuğunu ana yola al
+  function leaveTo(path = "/") {
+    if (routePath() !== path) navigate(path);
+  }
+
   function openCommunity() {
     clearViews();
     setListingsOpen(false);
     setCommunitySearch("");
     setCommunityOpen(true);
+    navigate("/topluluk");
     scrollTop();
   }
 
   function openHashPage(path) {
     clearViews();
     setListingsOpen(false);
-    window.location.hash = path;
+    navigate(path);
     scrollTop();
   }
 
@@ -649,6 +680,7 @@ export default function AquagramApp() {
       const listing = selectedListing && selectedListing.dbId && selectedListing.title === topic ? selectedListing.dbId : null;
       msgs.start(otherId, topic || "Profil", listing, draft).then((id) => {
         clearViews();
+        leaveTo("/");
         setListingsOpen(false);
         setMemberPage("messages");
         setActiveConvId(id);
@@ -783,6 +815,7 @@ export default function AquagramApp() {
     openCategory: (id) => { setKbSearch(""); openHashPage("/bilgi/k/" + id); },
     openSpecies: (species) => openHashPage("/tur/" + species.slug),
     openMine: () => openHashPage("/bilgi/turlerim"),
+    onSuggest: (initial) => (isMember ? setSuggestSpecies(initial || {}) : requireLogin()),
     onToggleKeep: (slug) =>
       myId
         ? toggleSpecies("species_keepers", slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı")
@@ -862,6 +895,7 @@ export default function AquagramApp() {
     const onFeed = communityOpen && !postSlug && !communityPage && !postsUser && !memberPage;
     if (value && !onFeed) {
       clearViews();
+      leaveTo("/topluluk");
       setCommunityOpen(true);
       scrollTop();
     }
@@ -870,7 +904,7 @@ export default function AquagramApp() {
   function openPost(post) {
     setProfileUser(null);
     cameFromApp.current = true;
-    window.location.hash = "/paylasim/" + post.slug;
+    navigate("/paylasim/" + post.slug);
     scrollTop();
   }
 
@@ -882,6 +916,7 @@ export default function AquagramApp() {
     }
     clearPostHash();
     if (!communityOpen && !postsUser && memberPage !== "posts") setCommunityOpen(true);
+    navigate(postsUser || memberPage === "posts" ? "/" : "/topluluk", { replace: true });
   }
 
   function openAddListing() {
@@ -914,6 +949,7 @@ export default function AquagramApp() {
     setToast(target ? target.name + " grubunda paylaşıldı 🎉" : "Paylaşımın yayında 🎉");
     if (!communityOpen && memberPage !== "posts" && !postsUser && !groupSlug) {
       clearViews();
+      leaveTo("/topluluk");
       setCommunityOpen(true);
     }
     scrollTop();
@@ -1188,7 +1224,7 @@ export default function AquagramApp() {
     onEditGroup: (group) => openGroupForm(group),
     canManageGroups: Boolean(auth.staff && (auth.staff.role === "super_admin" || (auth.staff.permissions || []).includes("groups"))),
     onShareGroup: (group) => {
-      const url = window.location.origin + window.location.pathname + "#/grup/" + group.slug;
+      const url = absoluteUrl("/grup/" + group.slug);
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => setToast("Grup bağlantısı kopyalandı"), () => setToast(url));
       else setToast(url);
     },
@@ -1266,6 +1302,8 @@ export default function AquagramApp() {
   function openListing(item) {
     clearViews();
     setSelectedListing(item);
+    if (item.dbId) navigate("/ilan/" + item.dbId);
+    else if (routePath() !== "/") navigate("/");
     setActiveImage(0);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1273,12 +1311,14 @@ export default function AquagramApp() {
   function goHome() {
     clearViews();
     setListingsOpen(false);
+    navigate("/");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openListingsPage() {
     clearViews();
     setListingsOpen(true);
+    navigate("/ilanlar");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -1289,6 +1329,7 @@ export default function AquagramApp() {
       return;
     }
     clearViews();
+    leaveTo("/");
     setMemberPage(key);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1334,6 +1375,13 @@ export default function AquagramApp() {
         : currentPost
           ? postSnippet(currentPost).slice(0, 155)
           : "Akvaryum hobicileri için ilan, takas ve topluluk platformu: canlı, bitki, ekipman ilanları; hobicilerle soru-cevap ve tür bakım rehberi.";
+  // Ziyaret sayacı (bölüm bazında, kişisel veri yok)
+  const visitSection = currentSpecies ? "species" : kbMode ? "kb" : selectedListing ? "listing" : listingsOpen ? "listings" : currentPost ? "post" : currentGroup ? "group" : memberPage ? "account" : communityOpen || communityPage ? "community" : "home";
+  const visitKey = visitSection + ":" + (currentSpecies ? currentSpecies.slug : selectedListing ? selectedListing.id : currentPost ? currentPost.slug : currentGroup ? currentGroup.slug : memberPage || communityPage || (kbRoute && (kbRoute.category || kbRoute.section)) || "");
+  useEffect(() => {
+    trackVisit(visitSection, visitKey);
+  }, [visitKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     document.title = pageTitle;
     const meta = document.querySelector('meta[name="description"]');
@@ -1408,6 +1456,21 @@ export default function AquagramApp() {
     <CommunityAside ctx={communityCtx} view="feed" search={communitySearch} tags={asideTags} groups={groups} />
   ) : homeView === "mixed" ? (
     <HomeAside ctx={communityCtx} groups={groups} posts={posts} />
+  ) : detailMode ? (
+    <ListingDetailAside
+      item={selectedListing}
+      listings={listings}
+      users={users}
+      priceLabel={priceLabel}
+      onOpenListing={openListing}
+      onOpenSpecies={kb.openSpecies}
+      onViewUser={(target) => {
+        clearViews();
+        leaveTo("/");
+        setViewUser(target);
+        scrollTop();
+      }}
+    />
   ) : showListingFilters ? (
     listingFilterAside
   ) : null;
@@ -1425,6 +1488,12 @@ export default function AquagramApp() {
           {announcement.link && /^https?:\/\//.test(announcement.link) && (
             <a href={announcement.link} target="_blank" rel="noreferrer noopener" className="ml-2 underline underline-offset-2">Ayrıntılar</a>
           )}
+        </div>
+      )}
+      {auth.profile && auth.profile.suspended_until && new Date(auth.profile.suspended_until) > new Date() && (
+        <div role="alert" className="bg-red-700 px-4 py-2 text-center text-sm font-bold text-white">
+          Hesabın {new Date(auth.profile.suspended_until).getFullYear() > 2900 ? "süresiz olarak" : new Date(auth.profile.suspended_until).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) + " tarihine kadar"} askıya alındı
+          {auth.profile.suspension_reason ? " · Gerekçe: " + auth.profile.suspension_reason : ""}. Bu sürede paylaşım, yorum, ilan ve mesaj gönderemezsin. İtiraz: info@aquagram.com.tr
         </div>
       )}
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
@@ -1497,13 +1566,13 @@ export default function AquagramApp() {
                       </button>
                     ))}
                     {auth.isStaff && (
-                      <a href="#/yonetim" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-black text-amber-800 hover:bg-amber-50">
+                      <a href="/#/yonetim" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-black text-amber-800 hover:bg-amber-50">
                         <ShieldCheck size={15} /> Yönetim paneli
                       </a>
                     )}
                     <div className="my-1 border-t border-slate-100" />
                     <button
-                      onClick={() => { setUserMenuOpen(false); auth.signOut(); clearViews(); setToast("Çıkış yaptın."); }}
+                      onClick={() => { setUserMenuOpen(false); auth.signOut(); clearViews(); leaveTo("/"); setToast("Çıkış yaptın."); }}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-black text-slate-500 hover:bg-slate-50"
                     >
                       <LogOut size={15} /> Çıkış yap
@@ -1574,7 +1643,7 @@ export default function AquagramApp() {
   currentPost ? (
     <PostDetailPage post={currentPost} ctx={communityCtx} onBack={closePost} />
   ) : (
-    <PostNotFound onBack={() => { clearViews(); setCommunityOpen(true); }} />
+    <PostNotFound onBack={() => { clearViews(); leaveTo("/topluluk"); setCommunityOpen(true); }} />
   )
 ) : groupMode ? (
   currentGroup ? (
@@ -1601,6 +1670,7 @@ export default function AquagramApp() {
     onViewListings={() => {
       const target = postsUser;
       clearViews();
+      leaveTo("/");
       setViewUser(target);
       scrollTop();
     }}
@@ -1632,6 +1702,19 @@ export default function AquagramApp() {
     setActiveId={setActiveConvId}
     onSend={sendMessage}
     onReview={setReviewConv}
+    onReportUser={(conv) => {
+      if (!conv.real || !conv.otherId) return setToast("Örnek konuşmalarda bu işlem yapılamaz");
+      return setReportTarget({ kind: "user", user: { dbId: conv.otherId, username: conv.user } });
+    }}
+    onToggleBlock={(conv) => {
+      if (!conv.real || !conv.otherId) return setToast("Örnek konuşmalarda bu işlem yapılamaz");
+      const blocking = !conv.blockedByMe;
+      if (blocking && !window.confirm(conv.user + " engellensin mi? Birbirinize mesaj gönderemeyeceksiniz.")) return undefined;
+      return msgs.setBlock(conv.otherId, blocking).then(
+        () => setToast(blocking ? conv.user + " engellendi" : conv.user + " engeli kaldırıldı"),
+        (error) => setToast(trError(error))
+      );
+    }}
     onDelete={(id) => {
       if (String(id).startsWith("dm")) msgs.setHidden(Number(String(id).slice(2)), true);
       else setConversations((prev) => prev.map((item) => (item.id === id ? { ...item, deleted: true } : item)));
@@ -1646,6 +1729,10 @@ export default function AquagramApp() {
         setProfileUser(users[myId]);
         return;
       }
+      if (item.type === "ad_approved" || item.type === "ad_rejected") return openMemberPage("ads");
+      if (item.type.startsWith("verification_")) return openMemberPage("account");
+      if (item.type.startsWith("suggestion_")) return kb.openHome();
+      if (item.type === "content_removed" || item.type.startsWith("account_") || item.type === "report_resolved") return undefined;
       // Bildirim yeni bir beğeni/yorumdan geliyor; paylaşımın güncel hâlini görmek için veriyi tazele
       if (item.post || item.grp) community.reload();
       if (item.post) openPost({ slug: item.post.slug });
@@ -1663,7 +1750,10 @@ export default function AquagramApp() {
     activeImage={activeImage}
     setActiveImage={setActiveImage}
     isMember={isMember}
-    onBack={() => setSelectedListing(null)}
+    onBack={() => {
+      setSelectedListing(null);
+      navigate(listingsOpen ? "/ilanlar" : "/");
+    }}
     onProfile={setProfileUser}
     menuOpen={menuOpen}
     setMenuOpen={setMenuOpen}
@@ -1728,6 +1818,17 @@ export default function AquagramApp() {
         )}
       </main>
 
+      {suggestSpecies && (
+        <SuggestSpeciesModal
+          initial={suggestSpecies}
+          userId={myId}
+          onClose={() => setSuggestSpecies(null)}
+          onDone={() => {
+            setSuggestSpecies(null);
+            setToast("Önerin ekibe iletildi, teşekkürler! Sonucu bildirim olarak alacaksın.");
+          }}
+        />
+      )}
       {reviewConv && (
         <ReviewModal
           conversation={reviewConv}
@@ -1761,12 +1862,14 @@ export default function AquagramApp() {
     onViewPosts={() => {
       const target = profileUser;
       clearViews();
+      leaveTo("/");
       setPostsUser(target);
       scrollTop();
     }}
     onViewListings={() => {
       const target = profileUser;
       clearViews();
+      leaveTo("/");
       setViewUser(target);
       scrollTop();
     }}
@@ -1778,7 +1881,7 @@ export default function AquagramApp() {
           onClose={() => setReportTarget(null)}
           onSubmit={async ({ reason, note } = {}) => {
             const kind = reportTarget.kind || "listing";
-            const item = kind === "post" ? reportTarget.post : kind === "comment" ? reportTarget.comment : kind === "review" ? reportTarget.review : reportTarget.listing;
+            const item = kind === "post" ? reportTarget.post : kind === "comment" ? reportTarget.comment : kind === "review" ? reportTarget.review : kind === "user" ? reportTarget.user : reportTarget.listing;
             const targetType = (item && item.reportType) || kind;
             if (item && item.dbId) {
               if (!myId) {
@@ -1913,7 +2016,7 @@ export default function AquagramApp() {
         <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 z-[80] max-w-[92vw] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-center text-sm font-black text-white shadow-xl lg:bottom-6">{toast}</div>
       )}
       {auth.recovery && auth.session && (
-        <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); setMemberPage("account"); }} />
+        <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); leaveTo("/"); setMemberPage("account"); }} />
       )}
       {authOpen && (
         <AuthModal
@@ -1930,6 +2033,7 @@ export default function AquagramApp() {
               return;
             }
             clearViews();
+            leaveTo("/");
             setMemberPage("account");
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
@@ -2204,6 +2308,7 @@ function RightSidebar({ children, minimal = false }) {
     ["adpolicy", "Reklam politikası"],
     ["warnings", "Önemli uyarılar"],
     ["privacy", "Gizlilik politikası"],
+    ["kvkk", "KVKK"],
     ["blog", "Blog"]
   ];
 
@@ -2249,7 +2354,8 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
     ["ads", "Reklam verin"],
     ["adpolicy", "Reklam politikası"],
     ["warnings", "Önemli uyarılar"],
-    ["privacy", "Gizlilik politikası"]
+    ["privacy", "Gizlilik politikası"],
+    ["kvkk", "KVKK aydınlatma"]
   ];
 
   const content = {
@@ -2287,7 +2393,8 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
     ]
   };
 
-  const current = content[activeTab] || content.nedir;
+  const legalKey = { terms: "terms", privacy: "privacy", adpolicy: "ads", kvkk: "kvkk" }[activeTab];
+  const current = legalKey ? [LEGAL_DOCS[legalKey].title, ""] : content[activeTab] || content.nedir;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
@@ -2306,10 +2413,11 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-3xl font-black tracking-tight">{current[0]}</h2>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{current[1]}</p>
+              {current[1] && <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{current[1]}</p>}
             </div>
             <button onClick={onClose} className="hidden rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 md:block"><X size={18} /></button>
           </div>
+          {legalKey && <LegalBody docKey={legalKey} />}
           {activeTab === "nedir" && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"><div className="font-black">Güven</div><p className="mt-1 text-sm leading-relaxed text-slate-600">Doğrulama, bildirim, engelleme ve işlem sonrası değerlendirme akışlarıyla topluluk kalitesi korunur.</p></div>
@@ -2548,7 +2656,7 @@ function AccountPage({ auth, onSaved }) {
       {auth.isStaff && (
         <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
           <ShieldCheck size={17} /> {auth.staff.role === "super_admin" ? "Süper yönetici" : "Moderatör"} hesabıyla giriş yaptın.
-          <a href="#/yonetim" className="ml-auto rounded-full bg-amber-900 px-3 py-1 text-xs font-black text-white hover:bg-amber-800">Yönetim paneli</a>
+          <a href="/#/yonetim" className="ml-auto rounded-full bg-amber-900 px-3 py-1 text-xs font-black text-white hover:bg-amber-800">Yönetim paneli</a>
         </div>
       )}
       {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
@@ -2566,10 +2674,7 @@ function AccountPage({ auth, onSaved }) {
               {uploading ? "Yükleniyor…" : profile.avatar_url ? "Profil resmini değiştir" : "Profil resmi ekle"}
             </button>
           </div>
-          <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-900">
-            <div className="mb-1 flex items-center gap-2 font-black"><ShieldCheck size={17} /> Güven profili</div>
-            Telefon ve e-posta doğrulaması tamamlandığında kullanıcı adının yanında mavi tik görünür.
-          </div>
+          <VerificationCard auth={auth} onToast={onSaved} />
           <div className="mt-4 rounded-2xl border border-slate-200 p-3">
             <div className="mb-2 text-sm font-black text-slate-800">Gizlilik</div>
             <button type="button" role="switch" aria-checked={form.hide_from_search} onClick={toggleHidden} disabled={busy} className="flex w-full items-start justify-between gap-3 text-left">
@@ -2980,7 +3085,7 @@ function nowTime() {
   return new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, onReview }) {
+function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, onReview, onReportUser, onToggleBlock }) {
   const [tab, setTab] = useState("active");
   const [draft, setDraft] = useState("");
   const selectedConversation = conversations.find((item) => item.id === activeId) || null;
@@ -3132,12 +3237,12 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
                 </div>
 
                 <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                  <button className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700">
-                    <Flag size={13} className="mr-1 inline" /> Şikayet et
+                  <button onClick={() => onReportUser(activeConversation)} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 hover:bg-amber-100">
+                    <Flag size={13} className="mr-1 inline" /> Şikâyet et
                   </button>
 
-                  <button className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700">
-                    Engelle
+                  <button onClick={() => onToggleBlock(activeConversation)} className={"rounded-full border px-3 py-2 text-xs font-black " + (activeConversation.blockedByMe ? "border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100" : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100")}>
+                    {activeConversation.blockedByMe ? "Engeli kaldır" : "Engelle"}
                   </button>
 
                   {!activeConversation.deleted && (
@@ -3148,6 +3253,11 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
                 </div>
               </div>
 
+              {activeConversation.blockedByMe && (
+                <div className="mb-3 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
+                  Bu kullanıcıyı engelledin: birbirinize mesaj gönderemezsiniz ve yeni konuşma başlatamazsınız. Engeli kaldırmak için yukarıdaki düğmeyi kullan.
+                </div>
+              )}
               <ReviewStrip conversation={activeConversation} onReview={() => onReview(activeConversation)} />
               <div className="grid flex-1 content-start gap-3">
                 {activeConversation.messages.length === 0 && (
@@ -3184,15 +3294,16 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" && draft.trim()) { onSend(activeConversation.id, draft.trim()); setDraft(""); }
+                      if (event.key === "Enter" && draft.trim() && !activeConversation.blockedByMe) { onSend(activeConversation.id, draft.trim()); setDraft(""); }
                     }}
-                    className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-700"
-                    placeholder="Mesaj yaz..."
+                    disabled={activeConversation.blockedByMe}
+                    className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-700 disabled:opacity-50"
+                    placeholder={activeConversation.blockedByMe ? "Engellediğin kullanıcıya mesaj gönderemezsin" : "Mesaj yaz..."}
                   />
 
                   <button
                     onClick={() => { if (draft.trim()) { onSend(activeConversation.id, draft.trim()); setDraft(""); } }}
-                    disabled={!draft.trim()}
+                    disabled={!draft.trim() || activeConversation.blockedByMe}
                     className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40"
                   >
                     Gönder
@@ -3650,14 +3761,16 @@ const reportReasons = {
   listing: ["Yanıltıcı ilan", "Uygunsuz canlı / ürün", "Sahte fotoğraf", "Satıldı ama yayında", "Diğer"],
   post: ["Spam veya reklam", "Hakaret, taciz ya da nefret söylemi", "Yanıltıcı veya tehlikeli bilgi", "Uygunsuz görsel / video", "Topluluk akışında satış yapılıyor", "Hayvan refahına aykırı içerik", "Diğer"],
   comment: ["Spam veya reklam", "Hakaret, taciz ya da nefret söylemi", "Yanıltıcı veya tehlikeli bilgi", "Uygunsuz görsel / video", "Diğer"],
-  review: ["Gerçek bir alışverişe dayanmıyor", "Hakaret veya kişisel bilgi içeriyor", "Haksız / kasıtlı olumsuz değerlendirme", "Diğer"]
+  review: ["Gerçek bir alışverişe dayanmıyor", "Hakaret veya kişisel bilgi içeriyor", "Haksız / kasıtlı olumsuz değerlendirme", "Diğer"],
+  user: ["Dolandırıcılık şüphesi", "Hakaret, taciz ya da tehdit", "Spam / istenmeyen mesaj", "Sahte hesap", "Hayvan refahına aykırı davranış", "Diğer"]
 };
 
 const reportCopy = {
   listing: { title: "İlanı bildir", text: "Bu ilanla ilgili kısa bir bildirim gönder." },
   post: { title: "Paylaşımı bildir", text: "Topluluk kurallarına aykırı içerikleri ekibimize ilet." },
   comment: { title: "Yorumu bildir", text: "Topluluk kurallarına aykırı yorumları ekibimize ilet." },
-  review: { title: "Değerlendirmeyi bildir", text: "Kurallara aykırı ya da gerçeğe dayanmayan değerlendirmeleri ekibimiz inceler." }
+  review: { title: "Değerlendirmeyi bildir", text: "Kurallara aykırı ya da gerçeğe dayanmayan değerlendirmeleri ekibimiz inceler." },
+  user: { title: "Kullanıcıyı şikâyet et", text: "Bu üyeyle yaşadığın sorunu kısaca anlat; ekibimiz inceler. Şikâyetin karşı tarafa bildirilmez." }
 };
 
 function ReportModal({ target, onClose, onSubmit }) {
@@ -4004,7 +4117,7 @@ function timeAgoTr(value) {
 }
 
 function NotificationsPage({ notifs, onOpen, onProfile }) {
-  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", review: "⭐", system: "🔔" };
+  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", review: "⭐", system: "🔔", content_removed: "🛡️", content_restored: "✅", ad_approved: "📣", ad_rejected: "⚠️", account_suspended: "⛔", account_restored: "✅", report_resolved: "🛡️", group_closed: "🔒", group_reopened: "🔓", verification_approved: "✔️", verification_rejected: "⚠️", suggestion_approved: "🐟", suggestion_rejected: "🐟" };
   return (
     <div className="mx-auto max-w-2xl p-5">
       <div className="mb-4 flex items-end justify-between gap-3 border-b border-slate-200 pb-4">

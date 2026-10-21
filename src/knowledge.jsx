@@ -5,6 +5,9 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Loader2,
+  Plus,
+  Upload,
   Clock,
   Fish,
   Flag,
@@ -23,6 +26,8 @@ import {
 } from "lucide-react";
 import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostCard, VideoBlock, normalizeTr, timeAgo } from "./community.jsx";
 import { DIFFICULTY_COLORS, KB_CATEGORIES, KB_SECTIONS, categoryById, detectSpecies } from "./species.js";
+import { supabase, trError } from "./lib/supabase";
+import { shrinkImage } from "./lib/listings";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -165,6 +170,131 @@ export function KbAside({ kb, ctx, route }) {
   );
 }
 
+/* Tür öner: listelerin sonunda her zaman görünen kutucuk ---------------- */
+
+function SuggestCard({ kb, categoryId = "", query = "" }) {
+  return (
+    <button
+      type="button"
+      onClick={() => kb.onSuggest({ category: categoryId, name: query })}
+      className="flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-cyan-200 bg-cyan-50/40 p-4 text-center text-cyan-900 transition hover:border-cyan-400 hover:bg-cyan-50"
+    >
+      <span className="grid h-11 w-11 place-items-center rounded-full bg-white text-cyan-800 shadow-sm"><Plus size={22} /></span>
+      <span className="text-sm font-black">Tür öner</span>
+      <span className="text-[11px] leading-snug text-cyan-900/70">Burada olmayan bir türü bilgileri ve fotoğrafıyla öner; ekip inceleyip ekler.</span>
+    </button>
+  );
+}
+
+const SUGGEST_MAX_IMAGES = 4;
+
+export function SuggestSpeciesModal({ initial = {}, userId, onClose, onDone }) {
+  const [form, setForm] = useState({ name: initial.name || "", latin: "", category_id: initial.category || "", note: "" });
+  const [images, setImages] = useState([]); // { url, file }
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef(null);
+  const set = (key) => (event) => setForm((prev) => ({ ...prev, [key]: event.target.value }));
+  const ok = form.name.trim().length >= 2 && form.category_id && form.note.trim().length >= 10;
+
+  useEffect(() => {
+    const onKey = (event) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  function pick(event) {
+    const files = Array.from(event.target.files || []).filter((file) => /^image\/(jpeg|png|webp)$/.test(file.type));
+    event.target.value = "";
+    setImages((prev) => [...prev, ...files.map((file) => ({ url: URL.createObjectURL(file), file }))].slice(0, SUGGEST_MAX_IMAGES));
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!ok || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const urls = [];
+      for (const image of images) {
+        const blob = await shrinkImage(image.file, 1600, 0.85);
+        const type = blob.type || "image/jpeg";
+        const path = userId + "/suggestions/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+        const { error: upErr } = await supabase.storage.from("community-media").upload(path, blob, { contentType: type });
+        if (upErr) throw upErr;
+        urls.push(supabase.storage.from("community-media").getPublicUrl(path).data.publicUrl);
+      }
+      const { error: err } = await supabase.from("species_suggestions").insert({
+        user_id: userId,
+        name: form.name.trim(),
+        latin: form.latin.trim() || null,
+        category_id: form.category_id,
+        note: form.note.trim(),
+        images: urls
+      });
+      if (err) throw err;
+      onDone();
+    } catch (err) {
+      setError(trError(err));
+    }
+    setBusy(false);
+  }
+
+  const input = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-cyan-700";
+  return (
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/50 p-3 backdrop-blur-sm sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <form role="dialog" aria-label="Tür öner" onSubmit={submit} className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-[28px] bg-white p-5 shadow-2xl">
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <h2 className="text-xl font-black">Tür öner</h2>
+          <button type="button" onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200" aria-label="Pencereyi kapat" title="Pencereyi kapat"><X size={18} /></button>
+        </div>
+        <p className="mb-4 text-xs leading-relaxed text-slate-500">Bilgi Bankası'nda olmayan bir türü öner. Ekip önerini inceler; uygun bulursa tür profilini hazırlayıp yayına alır ve sana bildirim gelir.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1 text-xs font-black text-slate-500">Türkçe / yaygın adı
+            <input className={input} value={form.name} onChange={set("name")} maxLength={80} placeholder="Örn. Ember Tetra" required />
+          </label>
+          <label className="grid gap-1 text-xs font-black text-slate-500">Latince adı (biliyorsan)
+            <input className={input + " italic"} value={form.latin} onChange={set("latin")} maxLength={120} placeholder="Hyphessobrycon amandae" />
+          </label>
+          <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Kategori
+            <select className={input} value={form.category_id} onChange={set("category_id")} required>
+              <option value="">Seç</option>
+              {KB_SECTIONS.map((section) => (
+                <optgroup key={section.id} label={section.name}>
+                  {KB_CATEGORIES.filter((cat) => cat.section === section.id).map((cat) => <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Bilgiler
+            <textarea className={input} rows={4} value={form.note} onChange={set("note")} maxLength={1000} placeholder="Neden eklenmeli? Bildiğin bakım bilgileri: boy, sıcaklık, pH, huy, tank hacmi, kaynak..." required />
+            <span className="text-right font-normal text-slate-400">{form.note.length}/1000</span>
+          </label>
+        </div>
+        <div className="mt-1">
+          <div className="mb-1.5 text-xs font-black text-slate-500">Fotoğraflar (isteğe bağlı, en fazla {SUGGEST_MAX_IMAGES}) · kendi çektiğin ya da kullanım izni olan görseller</div>
+          <div className="flex flex-wrap gap-2">
+            {images.map((image, index) => (
+              <span key={image.url} className="relative h-16 w-16 overflow-hidden rounded-xl bg-slate-100">
+                <img src={image.url} alt="" className="h-full w-full object-cover" />
+                <button type="button" onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))} className="absolute right-0.5 top-0.5 rounded-full bg-white/90 p-0.5 text-slate-600" aria-label="Fotoğrafı kaldır" title="Fotoğrafı kaldır"><X size={12} /></button>
+              </span>
+            ))}
+            {images.length < SUGGEST_MAX_IMAGES && (
+              <button type="button" onClick={() => fileRef.current && fileRef.current.click()} className="grid h-16 w-16 place-items-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 hover:border-cyan-700 hover:text-cyan-800" aria-label="Fotoğraf ekle" title="Fotoğraf ekle"><Upload size={18} /></button>
+            )}
+          </div>
+          <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pick} />
+        </div>
+        {error && <div className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
+        <button type="submit" disabled={!ok || busy} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
+          {busy && <Loader2 size={16} className="animate-spin" />} Öneriyi gönder
+        </button>
+      </form>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Ana sayfa (bölüm + kategori kartları)                               */
 /* ------------------------------------------------------------------ */
@@ -178,9 +308,12 @@ function SearchResults({ kb, query }) {
         <button onClick={() => kb.setSearch("")} className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-cyan-900 ring-1 ring-cyan-200 hover:bg-cyan-50">Temizle</button>
       </div>
       {results.length ? (
-        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">{results.map((item) => <SpeciesCard key={item.slug} species={item} kb={kb} />)}</div>
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">{results.map((item) => <SpeciesCard key={item.slug} species={item} kb={kb} />)}<SuggestCard kb={kb} query={query} /></div>
       ) : (
-        <p className="p-10 text-center text-sm font-semibold text-slate-400">Bu ada uyan tür bulunamadı. Latince adla da deneyebilirsin.</p>
+        <div className="p-4">
+          <p className="mb-3 text-center text-sm font-semibold text-slate-400">Bu ada uyan tür bulunamadı. Latince adla da deneyebilirsin ya da türü öner.</p>
+          <div className="mx-auto max-w-[220px]"><SuggestCard kb={kb} query={query} /></div>
+        </div>
       )}
     </div>
   );
@@ -256,11 +389,13 @@ export function KbCategoryPage({ kb, categoryId }) {
         </div>
       </div>
       {list.length ? (
-        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">{list.map((item) => <SpeciesCard key={item.slug} species={item} kb={kb} />)}</div>
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">{list.map((item) => <SpeciesCard key={item.slug} species={item} kb={kb} />)}<SuggestCard kb={kb} categoryId={categoryId} /></div>
       ) : (
-        <p className="p-10 text-center text-sm font-semibold text-slate-400">Bu filtreye uyan tür yok.</p>
+        <div className="p-4">
+          <p className="mb-3 text-center text-sm font-semibold text-slate-400">Bu filtreye uyan tür yok.</p>
+          <div className="mx-auto max-w-[220px]"><SuggestCard kb={kb} categoryId={categoryId} /></div>
+        </div>
       )}
-      <p className="px-4 pb-6 text-xs text-slate-400">Eksik bir tür mü var? Yakında üyeler yeni tür profili önerebilecek.</p>
     </div>
   );
 }

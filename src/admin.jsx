@@ -45,12 +45,24 @@ export const PERMISSIONS = [
   ["settings", "Ayarlar"]
 ];
 
+// Her yetkinin tam olarak neye izin verdiği (Ekip ve yetkiler sayfasında gösterilir)
+export const PERMISSION_HELP = {
+  reports: "Gelen şikâyetleri görür; şikâyeti haklı bulup kapatır ya da reddeder. Tek başına içerik kaldıramaz.",
+  content: "Paylaşım, yorum, ilan, tür deneyimi ve değerlendirmeleri yayından kaldırır, kaldırılanları geri alır; kaldırılmış içerikleri görebilir. Şikâyetlerde \"Kaldır ve kapat\" için Şikâyetler yetkisiyle birlikte verilmeli.",
+  users: "Üyelerin e-posta adresini ve son girişini görür, üyeleri askıya alır ya da askıyı kaldırır, mavi tik taleplerini (telefon numarası dahil) inceler ve onaylar.",
+  groups: "Tüm grupları (kapalılar dahil) görür, grupları kapatır/yeniden açar, resmi ve üye gruplarının görselini, açıklamasını ve kurallarını düzenler.",
+  tags: "Etiketleri yasaklar, yasağı kaldırır, yazım farkı olan etiketleri birleştirir.",
+  species: "Bilgi Bankası'na tür ekler, türleri düzenler, yayından kaldırır; üyelerin tür önerilerini onaylar ya da reddeder.",
+  ads: "İlan öne çıkarma ve reklam başvurularını görür, onaylar ya da gerekçeyle reddeder.",
+  settings: "Duyuru bandını, topluluk kurallarını, yasaklı kelimeleri ve öne çıkarma/reklam fiyatlarını değiştirir."
+};
+
 const SECTIONS = [
   { id: "ozet", label: "Özet", icon: LayoutDashboard, perm: null },
   { id: "sikayetler", label: "Şikâyetler", icon: Flag, perm: "reports", stat: "reports_open" },
   { id: "one-cikarma", label: "Öne çıkarma", icon: Pin, perm: "ads", stat: "features_pending" },
   { id: "reklamlar", label: "Reklamlar", icon: Megaphone, perm: "ads", stat: "ads_pending" },
-  { id: "kullanicilar", label: "Kullanıcılar", icon: Users, perm: "users" },
+  { id: "kullanicilar", label: "Kullanıcılar", icon: Users, perm: "users", stat: "verifications_pending" },
   { id: "icerik", label: "Kaldırılan içerik", icon: Trash2, perm: "content" },
   { id: "etiketler", label: "Etiketler", icon: Hash, perm: "tags" },
   { id: "gruplar", label: "Gruplar", icon: UsersRound, perm: "groups" },
@@ -98,7 +110,9 @@ const ACTION_LABELS = {
   "species_comment.remove": "Tür deneyimi kaldırıldı",
   "settings.update": "Ayar değişti",
   "species.update": "Tür güncellendi",
-  "species_suggestion.review": "Tür önerisi sonuçlandı"
+  "species_suggestion.review": "Tür önerisi sonuçlandı",
+  "verification.approve": "Mavi tik onaylandı",
+  "verification.reject": "Mavi tik talebi reddedildi"
 };
 
 const REMOVE_REASONS = ["Spam veya reklam", "Hakaret / taciz", "Yanıltıcı veya tehlikeli bilgi", "Uygunsuz görsel", "Kurallara aykırı satış", "Hayvan refahına aykırı"];
@@ -148,7 +162,7 @@ async function profilesByIds(ids) {
 }
 
 function siteLink(path) {
-  return window.location.pathname + "#" + path;
+  return path;
 }
 
 /* ------------------------------------------------------------------ */
@@ -401,7 +415,7 @@ export default function AdminApp() {
           <p className="mt-1 text-sm text-slate-500">
             {auth.session ? "Bu sayfayı görmek için ekip yetkin olmalı." : "Bu sayfayı görmek için ekip hesabınla giriş yapmalısın."}
           </p>
-          <a href={window.location.pathname + "#/"} className="mt-4 inline-flex rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white">Siteye dön</a>
+          <a href="/" className="mt-4 inline-flex rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white">Siteye dön</a>
         </Card>
       </div>
     );
@@ -463,7 +477,7 @@ export default function AdminApp() {
             <div className="flex-1" />
             <Badge tone={isSuper ? "amber" : "cyan"}><ShieldCheck size={12} /> {isSuper ? "Süper yönetici" : "Moderatör"}</Badge>
             <span className="hidden text-sm font-black text-slate-700 sm:inline">@{auth.profile.username}</span>
-            <a href={window.location.pathname + "#/"} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-black text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">
+            <a href="/" className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-black text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">
               <ArrowLeft size={15} /> <span className="hidden sm:inline">Siteye dön</span>
             </a>
           </div>
@@ -514,6 +528,7 @@ function DashboardSection() {
     ["Öne çıkarma başvurusu", stats && stats.features_pending, "Onay bekliyor", "one-cikarma", "ads", true],
     ["Reklam başvurusu", stats && stats.ads_pending, "Onay bekliyor", "reklamlar", "ads", true],
     ["Tür önerisi", stats && stats.species_suggestions_pending, "Onay bekliyor", "turler", "species", true],
+    ["Mavi tik talebi", stats && stats.verifications_pending, "Onay bekliyor", "kullanicilar", "users", true],
     ["Askıdaki üye", stats && stats.suspended_users, "Şu an askıda", "kullanicilar", "users"]
   ];
   return (
@@ -530,7 +545,91 @@ function DashboardSection() {
           return link && can(perm) ? <a key={label} href={"#/yonetim/" + link}>{body}</a> : <div key={label}>{body}</div>;
         })}
       </div>
+      <VisitsCard />
     </Section>
+  );
+}
+
+const SECTION_LABELS = { home: "Ana sayfa", listings: "İlan listesi", listing: "İlan detayı", community: "Topluluk", post: "Paylaşım", group: "Gruplar", kb: "Bilgi Bankası", species: "Tür sayfaları", account: "Üye sayfaları", other: "Diğer" };
+
+function istanbulDay(offset = 0) {
+  const date = new Date(Date.now() + offset * 86400000);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Istanbul" }).format(date); // YYYY-MM-DD
+}
+
+function VisitsCard() {
+  const state = useLoad(async () => {
+    const rows = await must(supabase.from("site_visits_daily").select("day, section, views, sessions").gte("day", istanbulDay(-29)).order("day"));
+    const days = Array.from({ length: 30 }, (_, i) => istanbulDay(i - 29));
+    const byDay = Object.fromEntries(days.map((day) => [day, { views: 0, sessions: 0 }]));
+    const bySection = {};
+    rows.forEach((row) => {
+      const day = String(row.day).slice(0, 10);
+      if (byDay[day]) {
+        byDay[day].views += row.views;
+        byDay[day].sessions += row.sessions;
+      }
+      if (day >= istanbulDay(-6)) bySection[row.section] = (bySection[row.section] || 0) + row.views;
+    });
+    return { days, byDay, bySection };
+  }, []);
+
+  return (
+    <Card className="mt-4">
+      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-black">Ziyaretler</h2>
+        <span className="text-xs text-slate-400">Kişisel veri tutulmaz · ekip içi tarayıcılar ve botlar hariç tutulmaya çalışılır</span>
+      </div>
+      <LoadState state={state}>
+        {(data) => {
+          const sum = (from, key) => data.days.filter((day) => day >= istanbulDay(from)).reduce((total, day) => total + data.byDay[day][key], 0);
+          const max = Math.max(1, ...data.days.map((day) => data.byDay[day].views));
+          const sections = Object.entries(data.bySection).sort((a, b) => b[1] - a[1]);
+          const total7 = sections.reduce((total, [, value]) => total + value, 0) || 1;
+          return (
+            <>
+              <div className="mb-4 grid grid-cols-3 gap-3">
+                {[["Bugün", 0], ["Son 7 gün", -6], ["Son 30 gün", -29]].map(([label, from]) => (
+                  <div key={label} className="rounded-2xl bg-slate-50 p-3">
+                    <div className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</div>
+                    <div className="text-2xl font-black text-slate-900">{sum(from, "sessions").toLocaleString("tr-TR")} <span className="text-xs font-bold text-slate-500">ziyaret</span></div>
+                    <div className="text-xs font-bold text-slate-500">{sum(from, "views").toLocaleString("tr-TR")} sayfa görüntüleme</div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex h-36 items-end gap-[3px]" role="img" aria-label="Son 30 günün günlük sayfa görüntülemeleri">
+                {data.days.map((day) => {
+                  const value = data.byDay[day];
+                  return (
+                    <div key={day} className="group relative flex h-full flex-1 items-end" title={new Date(day).toLocaleDateString("tr-TR") + ": " + value.sessions + " ziyaret, " + value.views + " görüntüleme"}>
+                      <div className="w-full rounded-t bg-cyan-700/80 transition group-hover:bg-cyan-900" style={{ height: Math.max(value.views ? 4 : 1, (value.views / max) * 100) + "%" }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-1 flex justify-between text-[10px] font-bold text-slate-400">
+                <span>{new Date(data.days[0]).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</span>
+                <span>Bugün</span>
+              </div>
+              {sections.length > 0 && (
+                <div className="mt-4">
+                  <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Son 7 gün · bölümler</div>
+                  <div className="grid gap-1.5">
+                    {sections.map(([key, value]) => (
+                      <div key={key} className="grid grid-cols-[120px_1fr_60px] items-center gap-2 text-xs">
+                        <span className="font-bold text-slate-600">{SECTION_LABELS[key] || key}</span>
+                        <span className="h-2 overflow-hidden rounded-full bg-slate-100"><span className="block h-full rounded-full bg-cyan-700" style={{ width: (value / total7) * 100 + "%" }} /></span>
+                        <span className="text-right font-black text-slate-700">{value.toLocaleString("tr-TR")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        }}
+      </LoadState>
+    </Card>
   );
 }
 
@@ -899,6 +998,14 @@ function UsersSection() {
   }, [term, filter]);
 
   if (param) return <UserDetail userId={param} />;
+  if (filter === "verify") {
+    return (
+      <Section title="Kullanıcılar" subtitle="Mavi tik taleplerini incele: profil resmi, e-posta ve telefon numarasını teyit et.">
+        <Tabs value={filter} onChange={setFilter} items={[["all", "Tümü"], ["suspended", "Askıda"], ["unverified", "Doğrulanmamış"], ["verify", "Mavi tik talepleri"]]} />
+        <VerificationRequests />
+      </Section>
+    );
+  }
 
   return (
     <Section title="Kullanıcılar" subtitle="Üyeleri ara, askıya al, telefon doğrulamasını yönet.">
@@ -907,7 +1014,7 @@ function UsersSection() {
           <Search size={16} className="text-slate-400" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Kullanıcı adı ara" className="w-full bg-transparent text-sm outline-none" />
         </label>
-        <Tabs value={filter} onChange={setFilter} items={[["all", "Tümü"], ["suspended", "Askıda"], ["unverified", "Doğrulanmamış"]]} />
+        <Tabs value={filter} onChange={setFilter} items={[["all", "Tümü"], ["suspended", "Askıda"], ["unverified", "Doğrulanmamış"], ["verify", "Mavi tik talepleri"]]} />
       </div>
       <LoadState state={state}>
         {(rows) =>
@@ -933,6 +1040,76 @@ function UsersSection() {
         }
       </LoadState>
     </Section>
+  );
+}
+
+function VerificationRequests() {
+  const { act, ask, stats } = useAdmin();
+  const [status, setStatus] = useState("pending");
+  const state = useLoad(async () => {
+    const rows = await must(supabase.from("verification_requests").select("*").eq("status", status).order("created_at", { ascending: status === "pending" }).limit(200));
+    const profiles = await profilesByIds([...rows.map((row) => row.user_id), ...rows.map((row) => row.reviewed_by)]);
+    const emails = {};
+    if (status === "pending") {
+      await Promise.all(rows.map(async (row) => {
+        const { data } = await supabase.rpc("admin_user_private_info", { p_user_id: row.user_id });
+        emails[row.user_id] = data && data[0];
+      }));
+    }
+    return { rows, profiles, emails };
+  }, [status]);
+
+  async function review(row, approve) {
+    const reason = approve
+      ? await ask({ title: "Mavi tik ver", text: "Telefon numarasını teyit ettiysen onayla. Üyeye bildirim gider ve profilinde mavi tik görünür.", input: false, confirm: "Onayla" })
+      : await ask({ title: "Talebi reddet", presets: ["Telefon numarasına ulaşılamadı", "Profil resmi uygun değil", "Bilgiler tutarsız"], required: true, confirm: "Reddet", danger: true });
+    if (reason === null) return;
+    if (await act(supabase.rpc("admin_review_verification", { p_id: row.id, p_approve: approve, p_reason: approve ? null : reason }), approve ? "Mavi tik verildi" : "Talep reddedildi")) state.reload();
+  }
+
+  return (
+    <>
+      <Tabs value={status} onChange={setStatus} items={[["pending", "Bekleyen", stats && stats.verifications_pending], ["approved", "Onaylanan"], ["rejected", "Reddedilen"]]} />
+      <Card className="mb-3 bg-sky-50/60 text-xs leading-relaxed text-sky-900">
+        SMS doğrulaması eklenene kadar: numarayı ara ya da WhatsApp'tan kısa bir doğrulama mesajı gönder, üye adıyla teyit et, sonra onayla. Telefon numarası yalnızca "Kullanıcılar" yetkili ekibe görünür; üyelerle paylaşma.
+      </Card>
+      <LoadState state={state}>
+        {(data) =>
+          !data.rows.length ? <Empty>{status === "pending" ? "Bekleyen talep yok." : "Kayıt yok."}</Empty> : (
+            <Card className="divide-y divide-slate-100 p-0">
+              {data.rows.map((row) => {
+                const profile = data.profiles[row.user_id];
+                const email = data.emails[row.user_id];
+                return (
+                  <div key={row.id} className="flex flex-wrap items-center gap-4 px-4 py-3">
+                    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-cyan-950 text-lg font-black text-white">
+                      {profile && profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile ? profile.username.slice(0, 1).toUpperCase() : "?"}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <Person profile={profile} sub={profile ? (profile.city || "Şehir yok") + " · Katılım " + fmtDay(profile.created_at) : ""} />
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                        <a href={"tel:" + row.phone.replace(/\s/g, "")} className="rounded-full bg-white px-2.5 py-1 font-black text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">📞 {row.phone}</a>
+                        {status === "pending" && (email && email.email_confirmed_at ? <Badge tone="emerald">E-posta doğrulanmış</Badge> : <Badge tone="rose">E-posta doğrulanmamış</Badge>)}
+                        {profile && (profile.avatar_url ? <Badge tone="emerald">Profil resmi var</Badge> : <Badge tone="rose">Profil resmi yok</Badge>)}
+                        <span className="text-slate-400">{fmtDate(row.created_at)}</span>
+                        {row.reject_reason && <span className="font-bold text-rose-600">Gerekçe: {row.reject_reason}</span>}
+                        {row.reviewed_by && <span className="text-slate-400">· {data.profiles[row.reviewed_by] ? "@" + data.profiles[row.reviewed_by].username : "Ekip"}</span>}
+                      </div>
+                    </div>
+                    {status === "pending" && (
+                      <div className="flex gap-2">
+                        <Btn small tone="success" onClick={() => review(row, true)}><Check size={13} /> Mavi tik ver</Btn>
+                        <Btn small tone="ghostDanger" onClick={() => review(row, false)}><X size={13} /> Reddet</Btn>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </Card>
+          )
+        }
+      </LoadState>
+    </>
   );
 }
 
@@ -1370,7 +1547,11 @@ function SpeciesSection() {
           const pending = data.suggestions.filter((row) => row.status === "pending");
           return (
             <>
-              <Tabs value={tab} onChange={setTab} items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length]]} />
+              <Tabs
+                value={tab}
+                onChange={(key) => (key === "new" ? (window.location.hash = "#/yonetim/turler/yeni") : setTab(key))}
+                items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length], ["new", "＋ Yeni tür ekle"]]}
+              />
               {tab === "suggestions" ? (
                 !data.suggestions.length ? <Empty>Henüz tür önerisi yok.</Empty> : (
                   <Card className="divide-y divide-slate-100 p-0">
@@ -1383,7 +1564,14 @@ function SpeciesSection() {
                             <StatusBadge status={row.status} />
                             {row.category_id && <Badge>{data.categoryNames[row.category_id] || row.category_id}</Badge>}
                           </div>
-                          {row.note && <p className="mt-1 text-sm text-slate-600">{row.note}</p>}
+                          {row.note && <p className="mt-1 whitespace-pre-line text-sm text-slate-600">{row.note}</p>}
+                          {row.images && row.images.length > 0 && (
+                            <div className="mt-2 flex gap-2">
+                              {row.images.map((url) => (
+                                <a key={url} href={url} target="_blank" rel="noreferrer"><img src={url} alt="" className="h-16 w-16 rounded-xl object-cover ring-1 ring-slate-200" /></a>
+                              ))}
+                            </div>
+                          )}
                           <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                             <Person profile={data.profiles[row.user_id]} />
                             <span>{fmtDate(row.created_at)}</span>
@@ -1489,7 +1677,8 @@ function SpeciesEditor({ param }) {
       setForm({
         slug: suggestion ? slugify(suggestion.latin || suggestion.name) : "", name: suggestion ? suggestion.name : "", latin: suggestion ? suggestion.latin || "" : "",
         category_id: (suggestion && suggestion.category_id) || (categories[0] && categories[0].id) || "", kind: "fish", difficulty: "Kolay", temperament: "",
-        description: suggestion && suggestion.note ? suggestion.note : "", facts: FACT_TEMPLATES.fish.map((label) => [label, ""]), keywords: "", is_rare: false, status: "draft", images: []
+        description: suggestion && suggestion.note ? suggestion.note : "", facts: FACT_TEMPLATES.fish.map((label) => [label, ""]), keywords: "", is_rare: false, status: "draft",
+        images: suggestion && Array.isArray(suggestion.images) ? suggestion.images.slice(0, MAX_SPECIES_IMAGES) : []
       });
     }
   }, [state.data]);
@@ -1863,6 +2052,19 @@ function StaffSection() {
         </form>
       </Card>
 
+      <details className="mb-4 rounded-[22px] border border-slate-200 bg-white p-4 text-sm">
+        <summary className="cursor-pointer font-black text-slate-800">Yetkiler neye izin verir?</summary>
+        <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+          {PERMISSIONS.map(([key, label]) => (
+            <div key={key} className="rounded-xl bg-slate-50 px-3 py-2">
+              <dt className="font-black text-slate-800">{label}</dt>
+              <dd className="text-xs leading-relaxed text-slate-600">{PERMISSION_HELP[key]}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2 text-xs text-slate-500">Her ekip üyesi Özet ve İşlem kaydı sayfalarını görür. Ekip ve yetkiler sayfası yalnızca süper yöneticiye açıktır. Mesaj içerikleri hiçbir yetkiyle görüntülenemez.</p>
+      </details>
+
       {editing && (
         <Card className="mb-4 border-cyan-300">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -1877,10 +2079,10 @@ function StaffSection() {
             <>
               <div className="grid gap-2 sm:grid-cols-2">
                 {PERMISSIONS.map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm font-bold">
+                  <label key={key} className="flex items-start gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm font-bold">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 accent-cyan-900"
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-cyan-900"
                       checked={editing.permissions.has(key)}
                       onChange={(event) => {
                         const next = new Set(editing.permissions);
@@ -1888,7 +2090,10 @@ function StaffSection() {
                         setEditing({ ...editing, permissions: next });
                       }}
                     />
-                    {label}
+                    <span>
+                      {label}
+                      <span className="mt-0.5 block text-xs font-normal leading-relaxed text-slate-500">{PERMISSION_HELP[key]}</span>
+                    </span>
                   </label>
                 ))}
               </div>
@@ -1970,7 +2175,7 @@ function AuditSection() {
       <Tabs
         value={filter}
         onChange={setFilter}
-        items={[["all", "Tümü"], ["report", "Şikâyet"], ["content", "İçerik"], ["user", "Kullanıcı"], ["feature", "Öne çıkarma"], ["ad", "Reklam"], ["tag", "Etiket"], ["group", "Grup"], ["staff", "Ekip"], ["settings", "Ayar"]]}
+        items={[["all", "Tümü"], ["report", "Şikâyet"], ["content", "İçerik"], ["user", "Kullanıcı"], ["verification", "Doğrulama"], ["feature", "Öne çıkarma"], ["ad", "Reklam"], ["tag", "Etiket"], ["group", "Grup"], ["staff", "Ekip"], ["settings", "Ayar"]]}
       />
       <LoadState state={state}>
         {(data) =>

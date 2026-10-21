@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "./" // alan adında (aquagram.com.tr) ve github.io/aquatakas-mvp altında aynı derleme çalışır
+  base: "/" // aquagram.com.tr kökünde yayında; /tur/..., /ilan/... gibi derin adresler için mutlak yol gerekir
 });

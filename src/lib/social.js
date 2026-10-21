@@ -26,6 +26,7 @@ function useLiveReload(channelName, table, myId, reload) {
 export function useDbMessages(myId) {
   const [conversations, setConversations] = useState([]);
   const [profiles, setProfiles] = useState([]);
+  const [blocked, setBlocked] = useState(new Set()); // benim engellediklerim
   const drafts = useRef({});
 
   const reload = useCallback(async () => {
@@ -33,6 +34,9 @@ export function useDbMessages(myId) {
       setConversations([]);
       return;
     }
+    const { data: blockRows } = await supabase.from("user_blocks").select("blocked_id").eq("blocker_id", myId);
+    const blockedSet = new Set((blockRows || []).map((row) => row.blocked_id));
+    setBlocked(blockedSet);
     const { data: mineRows } = await supabase
       .from("conversation_participants")
       .select("conversation_id, last_read_at, hidden_at")
@@ -85,6 +89,7 @@ export function useDbMessages(myId) {
         listingId: conv.listing_id || null,
         bothSent: msgs.some((row) => row.sender_id === myId) && msgs.some((row) => row.sender_id !== myId),
         myReview: myReviews[conv.id] || null,
+        blockedByMe: Boolean(other && blockedSet.has(other.user_id)),
         draft: drafts.current[conv.id] || "",
         messages: msgs.map((row) => ({ from: row.sender_id === myId ? "sen" : otherName, body: row.body, time: hhmm(row.created_at) }))
       };
@@ -137,8 +142,16 @@ export function useDbMessages(myId) {
     await supabase.from("conversation_participants").update({ hidden_at: hidden ? new Date().toISOString() : null }).eq("conversation_id", dbId).eq("user_id", myId);
   }
 
-  const unreadCount = conversations.filter((conv) => conv.unread && !conv.deleted).length;
-  return { conversations, profiles, reload, start, send, markRead, setHidden, unreadCount };
+  async function setBlock(otherId, on) {
+    const { error } = on
+      ? await supabase.from("user_blocks").insert({ blocker_id: myId, blocked_id: otherId })
+      : await supabase.from("user_blocks").delete().eq("blocker_id", myId).eq("blocked_id", otherId);
+    if (error && !/duplicate|unique/i.test(error.message)) throw error;
+    await reload();
+  }
+
+  const unreadCount = conversations.filter((conv) => conv.unread && !conv.deleted && !conv.blockedByMe).length;
+  return { conversations, profiles, reload, start, send, markRead, setHidden, setBlock, blocked, unreadCount };
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +203,32 @@ export function notificationText(item) {
       return "Öne çıkarma başvurun reddedildi" + (item.listing ? ": " + item.listing.title : "") + (item.body ? " (" + item.body + ")" : "");
     case "review":
       return actor + " seninle yaptığı alışverişi değerlendirdi" + (item.body ? ": " + item.body : "") + (item.listing ? " · " + item.listing.title : "");
+    case "content_removed":
+      return "Ekip kararı: " + (item.body || "İçeriğin kaldırıldı") + ". İtiraz için info@aquagram.com.tr";
+    case "content_restored":
+      return item.body || "İçeriğin yeniden yayında";
+    case "ad_approved":
+      return "Reklamın onaylandı: " + (item.body || "");
+    case "ad_rejected":
+      return "Reklamın reddedildi: " + (item.body || "") + " · Reklamlarım'dan düzenleyip yeniden gönderebilirsin";
+    case "account_suspended":
+      return "Hesabın askıya alındı (" + (item.body || "") + "). Bu sürede paylaşım, yorum, ilan ve mesaj gönderemezsin. İtiraz için info@aquagram.com.tr";
+    case "account_restored":
+      return item.body || "Hesabındaki kısıtlama kaldırıldı";
+    case "report_resolved":
+      return item.body || "Bildirdiğin içerik incelendi";
+    case "group_closed":
+      return "Grubun ekip tarafından kapatıldı: " + (item.body || "");
+    case "group_reopened":
+      return "Grubun yeniden açıldı: " + (item.body || "");
+    case "verification_approved":
+      return "Hesabın doğrulandı! " + (item.body || "");
+    case "verification_rejected":
+      return "Doğrulama talebin onaylanmadı: " + (item.body || "") + " · Bilgilerini düzeltip yeniden başvurabilirsin";
+    case "suggestion_approved":
+      return "Tür önerin onaylandı: " + (item.body || "") + " · Teşekkürler!";
+    case "suggestion_rejected":
+      return "Tür önerin bu kez eklenmedi: " + (item.body || "");
     case "group_join":
       return actor + (item.grp ? " " + item.grp.name + " grubuna" : " grubuna") + " katıldı";
     default:

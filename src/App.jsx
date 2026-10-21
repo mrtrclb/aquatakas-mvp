@@ -5,6 +5,7 @@ import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, upload
 import { detectSpecies } from "./species";
 import { useDbCommunity, mapPost, uploadMedia, uploadBlobUrl } from "./lib/community";
 import { useDbMessages, useNotifications, notificationText } from "./lib/social";
+import { useDbKnowledge } from "./lib/knowledge";
 import {
   Bell,
   ChevronDown,
@@ -397,7 +398,8 @@ export default function AquagramApp() {
   const community = useDbCommunity(myId);
   const msgs = useDbMessages(isMember ? myId : null);
   const notifs = useNotifications(isMember ? myId : null);
-  [...community.profiles, ...msgs.profiles].forEach((row) => { if (!users[row.id] || users[row.id].real) users[row.id] = profileToUser(row); });
+  const kbDb = useDbKnowledge(myId);
+  [...community.profiles, ...msgs.profiles, ...kbDb.profiles].forEach((row) => { if (!users[row.id] || users[row.id].real) users[row.id] = profileToUser(row); });
   if (myId && auth.profile) users[myId] = profileToUser(auth.profile);
   const dbGroupById = useMemo(() => Object.fromEntries(community.groups.map((group) => [group.id, group])), [community.groups]);
   const groupKey = (dbGroupId) => {
@@ -668,11 +670,59 @@ export default function AquagramApp() {
     });
   }
 
+  // Bilgi Bankası: giriş yapan üyenin besledikleri/favorileri/yorumları veritabanında; örnek içerik yanında gösterilir
+  const kbKeepingAll = useMemo(() => ({ ...(SHOW_DEMO ? kbKeeping : {}), ...kbDb.keeping }), [kbKeeping, kbDb.keeping]);
+  const kbFavoritesAll = useMemo(
+    () => (myId ? { ...(SHOW_DEMO ? kbFavorites : {}), [myId]: kbDb.favoriteSlugs } : kbFavorites),
+    [kbFavorites, kbDb.favoriteSlugs, myId]
+  );
+  const kbCommentsAll = useMemo(() => [...kbDb.comments, ...(SHOW_DEMO ? kbComments : [])], [kbDb.comments, kbComments]);
+  const isDbSpeciesComment = (id) => String(id).startsWith("dsc");
+  const speciesCommentDbId = (id) => Number(String(id).slice(3));
+
+  async function kbDbCall(promise, rollback) {
+    const { error } = await promise;
+    if (error) {
+      setToast(trError(error));
+      if (rollback) rollback();
+      kbDb.reload();
+      return false;
+    }
+    return true;
+  }
+
+  function toggleSpecies(table, slug, onMsg, offMsg) {
+    const speciesId = kbDb.speciesId(slug);
+    if (!speciesId) return setToast("Tür bulunamadı, sayfayı yenileyip tekrar dene.");
+    if (table === "species_keepers") {
+      const has = (kbDb.keeping[myId] || []).includes(slug);
+      const apply = (on) => kbDb.setKeepers((prev) => (on ? [...prev, { species_id: speciesId, user_id: myId }] : prev.filter((row) => !(row.species_id === speciesId && row.user_id === myId))));
+      apply(!has);
+      setToast(has ? offMsg : onMsg);
+      return kbDbCall(
+        has ? supabase.from(table).delete().eq("species_id", speciesId).eq("user_id", myId) : supabase.from(table).insert({ species_id: speciesId, user_id: myId }),
+        () => apply(has)
+      );
+    }
+    const has = kbDb.favoriteSlugs.includes(slug);
+    const apply = (on) => kbDb.setFavorites((prev) => (on ? [...prev, speciesId] : prev.filter((id) => id !== speciesId)));
+    apply(!has);
+    setToast(has ? offMsg : onMsg);
+    return kbDbCall(
+      has ? supabase.from(table).delete().eq("species_id", speciesId).eq("user_id", myId) : supabase.from(table).insert({ species_id: speciesId, user_id: myId }),
+      () => apply(has)
+    );
+  }
+
+  function patchSpeciesComment(dbId, fn) {
+    kbDb.setCommentRows((prev) => prev.map((row) => (row.id === dbId ? fn(row) : row)));
+  }
+
   const kb = {
     species: SPECIES,
-    keeping: kbKeeping,
-    favorites: kbFavorites,
-    comments: kbComments,
+    keeping: kbKeepingAll,
+    favorites: kbFavoritesAll,
+    comments: kbCommentsAll,
     search: kbSearch,
     setSearch: (value) => {
       setKbSearch(value);
@@ -683,22 +733,71 @@ export default function AquagramApp() {
     openCategory: (id) => { setKbSearch(""); openHashPage("/bilgi/k/" + id); },
     openSpecies: (species) => openHashPage("/tur/" + species.slug),
     openMine: () => openHashPage("/bilgi/turlerim"),
-    onToggleKeep: (slug) => toggleInMap(setKbKeeping, slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı"),
-    onToggleFav: (slug) => toggleInMap(setKbFavorites, slug, "Favori türlerine eklendi ⭐", "Favorilerden çıkarıldı"),
-    onComment: (slug, { text, images = [], video = null }) => {
+    onToggleKeep: (slug) =>
+      myId
+        ? toggleSpecies("species_keepers", slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı")
+        : toggleInMap(setKbKeeping, slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı"),
+    onToggleFav: (slug) =>
+      myId
+        ? toggleSpecies("species_favorites", slug, "Favori türlerine eklendi ⭐", "Favorilerden çıkarıldı")
+        : toggleInMap(setKbFavorites, slug, "Favori türlerine eklendi ⭐", "Favorilerden çıkarıldı"),
+    onComment: async (slug, { text, images = [], video = null }) => {
+      if (myId) {
+        const speciesId = kbDb.speciesId(slug);
+        if (!speciesId) return setToast("Tür bulunamadı, sayfayı yenileyip tekrar dene.");
+        try {
+          setToast("Paylaşılıyor…");
+          const media = await uploadMedia(myId, "species", images, video);
+          const { error } = await supabase.from("species_comments").insert({ species_id: speciesId, user_id: myId, text: text || "", images: media.images, video: media.video });
+          if (error) throw error;
+          await kbDb.reload();
+          setToast("Deneyimin paylaşıldı, teşekkürler!");
+        } catch (error) {
+          setToast(trError(error));
+        }
+        return undefined;
+      }
       setKbComments((prev) => [{ id: "sc" + Date.now(), slug, userId: currentUserId, text, images, video, createdAt: Date.now(), likes: 0, likedByMe: false }, ...prev]);
       setToast("Deneyimin paylaşıldı, teşekkürler!");
+      return undefined;
     },
     onEditComment: (id, text) => {
+      if (isDbSpeciesComment(id)) {
+        const dbId = speciesCommentDbId(id);
+        patchSpeciesComment(dbId, (row) => ({ ...row, text, edited_at: new Date().toISOString() }));
+        kbDbCall(supabase.from("species_comments").update({ text }).eq("id", dbId)).then((ok) => ok && setToast("Yorum güncellendi"));
+        return;
+      }
       setKbComments((prev) => prev.map((item) => (item.id === id ? { ...item, text, editedAt: Date.now() } : item)));
       setToast("Yorum güncellendi");
     },
     onDeleteComment: (id) => {
       if (!window.confirm("Bu yorumu silmek istediğine emin misin?")) return;
+      if (isDbSpeciesComment(id)) {
+        const dbId = speciesCommentDbId(id);
+        kbDb.setCommentRows((prev) => prev.filter((row) => row.id !== dbId));
+        kbDbCall(supabase.from("species_comments").delete().eq("id", dbId)).then((ok) => ok && setToast("Yorum silindi"));
+        return;
+      }
       setKbComments((prev) => prev.filter((item) => item.id !== id));
     },
-    onLikeComment: (id) =>
-      setKbComments((prev) => prev.map((item) => (item.id === id ? { ...item, likedByMe: !item.likedByMe, likes: item.likes + (item.likedByMe ? -1 : 1) } : item)))
+    onLikeComment: (id) => {
+      if (isDbSpeciesComment(id)) {
+        if (!myId) return requireLogin();
+        const dbId = speciesCommentDbId(id);
+        const liked = kbDb.comments.some((item) => item.dbId === dbId && item.likedByMe);
+        const apply = (on) => {
+          kbDb.setLikedComments((prev) => { const next = new Set(prev); on ? next.add(dbId) : next.delete(dbId); return next; });
+          patchSpeciesComment(dbId, (row) => ({ ...row, like_count: Math.max(0, row.like_count + (on ? 1 : -1)) }));
+        };
+        apply(!liked);
+        return kbDbCall(
+          liked ? supabase.from("species_comment_likes").delete().eq("comment_id", dbId).eq("user_id", myId) : supabase.from("species_comment_likes").insert({ comment_id: dbId, user_id: myId }),
+          () => apply(liked)
+        );
+      }
+      return setKbComments((prev) => prev.map((item) => (item.id === id ? { ...item, likedByMe: !item.likedByMe, likes: item.likes + (item.likedByMe ? -1 : 1) } : item)));
+    }
   };
 
   function openGroup(group) {
@@ -1535,7 +1634,7 @@ export default function AquagramApp() {
     allPosts={posts}
     groups={groups}
     onOpenGroup={openGroup}
-    keptSpecies={kbKeeping[userIdOf(users, profileUser)] || []}
+    keptSpecies={kbKeepingAll[userIdOf(users, profileUser)] || []}
     onMessage={startConversation}
     kb={kb}
     onClose={() => setProfileUser(null)}
@@ -1561,12 +1660,13 @@ export default function AquagramApp() {
           onSubmit={async ({ reason, note } = {}) => {
             const kind = reportTarget.kind || "listing";
             const item = kind === "post" ? reportTarget.post : kind === "comment" ? reportTarget.comment : reportTarget.listing;
+            const targetType = (item && item.reportType) || kind;
             if (item && item.dbId) {
               if (!myId) {
                 setReportTarget(null);
                 return requireLogin();
               }
-              const { error } = await supabase.from("reports").insert({ target_type: kind, target_id: String(item.dbId), reason: (reason || "Diğer").slice(0, 120), note: note ? note.slice(0, 500) : null });
+              const { error } = await supabase.from("reports").insert({ target_type: targetType, target_id: String(item.dbId), reason: (reason || "Diğer").slice(0, 120), note: note ? note.slice(0, 500) : null });
               if (error && !/duplicate|unique/i.test(error.message)) {
                 setToast(trError(error));
                 return undefined;

@@ -266,7 +266,7 @@ export function SpeciesArticlesButton({ kb, slug }) {
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
   if (!list.length) return null;
-  const cls = "flex items-center gap-1.5 rounded-full bg-cyan-50 px-4 py-2 text-sm font-black text-cyan-900 ring-1 ring-cyan-200 transition hover:bg-cyan-100";
+  const cls = "flex items-center gap-1.5 whitespace-nowrap rounded-full bg-cyan-50 px-3 py-2 text-[13px] font-black text-cyan-900 ring-1 ring-cyan-200 transition hover:bg-cyan-100";
   if (list.length === 1) {
     return (
       <button onClick={() => kb.openArticle(list[0])} className={cls} title={list[0].title} data-testid="species-article-btn">

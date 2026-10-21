@@ -801,7 +801,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
           {ctx.RotatingDetailAd ? <ctx.RotatingDetailAd placement="species" pageKey={species.slug} /> : <ctx.DetailBannerAd ad={ctx.adsFor("species")[0]} />}
         </div>
       )}
-      <div className="grid gap-4 p-4 sm:grid-cols-[220px_1fr]">
+      <div className="grid gap-4 p-4 sm:grid-cols-[200px_1fr]">
         <SpeciesGallery species={species} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -813,18 +813,18 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
           <p className="text-sm italic text-slate-500">{species.latin}</p>
           <p className="mt-3 text-[15px] leading-relaxed text-slate-700">{species.desc}</p>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-1.5">
             <button
               onClick={() => (ctx.isMember ? kb.onToggleKeep(species.slug) : ctx.onAuth())}
-              className={"flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition " + (myKeep ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-cyan-950 text-white hover:bg-cyan-900")}
+              className={"flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-black transition " + (myKeep ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-cyan-950 text-white hover:bg-cyan-900")}
             >
-              {myKeep ? <><Check size={15} /> Besliyorum</> : <><Fish size={15} /> Beslediğim türlere ekle</>}
+              {myKeep ? <><Check size={15} /> Besliyorum</> : <><Fish size={15} /> Beslediklerime ekle</>}
             </button>
             <button
               onClick={() => (ctx.isMember ? kb.onToggleFav(species.slug) : ctx.onAuth())}
-              className={"flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black ring-1 transition " + (myFav ? "bg-amber-50 text-amber-800 ring-amber-300" : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50")}
+              className={"flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-black ring-1 transition " + (myFav ? "bg-amber-50 text-amber-800 ring-amber-300" : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50")}
             >
-              <Star size={15} fill={myFav ? "currentColor" : "none"} /> {myFav ? "Favorilerimde" : "Favori türlerime ekle"}
+              <Star size={15} fill={myFav ? "currentColor" : "none"} /> {myFav ? "Favorilerimde" : "Favorilere ekle"}
             </button>
             <SpeciesArticlesButton kb={kb} slug={species.slug} />
           </div>
@@ -934,13 +934,13 @@ export function KbMinePage({ kb, ctx }) {
 /* ------------------------------------------------------------------ */
 
 export function KbWidgets({ kb }) {
-  const recent = kb.species.slice().sort((a, b) => b.addedAt - a.addedAt).slice(0, 6);
+  const recent = kb.species.slice().sort((a, b) => b.addedAt - a.addedAt).slice(0, 5);
   const lastCommented = [];
   kb.comments
     .slice()
     .sort((a, b) => b.createdAt - a.createdAt)
     .forEach((comment) => {
-      if (lastCommented.length < 6 && !lastCommented.some((item) => item.slug === comment.slug)) lastCommented.push(comment);
+      if (lastCommented.length < 5 && !lastCommented.some((item) => item.slug === comment.slug)) lastCommented.push(comment);
     });
 
   const Row = ({ species, meta }) => (

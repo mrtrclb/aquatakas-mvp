@@ -1439,22 +1439,32 @@ export function MyPostsPage({ posts, ctx }) {
   const [tab, setTab] = useState("mine");
   const mine = posts.filter((post) => post.userId === ctx.currentUserId);
   const saved = posts.filter((post) => post.savedByMe);
-  const list = tab === "mine" ? mine : saved;
-  const tabs = [["mine", "Paylaşımlarım", mine.length], ["saved", "Kaydettiklerim", saved.length]];
+  const liked = posts.filter((post) => post.likedByMe);
+  const myComments = [];
+  posts.forEach((post) => post.comments.forEach((comment) => comment.userId === ctx.currentUserId && myComments.push({ comment, post })));
+  myComments.sort((a, b) => b.comment.createdAt - a.comment.createdAt);
+  const tabs = [["mine", "Paylaşımlarım", mine.length], ["comments", "Yorumlarım", myComments.length], ["liked", "Beğendiklerim", liked.length], ["saved", "Kaydettiklerim", saved.length]];
+  const list = tab === "mine" ? mine : tab === "liked" ? liked : saved;
+  const empty = {
+    comments: [MessageCircle, "Henüz yorum yapmadın", "Paylaşımlara yaptığın yorumlar burada, yorum yaptığın içerikle birlikte görünür."],
+    liked: [Heart, "Beğendiğin içerik yok", "Paylaşımlardaki kalp simgesine bastığında burada görünür."],
+    saved: [Bookmark, "Kaydettiğin içerik yok", "Paylaşımlardaki kaydet simgesine ya da ··· menüsündeki Kaydet seçeneğine bastığında burada görünür."]
+  };
+  const UserName = ctx.UserName;
 
   return (
     <div>
       <div className="sticky top-[60px] lg:top-[72px] z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="px-4 pt-3">
           <h2 className="text-xl font-black text-slate-950">Paylaşımlarım</h2>
-          <p className="text-xs font-semibold text-slate-500">{mine.length} paylaşım · {saved.length} kayıtlı içerik</p>
+          <p className="text-xs font-semibold text-slate-500">{mine.length} paylaşım · {myComments.length} yorum · {liked.length} beğeni · {saved.length} kayıtlı içerik</p>
         </div>
-        <div className="mt-2 flex">
+        <div className="mt-2 flex overflow-x-auto [scrollbar-width:none]" data-testid="my-posts-tabs">
           {tabs.map(([key, label, count]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={"relative flex-1 py-3 text-sm font-black transition hover:bg-slate-50 " + (tab === key ? "text-slate-950" : "text-slate-500")}
+              className={"relative flex-1 shrink-0 whitespace-nowrap px-3 py-3 text-sm font-black transition hover:bg-slate-50 " + (tab === key ? "text-slate-950" : "text-slate-500")}
             >
               {label} <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{count}</span>
               {tab === key && <span className="absolute bottom-0 left-1/2 h-1 w-16 -translate-x-1/2 rounded-full bg-cyan-700" />}
@@ -1463,19 +1473,56 @@ export function MyPostsPage({ posts, ctx }) {
         </div>
       </div>
       {tab === "mine" && <ComposerPrompt ctx={ctx} />}
-      {list.length === 0 ? (
+      {tab === "comments" ? (
+        myComments.length === 0 ? (
+          <EmptyTab icon={empty.comments[0]} title={empty.comments[1]} text={empty.comments[2]} />
+        ) : (
+          myComments.map(({ comment, post }) => {
+            const author = ctx.users[post.userId];
+            const snippet = post.text ? post.text.slice(0, 140) + (post.text.length > 140 ? "…" : "") : post.images.length ? "📷 Görsel paylaşım" : post.video ? "🎬 Video paylaşım" : post.poll ? "📊 Anket" : "Paylaşım";
+            return (
+              <article key={comment.id} onClick={() => ctx.onOpenPost(post)} className="cursor-pointer border-b border-slate-200 px-4 py-3.5 transition hover:bg-slate-50/70" data-testid="my-comment">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                  <MessageCircle size={13} className="shrink-0 text-cyan-700" />
+                  <span className="min-w-0 truncate">{post.userId === ctx.currentUserId ? "Kendi paylaşımına yorum" : <><UserName user={author} /> paylaşımına yorum</>}</span>
+                  <span className="shrink-0">· {timeAgo(comment.createdAt)}</span>
+                </div>
+                {comment.text && <p className="mt-1.5 whitespace-pre-line break-words text-[15px] text-slate-900">{comment.text}</p>}
+                {comment.images.length > 0 && (
+                  <div className="mt-2 flex gap-2">
+                    {comment.images.slice(0, 4).map((url) => <img key={url} src={url} alt="" className="h-16 w-16 rounded-xl object-cover ring-1 ring-slate-200" />)}
+                  </div>
+                )}
+                <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <p className="text-xs font-black text-slate-700">{post.userId === ctx.currentUserId ? "Senin paylaşımın" : <UserName user={author} />}</p>
+                  <p className="mt-0.5 line-clamp-2 break-words text-sm text-slate-600">{snippet}</p>
+                </div>
+                <div className="mt-1.5 flex gap-4 text-xs font-semibold text-slate-400">
+                  <span className="flex items-center gap-1"><Heart size={12} /> {comment.likes}</span>
+                </div>
+              </article>
+            );
+          })
+        )
+      ) : list.length === 0 ? (
         tab === "mine" ? (
           <p className="p-8 text-center text-sm font-semibold text-slate-400">Henüz bir şey paylaşmadın. İlk paylaşımını yukarıdan yapabilirsin.</p>
         ) : (
-          <div className="p-10 text-center">
-            <Bookmark size={28} className="mx-auto text-slate-300" />
-            <p className="mt-3 text-sm font-black text-slate-700">Kaydettiğin içerik yok</p>
-            <p className="mt-1 text-sm text-slate-500">Paylaşımlardaki kaydet simgesine ya da ··· menüsündeki Kaydet seçeneğine bastığında burada görünür.</p>
-          </div>
+          <EmptyTab icon={empty[tab][0]} title={empty[tab][1]} text={empty[tab][2]} />
         )
       ) : (
         list.map((post) => <PostCard key={post.id} post={post} ctx={ctx} />)
       )}
+    </div>
+  );
+}
+
+function EmptyTab({ icon: Icon, title, text }) {
+  return (
+    <div className="p-10 text-center">
+      <Icon size={28} className="mx-auto text-slate-300" />
+      <p className="mt-3 text-sm font-black text-slate-700">{title}</p>
+      <p className="mt-1 text-sm text-slate-500">{text}</p>
     </div>
   );
 }

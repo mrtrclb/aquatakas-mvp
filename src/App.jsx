@@ -6,6 +6,7 @@ import { detectSpecies } from "./species";
 import { useDbCommunity, mapPost, uploadMedia, uploadBlobUrl } from "./lib/community";
 import { useDbMessages, useNotifications, notificationText } from "./lib/social";
 import { useDbKnowledge } from "./lib/knowledge";
+import { useSiteSettings } from "./lib/settings";
 import {
   Bell,
   ChevronDown,
@@ -399,6 +400,8 @@ export default function AquagramApp() {
   const msgs = useDbMessages(isMember ? myId : null);
   const notifs = useNotifications(isMember ? myId : null);
   const kbDb = useDbKnowledge(myId);
+  const siteSettings = useSiteSettings();
+  const announcement = siteSettings.announcement && siteSettings.announcement.active && siteSettings.announcement.text ? siteSettings.announcement : null;
   [...community.profiles, ...msgs.profiles, ...kbDb.profiles].forEach((row) => { if (!users[row.id] || users[row.id].real) users[row.id] = profileToUser(row); });
   if (myId && auth.profile) users[myId] = profileToUser(auth.profile);
   const dbGroupById = useMemo(() => Object.fromEntries(community.groups.map((group) => [group.id, group])), [community.groups]);
@@ -515,6 +518,17 @@ export default function AquagramApp() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [userMenuOpen]);
+
+  // Doğrudan ilan bağlantısı: #/ilan/<no> (paylaşılan bağlantılar, yönetim paneli)
+  useEffect(() => {
+    const match = window.location.hash.match(/^#\/ilan\/(\d+)$/);
+    if (!match) return;
+    const item = dbListings.find((row) => row.dbId === Number(match[1]));
+    if (item) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      openListing(item);
+    }
+  }, [dbListings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Açılan konuşmayı okundu say
   useEffect(() => {
@@ -656,7 +670,9 @@ export default function AquagramApp() {
     const following = followedTags.includes(tag);
     if (myId) {
       patchMine("tags", (prev) => (following ? prev.filter((item) => item !== tag) : [...prev, tag]));
-      dbCall(following ? supabase.from("tag_follows").delete().eq("user_id", myId).eq("tag", tag) : supabase.from("tag_follows").insert({ tag }));
+      // Veritabanında etiketler "#" olmadan ve küçük harfle saklanır (paylaşım etiketleriyle aynı biçim)
+      const dbTag = tag.replace(/^#/, "").toLocaleLowerCase("tr");
+      dbCall(following ? supabase.from("tag_follows").delete().eq("user_id", myId).eq("tag", dbTag) : supabase.from("tag_follows").insert({ tag: dbTag }));
     } else setFollowedTags((prev) => (following ? prev.filter((item) => item !== tag) : [...prev, tag]));
     setToast(following ? tag + " takibi bırakıldı" : tag + " takip ediliyor · paylaşımlar ana sayfanda");
   }
@@ -982,6 +998,7 @@ export default function AquagramApp() {
   }
 
   const communityCtx = {
+    rules: Array.isArray(siteSettings.community_rules) && siteSettings.community_rules.length ? siteSettings.community_rules : null,
     users,
     UserName,
     VerifiedBadge,
@@ -1336,6 +1353,14 @@ export default function AquagramApp() {
 
   return (
     <div className="min-h-screen bg-white pb-[calc(64px+env(safe-area-inset-bottom))] text-slate-950 lg:pb-0">
+      {announcement && (
+        <div className="bg-cyan-950 px-4 py-2 text-center text-sm font-bold text-white">
+          {announcement.text}
+          {announcement.link && /^https?:\/\//.test(announcement.link) && (
+            <a href={announcement.link} target="_blank" rel="noreferrer noopener" className="ml-2 underline underline-offset-2">Ayrıntılar</a>
+          )}
+        </div>
+      )}
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between gap-2 px-3 sm:px-4 lg:h-[72px]">
           <div className="flex min-w-0 items-center gap-1.5">
@@ -1405,6 +1430,11 @@ export default function AquagramApp() {
                         {key === "notifications" && notifs.unread > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[11px] font-black text-white">{notifs.unread}</span>}
                       </button>
                     ))}
+                    {auth.isStaff && (
+                      <a href="#/yonetim" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-black text-amber-800 hover:bg-amber-50">
+                        <ShieldCheck size={15} /> Yönetim paneli
+                      </a>
+                    )}
                     <div className="my-1 border-t border-slate-100" />
                     <button
                       onClick={() => { setUserMenuOpen(false); auth.signOut(); clearViews(); setToast("Çıkış yaptın."); }}
@@ -2404,7 +2434,8 @@ function AccountPage({ auth, onSaved }) {
       </div>
       {auth.isStaff && (
         <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
-          <ShieldCheck size={17} /> {auth.staff.role === "super_admin" ? "Süper yönetici" : "Moderatör"} hesabıyla giriş yaptın. Yönetim paneli yakında burada olacak.
+          <ShieldCheck size={17} /> {auth.staff.role === "super_admin" ? "Süper yönetici" : "Moderatör"} hesabıyla giriş yaptın.
+          <a href="#/yonetim" className="ml-auto rounded-full bg-amber-900 px-3 py-1 text-xs font-black text-white hover:bg-amber-800">Yönetim paneli</a>
         </div>
       )}
       {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}

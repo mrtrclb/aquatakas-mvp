@@ -2111,14 +2111,14 @@ function SpeciesEditor({ param }) {
       setForm({
         slug: String(row.slug), name: row.name, latin: row.latin || "", category_id: row.category_id, kind: row.kind, difficulty: row.difficulty || "Kolay",
         temperament: row.temperament || "", description: row.description || "", facts: Array.isArray(row.facts) ? row.facts.map((pair) => [pair[0], pair[1]]) : [],
-        keywords: (row.keywords || []).join(", "), is_rare: Boolean(row.is_rare), status: row.status, images
+        keywords: (row.keywords || []).join(", "), is_rare: Boolean(row.is_rare), status: row.status, images, care_notice: row.care_notice || ""
       });
       setSlugTouched(true);
     } else {
       setForm({
         slug: suggestion ? slugify(suggestion.latin || suggestion.name) : "", name: suggestion ? suggestion.name : "", latin: suggestion ? suggestion.latin || "" : "",
         category_id: (suggestion && suggestion.category_id) || (categories[0] && categories[0].id) || "", kind: "fish", difficulty: "Kolay", temperament: "",
-        description: suggestion && suggestion.note ? suggestion.note : "", facts: FACT_TEMPLATES.fish.map((label) => [label, ""]), keywords: "", is_rare: false, status: "draft",
+        description: suggestion && suggestion.note ? suggestion.note : "", facts: FACT_TEMPLATES.fish.map((label) => [label, ""]), keywords: "", is_rare: false, status: "draft", care_notice: "",
         images: suggestion && Array.isArray(suggestion.images) ? suggestion.images.slice(0, MAX_SPECIES_IMAGES) : []
       });
     }
@@ -2187,6 +2187,7 @@ function SpeciesEditor({ param }) {
       facts: form.facts.map(([label, value]) => [label.trim(), String(value).trim()]).filter(([label, value]) => label && value),
       keywords: Array.from(new Set(form.keywords.split(",").map((word) => word.trim().toLocaleLowerCase("tr")).filter(Boolean))),
       is_rare: form.is_rare,
+      care_notice: (form.care_notice || "").trim() || null,
       status,
       images: form.images,
       image_url: form.images[0] || null
@@ -2258,6 +2259,9 @@ function SpeciesEditor({ param }) {
                 <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Arama kelimeleri
                   <input className={input} value={form.keywords} onChange={(event) => set("keywords", event.target.value)} placeholder="virgülle: ember, ember tetra, amandae" />
                   <span className="font-normal text-slate-400">Paylaşım ve ilanlarda bu kelimeler geçince tür otomatik etiketlenir.</span>
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Uyarı notu (isteğe bağlı)
+                  <textarea className={input} rows={2} value={form.care_notice || ""} maxLength={500} onChange={(event) => set("care_notice", event.target.value)} placeholder="Tür sayfasında sarı uyarı kutusu olarak görünür (ör. mevzuat, acı su ihtiyacı). Boşsa kategorinin varsayılan uyarısı gösterilir." />
                 </label>
               </div>
             </Card>

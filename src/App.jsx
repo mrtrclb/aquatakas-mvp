@@ -365,6 +365,8 @@ export default function AquagramApp() {
   const [reportTarget, setReportTarget] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [addSpecies, setAddSpecies] = useState(null); // tür sayfasından "İlk ilanı ver"
+  const [composerOpts, setComposerOpts] = useState(null); // { species, kind } — tür sayfasından açılınca
   const [memberPage, setMemberPage] = useState(null);
   const [onboardDismissed, setOnboardDismissed] = useState(false);
   const [onboardOpen, setOnboardOpen] = useState(false);
@@ -943,8 +945,9 @@ export default function AquagramApp() {
     navigate(postsUser || memberPage === "posts" ? "/" : "/topluluk", { replace: true });
   }
 
-  function openAddListing() {
+  function openAddListing(species = null) {
     if (!isMember) return requireLogin();
+    setAddSpecies(species && species.slug ? species : null);
     setAddOpen(true);
   }
 
@@ -953,12 +956,13 @@ export default function AquagramApp() {
     setAuthOpen(true);
   }
 
-  function openComposer(groupId = null) {
+  function openComposer(groupId = null, opts = null) {
     setShareMenuOpen(false);
     if (!isMember) {
       requireLogin();
       return;
     }
+    setComposerOpts(opts && opts.species ? opts : null);
     setComposerGroupId(typeof groupId === "string" ? groupId : null);
     setComposerOpen(true);
   }
@@ -1228,6 +1232,7 @@ export default function AquagramApp() {
     onMessage: startConversation,
     onOpenSpecies: (species) => openHashPage("/tur/" + species.slug),
     onOpenListing: (item) => openListing(item),
+    onAddListing: openAddListing,
     featuredListingIds,
     priceLabel,
     formatDate,
@@ -1974,6 +1979,7 @@ export default function AquagramApp() {
       {addOpen && (
         <AddListingModal
           auth={auth}
+          species={addSpecies}
           onClose={() => setAddOpen(false)}
           onCreated={async (row) => {
             setAddOpen(false);
@@ -1989,6 +1995,8 @@ export default function AquagramApp() {
           userId={currentUserId}
           groups={joinedGroups}
           defaultGroupId={composerGroupId && joinedGroups.some((group) => group.id === composerGroupId) ? composerGroupId : null}
+          defaultKind={composerOpts && composerOpts.kind === "question" ? "question" : "post"}
+          pinnedSpecies={composerOpts ? composerOpts.species : null}
           onClose={() => setComposerOpen(false)}
           onPublish={publishPost}
         />
@@ -4140,13 +4148,13 @@ function PromoteListingModal({ listing, onClose, onDone }) {
 
 const MAX_LISTING_PHOTOS = 6;
 
-function AddListingModal({ auth, listing = null, republish = false, onClose, onCreated }) {
+function AddListingModal({ auth, listing = null, republish = false, species = null, onClose, onCreated }) {
   const raw = listing?.raw || null;
   const [type, setType] = useState(raw ? listing.type : "Satıyorum");
-  const [category, setCategory] = useState(raw ? raw.category : "Canlı");
+  const [category, setCategory] = useState(raw ? raw.category : species && species.kind === "plant" ? "Bitki" : "Canlı");
   const [selectedOptions, setSelectedOptions] = useState(raw ? raw.tags || [] : []);
   const [allowOffer, setAllowOffer] = useState(raw ? raw.allow_offer : true);
-  const [title, setTitle] = useState(raw ? raw.title : "");
+  const [title, setTitle] = useState(raw ? raw.title : species ? species.name : "");
   const [description, setDescription] = useState(raw ? raw.description || "" : "");
   const [price, setPrice] = useState(raw && raw.price != null ? String(Number(raw.price)) : "");
   const [youtube, setYoutube] = useState(raw ? raw.youtube_url || "" : "");
@@ -4209,7 +4217,7 @@ function AddListingModal({ auth, listing = null, republish = false, onClose, onC
           allow_offer: type === "Satıyorum" ? allowOffer : false,
           youtube_url: youtube.trim() || null,
           images,
-          species_slugs: detectSpecies(title + " " + description)
+          species_slugs: Array.from(new Set([...detectSpecies(title + " " + description), ...(species ? [species.slug] : [])]))
       };
       if (republish) {
         fields.status = "active";

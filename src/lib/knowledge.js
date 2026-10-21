@@ -6,7 +6,7 @@ const ts = (value) => (value ? new Date(value).getTime() : Date.now());
 const PROFILE_COLS = "id, username, city, bio, avatar_url, phone_verified, socials, created_at, pro_until";
 
 // Veritabanı tür satırını arayüzdeki tür nesnesine çevirir (koddaki örnek veriyle aynı biçim)
-export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at";
+export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at, care_notice";
 export function mapSpeciesRow(row) {
   const images = Array.isArray(row.images) ? row.images.filter(Boolean) : [];
   if (row.image_url && !images.includes(row.image_url)) images.unshift(row.image_url);
@@ -22,6 +22,7 @@ export function mapSpeciesRow(row) {
     desc: row.description || "",
     facts: Array.isArray(row.facts) ? row.facts.filter((pair) => Array.isArray(pair) && pair[0]) : [],
     keywords: row.keywords || [],
+    notice: row.care_notice || "",
     rare: Boolean(row.is_rare),
     images,
     status: row.status,

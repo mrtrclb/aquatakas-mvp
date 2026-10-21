@@ -24,7 +24,7 @@ import {
   Video,
   X
 } from "lucide-react";
-import { categoryById, detectSpecies, speciesBySlug } from "./species.js";
+import { categoryById, detectSpecies, speciesBySlug, speciesTag } from "./species.js";
 import { LinkPreviewCard, URL_RE, firstUrl } from "./link-preview.jsx";
 import { ProBadge } from "./pro.jsx";
 
@@ -1625,7 +1625,7 @@ function ToolButton({ icon: Icon, label, onClick, disabled, active, compact = fa
   );
 }
 
-export function ComposerModal({ user, userId, groups = [], defaultGroupId = null, defaultKind = "post", onClose, onPublish }) {
+export function ComposerModal({ user, userId, groups = [], defaultGroupId = null, defaultKind = "post", pinnedSpecies = null, onClose, onPublish }) {
   const [text, setText] = useState("");
   const [previewUrl, setPreviewUrl] = useState(null);
   useEffect(() => {
@@ -1660,7 +1660,11 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
   const filledOptions = pollOptions.map((option) => option.trim()).filter(Boolean);
   const trimmed = text.trim();
   const pollText = pollOn ? pollOptions.join(" ") : "";
-  const detectedSpecies = detectSpecies(text + " " + pollText).filter((slug) => !removedSpecies.includes(slug));
+  const textSpecies = detectSpecies(text + " " + pollText);
+  // Tür sayfasından açıldıysa o tür her zaman bağlanır; metinde geçmiyorsa paylaşırken etiketi otomatik eklenir
+  const pinnedOn = Boolean(pinnedSpecies) && !removedSpecies.includes(pinnedSpecies.slug);
+  const pinnedTag = pinnedOn && !textSpecies.includes(pinnedSpecies.slug) ? speciesTag(pinnedSpecies) : null;
+  const detectedSpecies = Array.from(new Set([...(pinnedOn ? [pinnedSpecies.slug] : []), ...textSpecies])).filter((slug) => !removedSpecies.includes(slug));
   const canPublish = text.length <= MAX_TEXT && (pollOn ? Boolean(trimmed) && filledOptions.length >= 2 : Boolean(trimmed) || hasMedia);
 
   function addImages(event) {
@@ -1717,6 +1721,7 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
   function publish() {
     if (!canPublish) return;
     const now = Date.now();
+    const finalText = pinnedTag ? (trimmed ? trimmed + "\n\n" : "") + pinnedTag : trimmed;
     onPublish({
       id: "u" + now,
       slug: makeSlug(trimmed || "paylasim"),
@@ -1724,7 +1729,7 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
       groupId,
       kind: pollOn ? "post" : kind,
       speciesSlugs: detectedSpecies,
-      text: trimmed,
+      text: finalText,
       images: images.map((image) => image.url),
       video,
       poll: pollOn
@@ -1892,7 +1897,8 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
                 <div className="mb-1.5 text-[11px] font-black text-emerald-800">Bu paylaşım şu tür sayfalarında da görünecek:</div>
                 <div className="flex flex-wrap gap-1.5">
                   {detectedSpecies.map((slug) => {
-                    const item = speciesBySlug(slug);
+                    const item = speciesBySlug(slug) || (pinnedSpecies && pinnedSpecies.slug === slug ? pinnedSpecies : null);
+                    if (!item) return null;
                     return (
                       <span key={slug} className="inline-flex items-center gap-1 rounded-full bg-white py-0.5 pl-2 pr-1 text-xs font-black text-emerald-800 ring-1 ring-emerald-200">
                         {categoryById(item.category).emoji} {item.name}
@@ -1901,6 +1907,7 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
                     );
                   })}
                 </div>
+                {pinnedTag && <div className="mt-1.5 text-[11px] font-semibold text-emerald-700" data-testid="auto-tag-hint">Paylaşırken <b>{pinnedTag}</b> etiketi otomatik eklenecek.</div>}
               </div>
             )}
 

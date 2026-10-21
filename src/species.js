@@ -15,16 +15,17 @@ export const KB_CATEGORIES = [
   { id: "orta-amerika", section: "tatlisu", name: "Orta Amerika Cichlidleri", emoji: "🌋", tone: "from-yellow-300 to-rose-600" },
   { id: "canli-doguranlar", section: "tatlisu", name: "Canlı Doğuranlar", emoji: "🐡", tone: "from-rose-300 to-red-500" },
   { id: "labirentliler", section: "tatlisu", name: "Labirentliler", emoji: "🫧", tone: "from-red-400 to-fuchsia-700" },
-  { id: "sazangiller", section: "tatlisu", name: "Sazangiller", emoji: "🐟", tone: "from-sky-300 to-indigo-500" },
-  { id: "danio-rasboralar", section: "tatlisu", name: "Danio & Rasboralar", emoji: "⚡", tone: "from-indigo-300 to-sky-600" },
   { id: "characiformlar", section: "tatlisu", name: "Characiformlar (Tetralar)", emoji: "✨", tone: "from-cyan-300 to-blue-700" },
-  { id: "kedi-baliklari", section: "tatlisu", name: "Kedi Balıkları", emoji: "🐈", tone: "from-slate-300 to-slate-600" },
+  { id: "danio-rasboralar", section: "tatlisu", name: "Danio & Rasboralar", emoji: "⚡", tone: "from-indigo-300 to-sky-600" },
+  { id: "sazangiller", section: "tatlisu", name: "Sazangiller", emoji: "🐟", tone: "from-sky-300 to-indigo-500" },
   { id: "loachlar", section: "tatlisu", name: "Loachlar", emoji: "🌀", tone: "from-amber-200 to-stone-600" },
+  { id: "kedi-baliklari", section: "tatlisu", name: "Kedi Balıkları", emoji: "🐈", tone: "from-slate-300 to-slate-600" },
   { id: "killifishler", section: "tatlisu", name: "Killifishler", emoji: "🎨", tone: "from-lime-300 to-teal-600" },
   { id: "gokkusaklari", section: "tatlisu", name: "Gökkuşakları", emoji: "🌈", tone: "from-sky-300 to-violet-500" },
   { id: "gobyler", section: "tatlisu", name: "Gobyler", emoji: "🐚", tone: "from-teal-200 to-sky-700" },
   { id: "aci-su", section: "tatlisu", name: "Acı Su Balıkları", emoji: "🌊", tone: "from-emerald-300 to-cyan-700" },
-  { id: "ilkel-baliklar", section: "tatlisu", name: "Yılanbaşlar & İlkel Balıklar", emoji: "🐉", tone: "from-stone-400 to-emerald-900" },
+  { id: "yilanbaslar", section: "tatlisu", name: "Yılanbaşlar", emoji: "🐍", tone: "from-lime-300 to-stone-700", notice: "Yılanbaşlarla ilgili ithalat, ticaret ve bulundurma kuralları ülkeye ve zamana göre değişebilir; bazı türler istilacı potansiyel taşır. Edinmeden önce güncel resmî mevzuatı kontrol edin ve hiçbir koşulda doğaya salmayın." },
+  { id: "ilkel-siradisi-baliklar", section: "tatlisu", name: "İlkel & Sıra Dışı Balıklar", emoji: "🐉", tone: "from-stone-400 to-emerald-900" },
   { id: "diger-baliklar", section: "tatlisu", name: "Diğer Balıklar", emoji: "🦈", tone: "from-zinc-300 to-emerald-800" },
   { id: "karidesler", section: "omurgasiz", name: "Karidesler", emoji: "🦐", tone: "from-red-300 to-rose-600" },
   { id: "salyangozlar", section: "omurgasiz", name: "Salyangozlar", emoji: "🐌", tone: "from-amber-200 to-yellow-700" },
@@ -269,7 +270,19 @@ export function setSpeciesCatalog(list) {
 }
 
 export function detectSpecies(text) {
-  const hay = lower(text).replace(/['’]/g, "");
+  // Etiketlerdeki alt çizgi boşluk sayılır: #öpüşen_gurami → "öpüşen gurami"
+  const hay = lower(text).replace(/['’]/g, "").replace(/_/g, " ");
   if (!hay.trim()) return [];
   return MATCHERS.filter((matcher) => matcher.patterns.some((re) => re.test(hay))).map((matcher) => matcher.slug);
+}
+
+// Tür için metne eklenebilecek, tanıma sisteminin kesin yakaladığı etiket (#öpüşen_gurami gibi)
+export function speciesTag(species) {
+  const cands = [species.name, ...(species.keywords || []), species.latin].filter(Boolean);
+  const toTag = (word) => lower(word).replace(/['’]/g, "").replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, "");
+  for (const word of cands) {
+    const tag = toTag(word);
+    if (tag.length >= 3 && detectSpecies("#" + tag).includes(species.slug)) return "#" + tag;
+  }
+  return "#" + toTag(species.latin || species.name || species.slug);
 }

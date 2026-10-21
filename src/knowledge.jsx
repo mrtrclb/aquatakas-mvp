@@ -743,7 +743,11 @@ function RelatedSection({ species, listings, posts, ctx }) {
       {list.length === 0 ? (
         <p className="px-4 py-6 text-center text-sm text-slate-400">
           {tab === "listings" ? "Bu türle ilgili açık ilan yok." : tab === "posts" ? "Bu türle ilgili paylaşım yok." : "Bu tür hakkında soru sorulmamış."}
-          {tab !== "listings" && <> <button onClick={() => ctx.onCompose(null)} className="font-black text-cyan-800 hover:underline">{tab === "questions" ? "İlk soruyu sor" : "İlk paylaşımı yap"}</button></>}
+          {tab === "listings" ? (
+            ctx.onAddListing && <> <button onClick={() => ctx.onAddListing(species)} className="font-black text-cyan-800 hover:underline">İlk ilanı ver</button></>
+          ) : (
+            <> <button onClick={() => ctx.onCompose(null, { species, kind: tab === "questions" ? "question" : "post" })} className="font-black text-cyan-800 hover:underline">{tab === "questions" ? "İlk soruyu sor" : "İlk paylaşımı yap"}</button></>
+          )}
         </p>
       ) : tab === "listings" ? (
         <div className="divide-y divide-slate-100">
@@ -833,6 +837,13 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
           </div>
         </div>
       </div>
+
+      {(species.notice || (categoryById(species.category) || {}).notice) && (
+        <div className="mx-4 mb-4 flex gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="species-notice" role="note">
+          <span aria-hidden="true" className="text-base leading-5">⚠️</span>
+          <p className="leading-6">{species.notice || categoryById(species.category).notice}</p>
+        </div>
+      )}
 
       <section className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
         <h3 className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-800">Bakım künyesi</h3>

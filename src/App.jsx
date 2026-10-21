@@ -2085,9 +2085,9 @@ function AccountPage({ auth, onSaved }) {
 
 function VerificationRow({ icon, title, value, verified }) {
   return (
-    <div className="mb-2 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 text-sm">
-      <div className="flex items-center gap-2 text-slate-700">{icon}<div><div className="font-black">{title}</div><div className="text-xs text-slate-500">{value}</div></div></div>
-      <span className={"rounded-full px-2.5 py-1 text-xs font-black " + (verified ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-500")}>{verified ? "Doğrulandı" : "Bekliyor"}</span>
+    <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-50 p-3 text-sm">
+      <div className="flex min-w-0 flex-1 items-center gap-2 text-slate-700"><span className="shrink-0">{icon}</span><div className="min-w-0"><div className="font-black">{title}</div><div className="break-all text-xs text-slate-500">{value}</div></div></div>
+      <span className={"shrink-0 rounded-full px-2.5 py-1 text-xs font-black " + (verified ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-500")}>{verified ? "Doğrulandı" : "Bekliyor"}</span>
     </div>
   );
 }
@@ -3624,7 +3624,7 @@ function AddListingModal({ auth, listing = null, republish = false, onClose, onC
       };
       if (republish) {
         fields.status = "active";
-        fields.expires_at = new Date(Date.now() + 90 * 86400000).toISOString();
+        fields.expires_at = new Date(Date.now() + 30 * 86400000).toISOString();
       }
       const request = raw ? supabase.from("listings").update(fields).eq("id", raw.id) : supabase.from("listings").insert(fields);
       const { data, error: err } = await request.select().single();
@@ -3710,7 +3710,7 @@ function AddListingModal({ auth, listing = null, republish = false, onClose, onC
         <div className="border-t border-slate-100 bg-slate-50 p-4 sm:p-5">
           {error && <div className="mb-3 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs leading-relaxed text-slate-500">İlanın hemen yayına girer ve 90 gün yayında kalır. Kurallara aykırı ilanlar şikâyet üzerine kaldırılır.</p>
+            <p className="text-xs leading-relaxed text-slate-500">İlanın hemen yayına girer ve 30 gün yayında kalır. Kurallara aykırı ilanlar şikâyet üzerine kaldırılır.</p>
             <button onClick={submit} disabled={Boolean(busy)} className="shrink-0 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{busy || (republish ? "Tekrar yayınla" : raw ? "Kaydet" : "Yayınla")}</button>
           </div>
         </div>

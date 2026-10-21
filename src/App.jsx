@@ -368,6 +368,15 @@ export default function AquagramApp() {
   const [memberPage, setMemberPage] = useState(null);
   const [onboardDismissed, setOnboardDismissed] = useState(false);
   const [onboardOpen, setOnboardOpen] = useState(false);
+  const [fabVisible, setFabVisible] = useState(false);
+
+  // Masaüstünde akış kaydırılınca sağ altta "+" düğmesi (Twitter gibi)
+  useEffect(() => {
+    const onScroll = () => setFabVisible(window.scrollY > 500);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [removeListing, setRemoveListing] = useState(null);
@@ -1524,7 +1533,7 @@ export default function AquagramApp() {
         </div>
       )}
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between gap-2 px-3 sm:px-4 lg:h-[72px]">
+        <div className="mx-auto flex h-[60px] max-w-[1440px] items-center justify-between gap-2 px-3 sm:px-4 lg:h-[72px]">
           <div className="flex min-w-0 items-center gap-1.5">
             {leftAside && (
               <button
@@ -1645,7 +1654,7 @@ export default function AquagramApp() {
         </div>
       </header>
 
-      <main className={"mx-auto grid max-w-7xl px-4 " + ((accountMode || userListingsMode) ? "lg:grid-cols-[1fr]" : detailMode ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-[260px_1fr_300px]")}> 
+      <main className={"mx-auto grid max-w-[1440px] px-4 " + ((accountMode || userListingsMode) ? "lg:grid-cols-[1fr]" : detailMode ? "lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[310px_minmax(0,1fr)]" : "lg:grid-cols-[270px_minmax(0,1fr)_300px] xl:grid-cols-[310px_minmax(0,1fr)_340px]")}> 
         {leftAside && <div className="hidden lg:block">{leftAside}</div>}
 
         <section className={"min-w-0 bg-white " + (accountMode || userListingsMode ? "border-x border-slate-200" : "lg:border-r border-slate-200")}>
@@ -1757,6 +1766,11 @@ export default function AquagramApp() {
       setActiveConvId(id);
       setToast("Mesajın gönderildi");
       return id;
+    }}
+    onRestore={(id) => {
+      if (String(id).startsWith("dm")) msgs.setHidden(Number(String(id).slice(2)), false);
+      else setConversations((prev) => prev.map((item) => (item.id === id ? { ...item, deleted: false } : item)));
+      setToast("Sohbet gelen kutuna geri taşındı");
     }}
     onDelete={(id) => {
       if (String(id).startsWith("dm")) msgs.setHidden(Number(String(id).slice(2)), true);
@@ -2056,6 +2070,18 @@ export default function AquagramApp() {
         </div>
       )}
 
+      {fabVisible && communityMode && !postMode && (
+        <button
+          type="button"
+          onClick={() => (isMember ? openComposer() : requireLogin())}
+          title="İçerik paylaş"
+          aria-label="İçerik paylaş"
+          className="fixed bottom-8 z-30 hidden h-14 w-14 place-items-center rounded-full bg-cyan-950 text-white shadow-xl shadow-cyan-950/30 transition hover:scale-105 hover:bg-cyan-900 lg:grid"
+          style={{ right: "calc(max(1rem, (100vw - 1440px) / 2 + 1rem) + " + (typeof window !== "undefined" && window.innerWidth >= 1280 ? 340 : 300) + "px + 1.25rem)" }}
+        >
+          <Plus size={26} />
+        </button>
+      )}
       {toast && (
         <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 z-[80] max-w-[92vw] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-center text-sm font-black text-white shadow-xl lg:bottom-6">{toast}</div>
       )}
@@ -3102,7 +3128,7 @@ function MessageBoxUsage({ count }) {
   );
 }
 
-function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, onPurge, onDirectSend, onReview, onReportUser, onToggleBlock }) {
+function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, onRestore, onPurge, onDirectSend, onReview, onReportUser, onToggleBlock }) {
   const [tab, setTab] = useState("active");
   const { status: proStatus } = useProStatus(true);
   const isPro = Boolean(proStatus && proStatus.pro);
@@ -3370,8 +3396,13 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
                   </button>
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">
-                  Bu konuşma silinmiş mesajlarda. Mesaj kotanda yer açmak için yukarıdan kalıcı olarak silebilirsin.
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">
+                  <span>Bu sohbet silinmiş mesajlarda. Gelen kutuna geri taşıyabilir ya da yer açmak için kalıcı olarak silebilirsin.</span>
+                  {onRestore && (
+                    <button onClick={() => { onRestore(activeConversation.id); setSelectedConversation(null); }} className="flex items-center gap-1.5 rounded-full bg-cyan-950 px-4 py-2 text-xs font-black text-white hover:bg-cyan-900">
+                      <RotateCcw size={13} /> Mesajları geri getir
+                    </button>
+                  )}
                 </div>
               )}
             </div>

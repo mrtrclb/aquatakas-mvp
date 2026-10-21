@@ -126,17 +126,17 @@ function HomeListingCard({ item, ctx, featured }) {
           <span className="text-slate-400">· ilan verdi</span>
           {featured && <span className="ml-auto flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-800"><Pin size={10} fill="currentColor" /> Öne çıkan</span>}
         </div>
-        <div className="mt-2 flex gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <div className="relative h-28 w-28 shrink-0 bg-gradient-to-br from-cyan-800 to-teal-500 sm:w-36">
+        <div className="mt-2 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white sm:flex-row sm:gap-3">
+          <div className="relative aspect-[16/9] w-full shrink-0 bg-gradient-to-br from-cyan-800 to-teal-500 sm:aspect-auto sm:h-28 sm:w-36">
             <img src={item.images[0]} alt="" loading="lazy" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
             {item.youtube && <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white"><Play size={12} fill="currentColor" /></span>}
           </div>
-          <div className="min-w-0 flex-1 py-2.5 pr-3">
+          <div className="min-w-0 flex-1 px-3 py-2.5 sm:pl-0">
             <div className="flex flex-wrap gap-1">
               <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[11px] font-black text-white">{item.type}</span>
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">{item.category}</span>
             </div>
-            <h3 className="mt-1.5 line-clamp-1 text-[15px] font-black leading-snug text-slate-900">{item.title}</h3>
+            <h3 className="mt-1.5 line-clamp-2 text-[15px] font-black leading-snug text-slate-900 sm:line-clamp-1">{item.title}</h3>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
               <span className="flex items-center gap-1"><MapPin size={12} /> {item.city} / {item.district}</span>
               <span className="flex items-center gap-1"><CalendarDays size={12} /> {ctx.formatDate(item.date)}</span>

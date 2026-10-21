@@ -1456,7 +1456,13 @@ function ProSection() {
 /* Sistem kullanımı (disk, e-posta)                                    */
 /* ------------------------------------------------------------------ */
 
-const FREE_LIMITS = { db: 500 * 1024 * 1024, storage: 1024 * 1024 * 1024, emailsPerDay: 300 };
+// Supabase planına göre sınırlar (Ayarlar'dan seçilir)
+const GB = 1024 * 1024 * 1024;
+const PLAN_LIMITS = {
+  free: { label: "Ücretsiz", db: 0.5 * GB, storage: 1 * GB, egress: "5 GB", mau: "50.000", note: "1 hafta hareketsiz kalan proje duraklatılır; yedekleme yok." },
+  pro: { label: "Pro ($25/ay)", db: 8 * GB, storage: 100 * GB, egress: "250 GB", mau: "100.000", note: "Duraklatma yok, günlük yedek (7 gün). Sınır aşımında kullanım kadar ek ücret." }
+};
+const EMAILS_PER_DAY = 300;
 
 function fmtBytes(bytes) {
   const value = Number(bytes) || 0;
@@ -1490,15 +1496,33 @@ const TABLE_LABELS = { posts: "Paylaşımlar", comments: "Yorumlar", listings: "
 const BUCKET_LABELS = { "listing-images": "İlan görselleri", "post-media": "Paylaşım görselleri", avatars: "Profil resimleri", "ad-images": "Reklam görselleri", "species-images": "Tür görselleri" };
 
 function SystemCard() {
-  const state = useLoad(() => must(supabase.rpc("admin_system_stats")), []);
+  const { act } = useAdmin();
+  const state = useLoad(async () => {
+    const [stats, plan] = await Promise.all([
+      must(supabase.rpc("admin_system_stats")),
+      must(supabase.from("site_settings").select("value").eq("key", "supabase_plan").maybeSingle())
+    ]);
+    return { ...stats, plan: (plan && plan.value) || "free" };
+  }, []);
+  async function setPlan(value) {
+    if (await act(supabase.from("site_settings").upsert({ key: "supabase_plan", value }), "Plan bilgisi güncellendi")) state.reload();
+  }
   return (
     <Card className="mt-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 font-black"><HardDrive size={17} /> Sistem kullanımı</h2>
-        <Btn small onClick={state.reload}><RotateCcw size={13} /> Yenile</Btn>
+        <div className="flex items-center gap-2">
+          {state.data && (
+            <select value={state.data.plan} onChange={(event) => setPlan(event.target.value)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600" aria-label="Supabase planı">
+              {Object.entries(PLAN_LIMITS).map(([key, item]) => <option key={key} value={key}>Supabase: {item.label}</option>)}
+            </select>
+          )}
+          <Btn small onClick={state.reload}><RotateCcw size={13} /> Yenile</Btn>
+        </div>
       </div>
       <LoadState state={state}>
         {(data) => {
+          const limits = PLAN_LIMITS[data.plan] || PLAN_LIMITS.free;
           const storageBytes = data.storage.reduce((sum, row) => sum + Number(row.bytes || 0), 0);
           const storageFiles = data.storage.reduce((sum, row) => sum + Number(row.files || 0), 0);
           const e = data.emails || {};
@@ -1507,8 +1531,12 @@ function SystemCard() {
           return (
             <div className="grid gap-5 lg:grid-cols-2">
               <div className="grid content-start gap-4">
-                <UsageBar label="Veritabanı" used={data.db_bytes} limit={FREE_LIMITS.db} detail="Ücretsiz plan sınırı 500 MB. Metinler, ilanlar, mesajlar ve kayıtlar burada tutulur." />
-                <UsageBar label="Dosya depolama" used={storageBytes} limit={FREE_LIMITS.storage} detail={storageFiles.toLocaleString("tr-TR") + " dosya · ücretsiz plan sınırı 1 GB"} />
+                <UsageBar label="Veritabanı" used={data.db_bytes} limit={limits.db} detail={limits.label + " plan sınırı " + fmtBytes(limits.db) + ". Metinler, ilanlar, mesajlar ve kayıtlar burada tutulur."} />
+                <UsageBar label="Dosya depolama" used={storageBytes} limit={limits.storage} detail={storageFiles.toLocaleString("tr-TR") + " dosya · " + limits.label + " plan sınırı " + fmtBytes(limits.storage)} />
+                <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500">
+                  Aylık veri trafiği sınırı {limits.egress}, aylık aktif üye sınırı {limits.mau}. {limits.note} Trafik ve ayrıntılı kullanım için{" "}
+                  <a href="https://supabase.com/dashboard/project/kqgcaegwewdsivkbrjjr/settings/billing/usage" target="_blank" rel="noreferrer" className="font-black text-cyan-800 underline">Supabase kullanım sayfasına</a> bak.
+                </p>
                 {data.storage.length > 0 && (
                   <div className="grid gap-1 text-xs">
                     {data.storage.map((row) => (
@@ -1527,7 +1555,7 @@ function SystemCard() {
               </div>
               <div className="grid content-start gap-3">
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-2xl bg-slate-50 p-3"><div className="text-xs font-black uppercase tracking-wide text-slate-400">E-posta · 24 saat</div><div className="mt-1 text-2xl font-black">{sent24}</div><div className="text-xs text-slate-500">Günlük sınır {FREE_LIMITS.emailsPerDay} (Brevo)</div></div>
+                  <div className="rounded-2xl bg-slate-50 p-3"><div className="text-xs font-black uppercase tracking-wide text-slate-400">E-posta · 24 saat</div><div className="mt-1 text-2xl font-black">{sent24}</div><div className="text-xs text-slate-500">Günlük sınır {EMAILS_PER_DAY} (Brevo)</div></div>
                   <div className="rounded-2xl bg-slate-50 p-3"><div className="text-xs font-black uppercase tracking-wide text-slate-400">E-posta · 30 gün</div><div className="mt-1 text-2xl font-black">{sent30}</div><div className="text-xs text-slate-500">Yaklaşık (en az)</div></div>
                 </div>
                 <table className="w-full text-sm">

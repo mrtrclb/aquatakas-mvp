@@ -50,7 +50,7 @@ export function makeSlug(text, number) {
 }
 
 export function postUrl(post) {
-  return window.location.origin + window.location.pathname + "#/paylasim/" + post.slug;
+  return window.location.origin + "/paylasim/" + post.slug;
 }
 
 export function timeAgo(ts) {
@@ -1006,7 +1006,7 @@ export function CommunityAside({ ctx, view = "feed", group = null, search = "", 
       <div className={(group ? "mt-3" : "mt-6") + " rounded-2xl bg-slate-50 p-3"}>
         <div className="mb-2 text-sm font-black text-slate-800">{group ? "Genel topluluk kuralları" : "Topluluk kuralları"}</div>
         <ul className="grid gap-1.5 text-xs leading-relaxed text-slate-600">
-          {GENERAL_RULES.map((rule) => <li key={rule}>• {rule}</li>)}
+          {(ctx.rules || GENERAL_RULES).map((rule) => <li key={rule}>• {rule}</li>)}
         </ul>
       </div>
 
@@ -1092,7 +1092,7 @@ export function CommunityFeed({ posts, members, ctx, search = "", embedded = fal
       if (slot === 1 && !membersShown && !searching && members.length) {
         membersShown = true;
         items.push({ kind: "members", key: "members" });
-      } else {
+      } else if (ctx.adPool.length) {
         items.push({ kind: "ad", ad: ctx.adPool[slot % ctx.adPool.length], key: "ad-" + slot });
       }
     }

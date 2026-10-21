@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { CheckCircle2, Eye, EyeOff, Loader2, Mail, X } from "lucide-react";
 import { supabase, siteUrl, trError } from "./lib/supabase";
+import { LEGAL_VERSION, LegalModal } from "./legal.jsx";
 
 // ---------------------------------------------------------------------------
 // Oturum + profil + ekip yetkisi
@@ -140,7 +141,9 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [city, setCity] = useState("");
-  const [accepted, setAccepted] = useState(false);
+  const [termsAt, setTermsAt] = useState(null); // Kullanım Koşulları okunup kabul edildi
+  const [kvkkAt, setKvkkAt] = useState(null); // Aydınlatma Metni okundu
+  const [legalOpen, setLegalOpen] = useState(null); // "terms" | "kvkk"
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(null); // "signup" | "reset"
@@ -166,8 +169,8 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
         const name = normalizeUsername(username);
         if (name.length < 3) throw new Error("username_check");
         if (password.length < 8) throw new Error("Password should be at least 8 characters");
-        if (!accepted) {
-          setError("Devam etmek için topluluk kurallarını ve kullanım koşullarını kabul etmelisin.");
+        if (!termsAt || !kvkkAt) {
+          setError(!termsAt ? "Devam etmek için Kullanım Koşulları'nı okuyup kabul etmelisin." : "Devam etmek için KVKK Aydınlatma Metni'ni okumalısın.");
           return;
         }
         const { data: taken } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
@@ -175,7 +178,10 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
         const { data, error: err } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { username: name, city: city.trim() }, emailRedirectTo: siteUrl() }
+          options: {
+            data: { username: name, city: city.trim(), terms_version: LEGAL_VERSION, terms_accepted_at: termsAt, kvkk_read_at: kvkkAt },
+            emailRedirectTo: siteUrl()
+          }
         });
         if (err) throw err;
         // Supabase, kayıtlı bir e-postayla tekrar kayıt olunursa sessizce boş kimlik döner
@@ -294,10 +300,29 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
                   )}
 
                   {isRegister && (
-                    <label className="flex items-start gap-2 pt-1 text-xs leading-relaxed text-slate-500">
-                      <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-cyan-950" />
-                      <span>Topluluk kurallarını, kullanım koşullarını ve kişisel verilerin işlenmesine ilişkin aydınlatma metnini okudum, kabul ediyorum.</span>
-                    </label>
+                    <div className="grid gap-2 pt-1">
+                      {[
+                        ["terms", termsAt, "Kullanım Koşulları", "’nı (topluluk ve ilan kuralları dahil) okudum, anladım ve kabul ediyorum."],
+                        ["kvkk", kvkkAt, "KVKK Aydınlatma Metni", "’ni okudum ve anladım."]
+                      ].map(([key, done, label, rest]) => (
+                        <div key={key} className="flex items-start gap-2 text-xs leading-relaxed text-slate-500">
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={Boolean(done)}
+                            aria-label={label}
+                            onClick={() => (done ? (key === "terms" ? setTermsAt(null) : setKvkkAt(null)) : setLegalOpen(key))}
+                            className={"mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border " + (done ? "border-cyan-950 bg-cyan-950 text-white" : "border-slate-300 bg-white")}
+                          >
+                            {done && <CheckCircle2 size={11} />}
+                          </button>
+                          <span>
+                            <button type="button" onClick={() => setLegalOpen(key)} className="font-black text-cyan-800 underline decoration-cyan-800/30 underline-offset-2 hover:text-cyan-950">{label}</button>
+                            {rest}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   )}
 
                   {error && <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
@@ -331,6 +356,20 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
           </div>
         </div>
       </div>
+      {legalOpen && (
+        <LegalModal
+          docKey={legalOpen}
+          mustRead
+          onClose={() => setLegalOpen(null)}
+          onAccept={() => {
+            const now = new Date().toISOString();
+            if (legalOpen === "terms") setTermsAt(now);
+            else setKvkkAt(now);
+            setLegalOpen(null);
+            setError("");
+          }}
+        />
+      )}
     </div>
   );
 }

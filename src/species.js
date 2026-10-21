@@ -191,12 +191,19 @@ const RAW = [
 const START = new Date("2026-06-01").getTime();
 export const SPECIES = RAW.map((item, index) => ({ ...item, addedAt: START + index * 2 * 86400000 + (index % 5) * 3600000 }));
 
-export function speciesBySlug(slug) {
-  return SPECIES.find((item) => item.slug === slug) || null;
+// Etkin tür kataloğu: önce koddaki örnek veri, veritabanı yüklenince oradaki yayındaki türler
+let catalog = SPECIES;
+export function getSpeciesCatalog() {
+  return catalog;
 }
 
+export function speciesBySlug(slug) {
+  return catalog.find((item) => item.slug === slug) || null;
+}
+
+const FALLBACK_CATEGORY = { id: "diger", section: "tatlisu", name: "Diğer", emoji: "🐟", tone: "from-slate-300 to-slate-500" };
 export function categoryById(id) {
-  return KB_CATEGORIES.find((item) => item.id === id) || null;
+  return KB_CATEGORIES.find((item) => item.id === id) || FALLBACK_CATEGORY;
 }
 
 // Örnek: üyelerin beslediği türler (kullanıcı no → tür slug'ları)
@@ -238,15 +245,24 @@ const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Her tür için: Latince ad + anahtar kelimeler. Kelime başından eşleşir (Türkçe ekler için sonu serbest);
 // 4 harften kısa ifadeler yalnızca tam kelime olarak eşleşir.
-const MATCHERS = SPECIES.map((item) => ({
+function buildMatchers(list) {
+  return list.map((item) => ({
   slug: item.slug,
-  patterns: [item.latin.replace(/ sp\.$/, ""), ...(item.keywords || [])]
+  patterns: [(item.latin || "").replace(/ sp\.$/, ""), ...(item.keywords || [])]
     .filter(Boolean)
     .map((word) => {
       const w = escapeRe(lower(word).replace(/['’]/g, ""));
       return new RegExp("(^|[^\\p{L}\\p{N}])" + w + (w.length < 4 ? "(?![\\p{L}\\p{N}])" : ""), "u");
     })
 }));
+}
+let MATCHERS = buildMatchers(SPECIES);
+
+export function setSpeciesCatalog(list) {
+  if (!Array.isArray(list) || !list.length) return;
+  catalog = list;
+  MATCHERS = buildMatchers(list);
+}
 
 export function detectSpecies(text) {
   const hay = lower(text).replace(/['’]/g, "");

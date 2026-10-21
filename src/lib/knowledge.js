@@ -1,8 +1,33 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import { setSpeciesCatalog } from "../species.js";
 
 const ts = (value) => (value ? new Date(value).getTime() : Date.now());
 const PROFILE_COLS = "id, username, city, bio, avatar_url, phone_verified, socials, created_at";
+
+// Veritabanı tür satırını arayüzdeki tür nesnesine çevirir (koddaki örnek veriyle aynı biçim)
+export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at";
+export function mapSpeciesRow(row) {
+  const images = Array.isArray(row.images) ? row.images.filter(Boolean) : [];
+  if (row.image_url && !images.includes(row.image_url)) images.unshift(row.image_url);
+  return {
+    dbId: row.id,
+    slug: String(row.slug),
+    name: row.name,
+    latin: row.latin || "",
+    category: row.category_id,
+    kind: row.kind,
+    difficulty: row.difficulty || "Orta",
+    temperament: row.temperament || null,
+    desc: row.description || "",
+    facts: Array.isArray(row.facts) ? row.facts.filter((pair) => Array.isArray(pair) && pair[0]) : [],
+    keywords: row.keywords || [],
+    rare: Boolean(row.is_rare),
+    images,
+    status: row.status,
+    addedAt: ts(row.created_at) + (row.id || 0) // aynı anda eklenenler için kararlı sıra
+  };
+}
 
 export function mapSpeciesComment(row, slugById, likedSet) {
   return {
@@ -24,6 +49,7 @@ export function mapSpeciesComment(row, slugById, likedSet) {
 // Bilgi Bankası verisi: tür kimlikleri, besleyenler, giriş yapan üyenin favorileri, deneyim yorumları
 export function useDbKnowledge(myId) {
   const [ids, setIds] = useState({ bySlug: {}, bySpeciesId: {} });
+  const [speciesList, setSpeciesList] = useState(null); // yayındaki türler (veritabanından)
   const [keepers, setKeepers] = useState([]); // { species_id, user_id }
   const [favorites, setFavorites] = useState([]); // species_id[] (yalnızca benim)
   const [commentRows, setCommentRows] = useState([]);
@@ -32,8 +58,8 @@ export function useDbKnowledge(myId) {
   const [loaded, setLoaded] = useState(false);
 
   const reload = useCallback(async () => {
-    const [speciesRes, keepersRes, commentsRes] = await Promise.all([
-      supabase.from("species").select("id, slug"),
+    let [speciesRes, keepersRes, commentsRes] = await Promise.all([
+      supabase.from("species").select(SPECIES_COLS).order("name"),
       supabase.from("species_keepers").select("species_id, user_id").limit(10000),
       supabase
         .from("species_comments")
@@ -42,6 +68,8 @@ export function useDbKnowledge(myId) {
         .order("created_at", { ascending: false })
         .limit(1000)
     ]);
+    // Tür görselleri sütunu henüz yoksa (0013 uygulanmadan önce) onsuz tekrar dene
+    if (speciesRes.error) speciesRes = await supabase.from("species").select(SPECIES_COLS.replace(", images", "")).order("name");
     const bySlug = {};
     const bySpeciesId = {};
     (speciesRes.data || []).forEach((row) => {
@@ -67,6 +95,11 @@ export function useDbKnowledge(myId) {
       profileRows = data || [];
     }
     setIds({ bySlug, bySpeciesId });
+    const published = (speciesRes.data || []).filter((row) => row.status === "published").map(mapSpeciesRow);
+    if (published.length) {
+      setSpeciesCatalog(published);
+      setSpeciesList(published);
+    }
     setKeepers(keeperRows);
     setFavorites(favRows.map((row) => row.species_id));
     setCommentRows(rows);
@@ -91,6 +124,7 @@ export function useDbKnowledge(myId) {
   return {
     loaded,
     reload,
+    speciesList,
     profiles,
     speciesId: (slug) => ids.bySlug[slug],
     keeping,

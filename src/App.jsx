@@ -6,6 +6,15 @@ import { detectSpecies } from "./species";
 import { useDbCommunity, mapPost, uploadMedia, uploadBlobUrl } from "./lib/community";
 import { useDbMessages, useNotifications, notificationText } from "./lib/social";
 import { useDbKnowledge } from "./lib/knowledge";
+import { useSiteSettings } from "./lib/settings";
+import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
+import AdsManagerPage from "./ads-manager.jsx";
+import { LEGAL_DOCS, LegalBody } from "./legal.jsx";
+import { VerificationCard } from "./verification.jsx";
+import { trackVisit } from "./lib/visits";
+import { absoluteUrl, navigate, onRoute, routePath, upgradeLegacyHash } from "./lib/router";
+import { ListingDetailAside } from "./listing-aside.jsx";
+import { ReviewModal, ReviewStrip, ReviewSummary, ReviewList, useProfileReviews } from "./reviews.jsx";
 import {
   Bell,
   ChevronDown,
@@ -71,7 +80,7 @@ import {
 } from "./community.jsx";
 import { GroupFormModal, GroupPage, GroupsPage, TagsPage, buildDefaultGroups } from "./groups.jsx";
 import { HomeAside, HomeFeed, HomeTopBar, loadHomeFilter, saveHomeFilter } from "./home.jsx";
-import { KbAside, KbCategoryPage, KbHome, KbMinePage, KbWidgets, KeptSpeciesChips, SpeciesPage } from "./knowledge.jsx";
+import { KbAside, KbCategoryPage, KbHome, KbMinePage, KbWidgets, KeptSpeciesChips, SpeciesPage, SuggestSpeciesModal } from "./knowledge.jsx";
 import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, speciesBySlug } from "./species.js";
 
 const locations = {
@@ -205,6 +214,17 @@ const adPool = [
     image: img.tank2
   }
 ];
+
+// Yayındaki gerçek reklamlar (yerleşime göre); yoksa örnek reklamlar gösterilir
+let livePools = { feed: [], sidebar: [], detail: [] };
+function adsFor(placement) {
+  const live = livePools[placement] || [];
+  return live.length ? live : SHOW_DEMO ? adPool : [];
+}
+
+function AdImage({ ad, className = "h-full w-full object-cover" }) {
+  return ad.image ? <img src={ad.image} alt="" className={className} /> : <div className={className + " bg-gradient-to-br from-amber-200 via-amber-100 to-cyan-100"} />;
+}
 
 function formatDate(iso) {
   const parts = iso.split("-");
@@ -379,6 +399,8 @@ export default function AquagramApp() {
   const [mobileShareOpen, setMobileShareOpen] = useState(false);
   const [localConversations, setConversations] = useState([]); // örnek kullanıcılarla (yalnızca bu cihazda) konuşmalar
   const [activeConvId, setActiveConvId] = useState(null);
+  const [reviewConv, setReviewConv] = useState(null);
+  const [suggestSpecies, setSuggestSpecies] = useState(null); // { category, name }
   const userMenuRef = useRef(null);
   const shareMenuRef = useRef(null);
   const cameFromApp = useRef(false);
@@ -399,6 +421,9 @@ export default function AquagramApp() {
   const msgs = useDbMessages(isMember ? myId : null);
   const notifs = useNotifications(isMember ? myId : null);
   const kbDb = useDbKnowledge(myId);
+  const siteSettings = useSiteSettings();
+  livePools = useLiveAds();
+  const announcement = siteSettings.announcement && siteSettings.announcement.active && siteSettings.announcement.text ? siteSettings.announcement : null;
   [...community.profiles, ...msgs.profiles, ...kbDb.profiles].forEach((row) => { if (!users[row.id] || users[row.id].real) users[row.id] = profileToUser(row); });
   if (myId && auth.profile) users[myId] = profileToUser(auth.profile);
   const dbGroupById = useMemo(() => Object.fromEntries(community.groups.map((group) => [group.id, group])), [community.groups]);
@@ -412,8 +437,14 @@ export default function AquagramApp() {
       const db = community.groups.find((row) => row.is_official && String(row.slug) === group.slug);
       if (!db) return group;
       const rows = membersOf(db.id);
+      // Resmi grubun yönetimden düzenlenmiş bilgileri yerel varsayılanların önüne geçer
       return {
         ...group,
+        name: db.name || group.name,
+        description: db.description || group.description,
+        rules: db.rules && db.rules.length ? db.rules : group.rules,
+        emoji: db.emoji || group.emoji,
+        cover: db.cover_url || group.cover,
         dbId: db.id,
         memberIds: Array.from(new Set([...group.memberIds, ...rows.map((row) => row.user_id)])),
         moderatorIds: Array.from(new Set([...group.moderatorIds, ...rows.filter((row) => row.role !== "member").map((row) => row.user_id)]))
@@ -472,30 +503,44 @@ export default function AquagramApp() {
     return true;
   }
 
-  // Bağlantılar: #/paylasim/<sayı>-<ilk-kelimeler>, #/gruplar, #/grup/<ad>, #/etiketler
+  // Adresler: /paylasim/<sayı>-<kelimeler>, /gruplar, /grup/<ad>, /etiketler, /bilgi..., /tur/<ad>, /ilan/<no>, /ilanlar, /topluluk
   useEffect(() => {
-    function syncFromHash() {
-      const hash = window.location.hash;
-      const post = hash.match(/^#\/paylasim\/(.+)$/);
-      const group = hash.match(/^#\/grup\/([^/]+)$/);
-      setPostSlug(post ? decodeURIComponent(post[1]) : null);
-      setGroupSlug(group ? decodeURIComponent(group[1]) : null);
-      setCommunityPage(hash === "#/gruplar" ? "groups" : hash === "#/etiketler" ? "tags" : null);
-      const kbSection = hash.match(/^#\/bilgi(?:\/b\/([^/]+))?$/);
-      const kbCategory = hash.match(/^#\/bilgi\/k\/([^/]+)$/);
-      const species = hash.match(/^#\/tur\/([^/]+)$/);
+    upgradeLegacyHash();
+    function syncFromRoute(kind) {
+      const path = routePath();
+      const post = path.match(/^\/paylasim\/(.+)$/);
+      const group = path.match(/^\/grup\/([^/]+)$/);
+      setPostSlug(post ? post[1] : null);
+      setGroupSlug(group ? group[1] : null);
+      setCommunityPage(path === "/gruplar" ? "groups" : path === "/etiketler" ? "tags" : null);
+      const kbSection = path.match(/^\/bilgi(?:\/b\/([^/]+))?$/);
+      const kbCategory = path.match(/^\/bilgi\/k\/([^/]+)$/);
+      const species = path.match(/^\/tur\/([^/]+)$/);
       setKbRoute(
-        species ? { slug: decodeURIComponent(species[1]) }
-          : kbCategory ? { category: decodeURIComponent(kbCategory[1]) }
-          : hash === "#/bilgi/turlerim" ? { mine: true }
+        species ? { slug: species[1] }
+          : kbCategory ? { category: kbCategory[1] }
+          : path === "/bilgi/turlerim" ? { mine: true }
           : kbSection ? { section: kbSection[1] || "tatlisu" }
           : null
       );
+      if (kind === "pop") {
+        // Tarayıcının geri/ileri tuşu ya da ilk açılış: görünümü adrese göre baştan kur
+        setMemberPage(null);
+        setViewUser(null);
+        setProfileUser(null);
+        setPostsUser(null);
+        setMenuOpen(false);
+        if (!/^\/ilan\/\d+$/.test(path)) setSelectedListing(null);
+        setListingsOpen(path === "/ilanlar");
+        setCommunityOpen(path === "/topluluk");
+      } else {
+        if (path === "/ilanlar") setListingsOpen(true);
+        if (path === "/topluluk") setCommunityOpen(true);
+      }
       setDrawerOpen(false);
     }
-    syncFromHash();
-    window.addEventListener("hashchange", syncFromHash);
-    return () => window.removeEventListener("hashchange", syncFromHash);
+    syncFromRoute("pop");
+    return onRoute(syncFromRoute);
   }, []);
 
   useEffect(() => {
@@ -515,6 +560,35 @@ export default function AquagramApp() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [userMenuOpen]);
+
+  // Reklam kartlarındaki "Reklam ver" düğmesi
+  useEffect(() => {
+    const onOpenAds = () => openMemberPage("ads");
+    window.addEventListener("aquagram:open-ads", onOpenAds);
+    return () => window.removeEventListener("aquagram:open-ads", onOpenAds);
+  });
+
+  // İlan adresi: /ilan/<no> (paylaşılan bağlantılar, arama motorları, geri/ileri tuşları)
+  const selectedListingRef = useRef(null);
+  selectedListingRef.current = selectedListing;
+  useEffect(() => {
+    function openFromRoute() {
+      const match = routePath().match(/^\/ilan\/(\d+)$/);
+      if (!match) return;
+      const current = selectedListingRef.current;
+      if (current && current.dbId === Number(match[1])) return;
+      const item = dbListings.find((row) => row.dbId === Number(match[1]));
+      if (item) {
+        clearViews();
+        setListingsOpen(false);
+        setSelectedListing(item);
+        setActiveImage(0);
+        window.scrollTo({ top: 0 });
+      }
+    }
+    openFromRoute();
+    return onRoute(openFromRoute);
+  }, [dbListings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Açılan konuşmayı okundu say
   useEffect(() => {
@@ -548,7 +622,6 @@ export default function AquagramApp() {
   }, [toast]);
 
   function clearPostHash() {
-    if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     setPostSlug(null);
     setGroupSlug(null);
     setCommunityPage(null);
@@ -573,18 +646,24 @@ export default function AquagramApp() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // Adresi olmayan görünümlere (üye sayfaları, kullanıcı ilanları vb.) geçerken adres çubuğunu ana yola al
+  function leaveTo(path = "/") {
+    if (routePath() !== path) navigate(path);
+  }
+
   function openCommunity() {
     clearViews();
     setListingsOpen(false);
     setCommunitySearch("");
     setCommunityOpen(true);
+    navigate("/topluluk");
     scrollTop();
   }
 
   function openHashPage(path) {
     clearViews();
     setListingsOpen(false);
-    window.location.hash = path;
+    navigate(path);
     scrollTop();
   }
 
@@ -601,6 +680,7 @@ export default function AquagramApp() {
       const listing = selectedListing && selectedListing.dbId && selectedListing.title === topic ? selectedListing.dbId : null;
       msgs.start(otherId, topic || "Profil", listing, draft).then((id) => {
         clearViews();
+        leaveTo("/");
         setListingsOpen(false);
         setMemberPage("messages");
         setActiveConvId(id);
@@ -656,7 +736,9 @@ export default function AquagramApp() {
     const following = followedTags.includes(tag);
     if (myId) {
       patchMine("tags", (prev) => (following ? prev.filter((item) => item !== tag) : [...prev, tag]));
-      dbCall(following ? supabase.from("tag_follows").delete().eq("user_id", myId).eq("tag", tag) : supabase.from("tag_follows").insert({ tag }));
+      // Veritabanında etiketler "#" olmadan ve küçük harfle saklanır (paylaşım etiketleriyle aynı biçim)
+      const dbTag = tag.replace(/^#/, "").toLocaleLowerCase("tr");
+      dbCall(following ? supabase.from("tag_follows").delete().eq("user_id", myId).eq("tag", dbTag) : supabase.from("tag_follows").insert({ tag: dbTag }));
     } else setFollowedTags((prev) => (following ? prev.filter((item) => item !== tag) : [...prev, tag]));
     setToast(following ? tag + " takibi bırakıldı" : tag + " takip ediliyor · paylaşımlar ana sayfanda");
   }
@@ -719,7 +801,7 @@ export default function AquagramApp() {
   }
 
   const kb = {
-    species: SPECIES,
+    species: kbDb.speciesList || SPECIES,
     keeping: kbKeepingAll,
     favorites: kbFavoritesAll,
     comments: kbCommentsAll,
@@ -733,6 +815,7 @@ export default function AquagramApp() {
     openCategory: (id) => { setKbSearch(""); openHashPage("/bilgi/k/" + id); },
     openSpecies: (species) => openHashPage("/tur/" + species.slug),
     openMine: () => openHashPage("/bilgi/turlerim"),
+    onSuggest: (initial) => (isMember ? setSuggestSpecies(initial || {}) : requireLogin()),
     onToggleKeep: (slug) =>
       myId
         ? toggleSpecies("species_keepers", slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı")
@@ -812,6 +895,7 @@ export default function AquagramApp() {
     const onFeed = communityOpen && !postSlug && !communityPage && !postsUser && !memberPage;
     if (value && !onFeed) {
       clearViews();
+      leaveTo("/topluluk");
       setCommunityOpen(true);
       scrollTop();
     }
@@ -820,7 +904,7 @@ export default function AquagramApp() {
   function openPost(post) {
     setProfileUser(null);
     cameFromApp.current = true;
-    window.location.hash = "/paylasim/" + post.slug;
+    navigate("/paylasim/" + post.slug);
     scrollTop();
   }
 
@@ -832,6 +916,7 @@ export default function AquagramApp() {
     }
     clearPostHash();
     if (!communityOpen && !postsUser && memberPage !== "posts") setCommunityOpen(true);
+    navigate(postsUser || memberPage === "posts" ? "/" : "/topluluk", { replace: true });
   }
 
   function openAddListing() {
@@ -864,6 +949,7 @@ export default function AquagramApp() {
     setToast(target ? target.name + " grubunda paylaşıldı 🎉" : "Paylaşımın yayında 🎉");
     if (!communityOpen && memberPage !== "posts" && !postsUser && !groupSlug) {
       clearViews();
+      leaveTo("/topluluk");
       setCommunityOpen(true);
     }
     scrollTop();
@@ -962,9 +1048,13 @@ export default function AquagramApp() {
           : await supabase.from("groups").update(fields).eq("id", group.dbId).select().single();
         if (res.error) throw res.error;
         const gid = res.data.id;
-        // Moderatörler (yalnızca gerçek üyeler; önce üye olmaları gerekir)
-        const mods = (group.moderatorIds || []).filter((id) => id !== myId && users[id] && users[id].real);
-        if (mods.length) await supabase.from("group_members").update({ role: "moderator" }).eq("group_id", gid).in("user_id", mods);
+        // Moderatörleri yalnızca kurucu belirler (yalnızca gerçek üyeler; önce gruba üye olmaları gerekir)
+        if (isNewDb || group.ownerId === myId) {
+          const mods = (group.moderatorIds || []).filter((id) => id !== myId && users[id] && users[id].real);
+          if (mods.length) await supabase.from("group_members").update({ role: "moderator" }).eq("group_id", gid).in("user_id", mods);
+          const demoted = community.members.filter((row) => row.group_id === gid && row.role === "moderator" && !mods.includes(row.user_id)).map((row) => row.user_id);
+          if (demoted.length) await supabase.from("group_members").update({ role: "member" }).eq("group_id", gid).in("user_id", demoted);
+        }
         await community.reload();
         setGroupForm(null);
         setToast(isNewDb ? group.name + " grubu oluşturuldu 🎉" : "Grup bilgileri güncellendi");
@@ -982,11 +1072,12 @@ export default function AquagramApp() {
   }
 
   const communityCtx = {
+    rules: Array.isArray(siteSettings.community_rules) && siteSettings.community_rules.length ? siteSettings.community_rules : null,
     users,
     UserName,
     VerifiedBadge,
     FeedAdCard,
-    adPool,
+    adPool: adsFor("feed"),
     isMember,
     currentUserId,
     listingCountOf: (userId) => listings.filter((item) => item.userId === userId).length,
@@ -1131,8 +1222,9 @@ export default function AquagramApp() {
     onToggleJoin: toggleJoin,
     onCreateGroup: () => openGroupForm(null),
     onEditGroup: (group) => openGroupForm(group),
+    canManageGroups: Boolean(auth.staff && (auth.staff.role === "super_admin" || (auth.staff.permissions || []).includes("groups"))),
     onShareGroup: (group) => {
-      const url = window.location.origin + window.location.pathname + "#/grup/" + group.slug;
+      const url = absoluteUrl("/grup/" + group.slug);
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => setToast("Grup bağlantısı kopyalandı"), () => setToast(url));
       else setToast(url);
     },
@@ -1210,6 +1302,8 @@ export default function AquagramApp() {
   function openListing(item) {
     clearViews();
     setSelectedListing(item);
+    if (item.dbId) navigate("/ilan/" + item.dbId);
+    else if (routePath() !== "/") navigate("/");
     setActiveImage(0);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1217,12 +1311,14 @@ export default function AquagramApp() {
   function goHome() {
     clearViews();
     setListingsOpen(false);
+    navigate("/");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openListingsPage() {
     clearViews();
     setListingsOpen(true);
+    navigate("/ilanlar");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -1233,6 +1329,7 @@ export default function AquagramApp() {
       return;
     }
     clearViews();
+    leaveTo("/");
     setMemberPage(key);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1256,6 +1353,40 @@ export default function AquagramApp() {
   const communityMode = (hashMode && !kbMode) || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
   const currentUser = users[currentUserId];
   const currentPost = postSlug ? posts.find((post) => post.slug === postSlug) : null;
+
+  // Sayfa başlığı ve açıklaması: tarayıcı sekmesi, arama motorları ve yer imleri için
+  const pageTitle = currentSpecies
+    ? currentSpecies.name + (currentSpecies.latin ? " (" + currentSpecies.latin + ")" : "") + " bakımı ve künyesi — Aquagram Bilgi Bankası"
+    : selectedListing
+      ? selectedListing.title + " — " + priceLabel(selectedListing) + (selectedListing.city ? " · " + selectedListing.city : "") + " | Aquagram İlanlar"
+      : currentGroup
+        ? currentGroup.name + " grubu — Aquagram Topluluk"
+        : currentPost
+          ? postSnippet(currentPost).slice(0, 60) + " — Aquagram Topluluk"
+          : kbMode
+            ? "Akvaryum Bilgi Bankası: tür bakım rehberi — Aquagram"
+            : "Aquagram — Akvaryum hobicilerinin buluşma noktası";
+  const pageDescription = currentSpecies
+    ? (currentSpecies.desc || "").slice(0, 155)
+    : selectedListing
+      ? (selectedListing.description || "").slice(0, 155)
+      : currentGroup
+        ? (currentGroup.description || "").slice(0, 155)
+        : currentPost
+          ? postSnippet(currentPost).slice(0, 155)
+          : "Akvaryum hobicileri için ilan, takas ve topluluk platformu: canlı, bitki, ekipman ilanları; hobicilerle soru-cevap ve tür bakım rehberi.";
+  // Ziyaret sayacı (bölüm bazında, kişisel veri yok)
+  const visitSection = currentSpecies ? "species" : kbMode ? "kb" : selectedListing ? "listing" : listingsOpen ? "listings" : currentPost ? "post" : currentGroup ? "group" : memberPage ? "account" : communityOpen || communityPage ? "community" : "home";
+  const visitKey = visitSection + ":" + (currentSpecies ? currentSpecies.slug : selectedListing ? selectedListing.id : currentPost ? currentPost.slug : currentGroup ? currentGroup.slug : memberPage || communityPage || (kbRoute && (kbRoute.category || kbRoute.section)) || "");
+  useEffect(() => {
+    trackVisit(visitSection, visitKey);
+  }, [visitKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    document.title = pageTitle;
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta && pageDescription) meta.setAttribute("content", pageDescription);
+  }, [pageTitle, pageDescription]);
   const newMembers = Object.values(users).filter((user) => user.newMember);
   const allTags = useMemo(() => extractTags(posts), [posts]);
   // Sol menüde her yenilemede rastgele 3 etiket
@@ -1325,6 +1456,21 @@ export default function AquagramApp() {
     <CommunityAside ctx={communityCtx} view="feed" search={communitySearch} tags={asideTags} groups={groups} />
   ) : homeView === "mixed" ? (
     <HomeAside ctx={communityCtx} groups={groups} posts={posts} />
+  ) : detailMode ? (
+    <ListingDetailAside
+      item={selectedListing}
+      listings={listings}
+      users={users}
+      priceLabel={priceLabel}
+      onOpenListing={openListing}
+      onOpenSpecies={kb.openSpecies}
+      onViewUser={(target) => {
+        clearViews();
+        leaveTo("/");
+        setViewUser(target);
+        scrollTop();
+      }}
+    />
   ) : showListingFilters ? (
     listingFilterAside
   ) : null;
@@ -1336,6 +1482,20 @@ export default function AquagramApp() {
 
   return (
     <div className="min-h-screen bg-white pb-[calc(64px+env(safe-area-inset-bottom))] text-slate-950 lg:pb-0">
+      {announcement && (
+        <div className="bg-cyan-950 px-4 py-2 text-center text-sm font-bold text-white">
+          {announcement.text}
+          {announcement.link && /^https?:\/\//.test(announcement.link) && (
+            <a href={announcement.link} target="_blank" rel="noreferrer noopener" className="ml-2 underline underline-offset-2">Ayrıntılar</a>
+          )}
+        </div>
+      )}
+      {auth.profile && auth.profile.suspended_until && new Date(auth.profile.suspended_until) > new Date() && (
+        <div role="alert" className="bg-red-700 px-4 py-2 text-center text-sm font-bold text-white">
+          Hesabın {new Date(auth.profile.suspended_until).getFullYear() > 2900 ? "süresiz olarak" : new Date(auth.profile.suspended_until).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) + " tarihine kadar"} askıya alındı
+          {auth.profile.suspension_reason ? " · Gerekçe: " + auth.profile.suspension_reason : ""}. Bu sürede paylaşım, yorum, ilan ve mesaj gönderemezsin. İtiraz: info@aquagram.com.tr
+        </div>
+      )}
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between gap-2 px-3 sm:px-4 lg:h-[72px]">
           <div className="flex min-w-0 items-center gap-1.5">
@@ -1405,9 +1565,14 @@ export default function AquagramApp() {
                         {key === "notifications" && notifs.unread > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[11px] font-black text-white">{notifs.unread}</span>}
                       </button>
                     ))}
+                    {auth.isStaff && (
+                      <a href="/#/yonetim" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-black text-amber-800 hover:bg-amber-50">
+                        <ShieldCheck size={15} /> Yönetim paneli
+                      </a>
+                    )}
                     <div className="my-1 border-t border-slate-100" />
                     <button
-                      onClick={() => { setUserMenuOpen(false); auth.signOut(); clearViews(); setToast("Çıkış yaptın."); }}
+                      onClick={() => { setUserMenuOpen(false); auth.signOut(); clearViews(); leaveTo("/"); setToast("Çıkış yaptın."); }}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-black text-slate-500 hover:bg-slate-50"
                     >
                       <LogOut size={15} /> Çıkış yap
@@ -1478,7 +1643,7 @@ export default function AquagramApp() {
   currentPost ? (
     <PostDetailPage post={currentPost} ctx={communityCtx} onBack={closePost} />
   ) : (
-    <PostNotFound onBack={() => { clearViews(); setCommunityOpen(true); }} />
+    <PostNotFound onBack={() => { clearViews(); leaveTo("/topluluk"); setCommunityOpen(true); }} />
   )
 ) : groupMode ? (
   currentGroup ? (
@@ -1505,6 +1670,7 @@ export default function AquagramApp() {
     onViewListings={() => {
       const target = postsUser;
       clearViews();
+      leaveTo("/");
       setViewUser(target);
       scrollTop();
     }}
@@ -1535,6 +1701,20 @@ export default function AquagramApp() {
     activeId={activeConvId}
     setActiveId={setActiveConvId}
     onSend={sendMessage}
+    onReview={setReviewConv}
+    onReportUser={(conv) => {
+      if (!conv.real || !conv.otherId) return setToast("Örnek konuşmalarda bu işlem yapılamaz");
+      return setReportTarget({ kind: "user", user: { dbId: conv.otherId, username: conv.user } });
+    }}
+    onToggleBlock={(conv) => {
+      if (!conv.real || !conv.otherId) return setToast("Örnek konuşmalarda bu işlem yapılamaz");
+      const blocking = !conv.blockedByMe;
+      if (blocking && !window.confirm(conv.user + " engellensin mi? Birbirinize mesaj gönderemeyeceksiniz.")) return undefined;
+      return msgs.setBlock(conv.otherId, blocking).then(
+        () => setToast(blocking ? conv.user + " engellendi" : conv.user + " engeli kaldırıldı"),
+        (error) => setToast(trError(error))
+      );
+    }}
     onDelete={(id) => {
       if (String(id).startsWith("dm")) msgs.setHidden(Number(String(id).slice(2)), true);
       else setConversations((prev) => prev.map((item) => (item.id === id ? { ...item, deleted: true } : item)));
@@ -1545,6 +1725,14 @@ export default function AquagramApp() {
   <NotificationsPage
     notifs={notifs}
     onOpen={(item) => {
+      if (item.type === "review" && myId && users[myId]) {
+        setProfileUser(users[myId]);
+        return;
+      }
+      if (item.type === "ad_approved" || item.type === "ad_rejected") return openMemberPage("ads");
+      if (item.type.startsWith("verification_")) return openMemberPage("account");
+      if (item.type.startsWith("suggestion_")) return kb.openHome();
+      if (item.type === "content_removed" || item.type.startsWith("account_") || item.type === "report_resolved") return undefined;
       // Bildirim yeni bir beğeni/yorumdan geliyor; paylaşımın güncel hâlini görmek için veriyi tazele
       if (item.post || item.grp) community.reload();
       if (item.post) openPost({ slug: item.post.slug });
@@ -1554,7 +1742,7 @@ export default function AquagramApp() {
     onProfile={(actor) => actor && users[actor.id] && setProfileUser(users[actor.id])}
   />
 ) : effectiveMemberPage === "ads" ? (
-  <AdsManagerPage />
+  <AdsManagerPage auth={auth} onToast={setToast} previews={{ FeedAdCard, SidebarAd, DetailBannerAd }} />
 ) : selectedListing ? (
   <ListingDetail
     item={selectedListing}
@@ -1562,12 +1750,16 @@ export default function AquagramApp() {
     activeImage={activeImage}
     setActiveImage={setActiveImage}
     isMember={isMember}
-    onBack={() => setSelectedListing(null)}
+    onBack={() => {
+      setSelectedListing(null);
+      navigate(listingsOpen ? "/ilanlar" : "/");
+    }}
     onProfile={setProfileUser}
     menuOpen={menuOpen}
     setMenuOpen={setMenuOpen}
     onReport={() => { setMenuOpen(false); setReportTarget({ kind: "listing", listing: selectedListing }); }}
     onMessage={startConversation}
+    onOpenListing={openListing}
     onAuth={() => {
       setAuthMode("login");
       setAuthOpen(true);
@@ -1613,7 +1805,6 @@ export default function AquagramApp() {
       onProfile={setProfileUser}
       users={users}
       featuredListingIds={featuredListingIds}
-      adPool={adPool}
       priceLabel={priceLabel}
       formatDate={formatDate}
       UserName={UserName}
@@ -1623,12 +1814,41 @@ export default function AquagramApp() {
 )}
 </section>
         {!detailMode && !accountMode && !userListingsMode && (
-          <RightSidebar>{kbMode ? <KbWidgets kb={kb} /> : null}</RightSidebar>
+          <RightSidebar minimal={kbMode}>{kbMode ? <KbWidgets kb={kb} /> : null}</RightSidebar>
         )}
       </main>
 
+      {suggestSpecies && (
+        <SuggestSpeciesModal
+          initial={suggestSpecies}
+          userId={myId}
+          onClose={() => setSuggestSpecies(null)}
+          onDone={() => {
+            setSuggestSpecies(null);
+            setToast("Önerin ekibe iletildi, teşekkürler! Sonucu bildirim olarak alacaksın.");
+          }}
+        />
+      )}
+      {reviewConv && (
+        <ReviewModal
+          conversation={reviewConv}
+          onClose={() => setReviewConv(null)}
+          onSaved={(message) => {
+            setReviewConv(null);
+            setToast(message);
+            msgs.reload();
+          }}
+        />
+      )}
       {profileUser && (
   <ProfileModal
+    myId={myId}
+    onToast={setToast}
+    onReportReview={(review) => setReportTarget({ kind: "review", review: { ...review, dbId: review.id } })}
+    onProfileRow={(row) => {
+      if (!users[row.id]) users[row.id] = profileToUser(row);
+      setProfileUser(users[row.id]);
+    }}
     user={profileUser}
     userPosts={posts.filter((post) => post.userId === userIdOf(users, profileUser))}
     allPosts={posts}
@@ -1642,12 +1862,14 @@ export default function AquagramApp() {
     onViewPosts={() => {
       const target = profileUser;
       clearViews();
+      leaveTo("/");
       setPostsUser(target);
       scrollTop();
     }}
     onViewListings={() => {
       const target = profileUser;
       clearViews();
+      leaveTo("/");
       setViewUser(target);
       scrollTop();
     }}
@@ -1659,7 +1881,7 @@ export default function AquagramApp() {
           onClose={() => setReportTarget(null)}
           onSubmit={async ({ reason, note } = {}) => {
             const kind = reportTarget.kind || "listing";
-            const item = kind === "post" ? reportTarget.post : kind === "comment" ? reportTarget.comment : reportTarget.listing;
+            const item = kind === "post" ? reportTarget.post : kind === "comment" ? reportTarget.comment : kind === "review" ? reportTarget.review : kind === "user" ? reportTarget.user : reportTarget.listing;
             const targetType = (item && item.reportType) || kind;
             if (item && item.dbId) {
               if (!myId) {
@@ -1720,6 +1942,7 @@ export default function AquagramApp() {
           users={users}
           groups={groups}
           currentUserId={currentUserId}
+          canManageMods={!groupForm.group || groupForm.group.ownerId === currentUserId}
           onClose={() => setGroupForm(null)}
           onSave={saveGroup}
         />
@@ -1793,7 +2016,7 @@ export default function AquagramApp() {
         <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 z-[80] max-w-[92vw] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-center text-sm font-black text-white shadow-xl lg:bottom-6">{toast}</div>
       )}
       {auth.recovery && auth.session && (
-        <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); setMemberPage("account"); }} />
+        <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); leaveTo("/"); setMemberPage("account"); }} />
       )}
       {authOpen && (
         <AuthModal
@@ -1810,6 +2033,7 @@ export default function AquagramApp() {
               return;
             }
             clearViews();
+            leaveTo("/");
             setMemberPage("account");
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
@@ -1828,8 +2052,9 @@ function ListingFeed({ listings, onOpen, onProfile }) {
 
   visibleListings.forEach((item, index) => {
     feedItems.push({ kind: "listing", item });
-    if ((index + 1) % 5 === 0) {
-      feedItems.push({ kind: "ad", ad: adPool[Math.floor(index / 5) % adPool.length] });
+    const pool = adsFor("feed");
+    if ((index + 1) % 5 === 0 && pool.length) {
+      feedItems.push({ kind: "ad", ad: pool[Math.floor(index / 5) % pool.length] });
     }
   });
 
@@ -1903,7 +2128,7 @@ function ListingFeed({ listings, onOpen, onProfile }) {
   );
 }
 
-function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBack, onProfile, menuOpen, setMenuOpen, onReport, onAuth, onMessage }) {
+function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBack, onProfile, menuOpen, setMenuOpen, onReport, onAuth, onMessage, onOpenListing }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isVideoSelected = activeImage === "video";
   const imageIndex = typeof activeImage === "number" ? activeImage : 0;
@@ -1912,7 +2137,7 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
 
   return (
     <article className="bg-white px-5 py-5">
-      <DetailBannerAd ad={adPool[(item.dbId || item.id) % adPool.length]} />
+      {adsFor("detail").length > 0 && <DetailBannerAd ad={adsFor("detail")[(Number(item.dbId) || Number(item.id) || 0) % adsFor("detail").length]} />}
       <button onClick={onBack} className="mb-4 flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-100">
         <ArrowLeft size={17} /> İlan listesine dön
       </button>
@@ -2040,15 +2265,15 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
           <div className="mb-3 flex items-center gap-2 text-lg font-black"><Pin size={17} fill="currentColor" className="text-cyan-950" /> Öne çıkan ilanlar</div>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {featuredListings.map((featured) => (
-              <div key={featured.id} className="relative grid min-w-[250px] max-w-[250px] grid-cols-[74px_1fr] gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-3 text-left">
+              <button type="button" onClick={() => onOpenListing(featured)} key={featured.id} className="relative grid min-w-[250px] max-w-[250px] grid-cols-[74px_1fr] gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-3 text-left transition hover:border-cyan-300 hover:bg-cyan-50">
                 <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-cyan-950 text-white"><Pin size={12} fill="currentColor" /></span>
-                <img src={featured.images[0]} alt="" className="h-16 w-16 rounded-xl object-cover" />
+                {featured.images[0] ? <img src={featured.images[0]} alt="" className="h-16 w-16 rounded-xl object-cover" /> : <span className="h-16 w-16 rounded-xl bg-cyan-100" />}
                 <span className="min-w-0 pr-6">
                   <span className="line-clamp-2 text-sm font-black leading-snug text-slate-900">{featured.title}</span>
                   <span className="mt-1 block text-xs font-bold text-slate-500">{featured.city} · {featured.category}</span>
                   <span className="mt-1 block text-sm font-black text-cyan-950">{priceLabel(featured)}</span>
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -2064,7 +2289,7 @@ function ListingDetail({ item, user, activeImage, setActiveImage, isMember, onBa
   );
 }
 
-function RightSidebar({ children }) {
+function RightSidebar({ children, minimal = false }) {
   const [activeSlide, setActiveSlide] = useState(0);
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoTab, setInfoTab] = useState("nedir");
@@ -2083,13 +2308,15 @@ function RightSidebar({ children }) {
     ["adpolicy", "Reklam politikası"],
     ["warnings", "Önemli uyarılar"],
     ["privacy", "Gizlilik politikası"],
+    ["kvkk", "KVKK"],
     ["blog", "Blog"]
   ];
 
   return (
     <aside className="hidden h-fit border-r border-slate-200 bg-white p-4 lg:sticky lg:top-[72px] lg:block lg:max-h-[calc(100vh-72px)] lg:overflow-y-auto [scrollbar-width:thin]">
-      <SidebarAd ad={adPool[0]} />
-      <div className="mt-4 overflow-hidden rounded-[28px] border border-slate-200 bg-white">
+      {!minimal && adsFor("sidebar").length > 0 && <SidebarAd ad={adsFor("sidebar")[0]} />}
+      {minimal && children}
+      {!minimal && <div className="mt-4 overflow-hidden rounded-[28px] border border-slate-200 bg-white">
         <div className="relative h-52 overflow-hidden bg-slate-900 p-5 text-white" style={{ backgroundImage: "linear-gradient(120deg, rgba(8,51,68,.92), rgba(15,23,42,.62)), url(" + slide.image + ")", backgroundSize: "cover", backgroundPosition: "center" }}>
           <div className="relative z-10 flex h-full flex-col justify-end">
             <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-100/80">Hoş geldin</div>
@@ -2105,15 +2332,15 @@ function RightSidebar({ children }) {
           </div>
           <button onClick={() => openInfo("nedir")} className="text-xs font-black text-slate-500 hover:text-slate-900">Detaylar</button>
         </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-1.5 opacity-75 transition hover:opacity-100">
+      </div>}
+      <div className={(minimal ? "mt-4 border-t border-slate-100 pt-3 " : "mt-3 ") + "flex flex-wrap gap-1.5 opacity-75 transition hover:opacity-100"}>
         {footerLinks.map(([key, label]) => (
           <button key={key} onClick={() => openInfo(key)} className="rounded-xl px-2.5 py-2 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">
             {label}
           </button>
         ))}
       </div>
-      {children}
+      {!minimal && children}
       {infoOpen && <SiteInfoModal activeTab={infoTab} setActiveTab={setInfoTab} onClose={() => setInfoOpen(false)} />}
     </aside>
   );
@@ -2127,7 +2354,8 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
     ["ads", "Reklam verin"],
     ["adpolicy", "Reklam politikası"],
     ["warnings", "Önemli uyarılar"],
-    ["privacy", "Gizlilik politikası"]
+    ["privacy", "Gizlilik politikası"],
+    ["kvkk", "KVKK aydınlatma"]
   ];
 
   const content = {
@@ -2165,7 +2393,8 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
     ]
   };
 
-  const current = content[activeTab] || content.nedir;
+  const legalKey = { terms: "terms", privacy: "privacy", adpolicy: "ads", kvkk: "kvkk" }[activeTab];
+  const current = legalKey ? [LEGAL_DOCS[legalKey].title, ""] : content[activeTab] || content.nedir;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
@@ -2184,10 +2413,11 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-3xl font-black tracking-tight">{current[0]}</h2>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{current[1]}</p>
+              {current[1] && <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{current[1]}</p>}
             </div>
             <button onClick={onClose} className="hidden rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 md:block"><X size={18} /></button>
           </div>
+          {legalKey && <LegalBody docKey={legalKey} />}
           {activeTab === "nedir" && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"><div className="font-black">Güven</div><p className="mt-1 text-sm leading-relaxed text-slate-600">Doğrulama, bildirim, engelleme ve işlem sonrası değerlendirme akışlarıyla topluluk kalitesi korunur.</p></div>
@@ -2200,11 +2430,26 @@ function SiteInfoModal({ activeTab, setActiveTab, onClose }) {
   );
 }
 
-function SidebarAd({ ad }) {
+function useAdImpression(ad) {
+  useEffect(() => {
+    trackAdImpression(ad);
+  }, [ad && ad.id]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+function AdCta({ ad, className }) {
   return (
-    <div className="overflow-hidden rounded-[24px] border border-amber-200 bg-amber-50 shadow-sm">
+    <button type="button" onClick={(event) => { event.stopPropagation(); openAd(ad); }} className={className}>
+      {ad.cta}
+    </button>
+  );
+}
+
+function SidebarAd({ ad }) {
+  useAdImpression(ad);
+  return (
+    <div onClick={() => openAd(ad)} className={"overflow-hidden rounded-[24px] border border-amber-200 bg-amber-50 shadow-sm " + (ad.url ? "cursor-pointer" : "")}>
       <div className="relative h-28 overflow-hidden">
-        <img src={ad.image} alt="" className="h-full w-full object-cover" />
+        <AdImage ad={ad} />
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/75 to-slate-950/10" />
         <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-700">Reklam</div>
       </div>
@@ -2212,7 +2457,7 @@ function SidebarAd({ ad }) {
         <div className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">{ad.brand}</div>
         <div className="mt-1 text-sm font-black leading-snug text-slate-900">{ad.title}</div>
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600">{ad.text}</p>
-        <button className="mt-3 rounded-full bg-amber-500 px-3 py-2 text-xs font-black text-white hover:bg-amber-600">{ad.cta}</button>
+        <AdCta ad={ad} className="mt-3 rounded-full bg-amber-500 px-3 py-2 text-xs font-black text-white hover:bg-amber-600" />
       </div>
     </div>
   );
@@ -2220,12 +2465,13 @@ function SidebarAd({ ad }) {
 
 function FeedAdCard({ ad }) {
   const [infoOpen, setInfoOpen] = useState(false);
+  useAdImpression(ad);
 
   return (
-    <article className="border-b border-slate-200 bg-amber-50/55 p-4 transition hover:bg-amber-50">
+    <article onClick={() => openAd(ad)} className={"border-b border-slate-200 bg-amber-50/55 p-4 transition hover:bg-amber-50 " + (ad.url ? "cursor-pointer" : "")}>
       <div className="grid grid-cols-[82px_1fr_auto] gap-4">
         <div className="h-20 w-20 overflow-hidden rounded-2xl bg-amber-100">
-          <img src={ad.image} alt="" className="h-full w-full object-cover" />
+          <AdImage ad={ad} />
         </div>
 
         <div className="min-w-0">
@@ -2259,9 +2505,7 @@ function FeedAdCard({ ad }) {
         </div>
 
         <div className="flex items-center">
-          <button className="rounded-full bg-amber-500 px-4 py-2 text-xs font-black text-white hover:bg-amber-600">
-            {ad.cta}
-          </button>
+          <AdCta ad={ad} className="rounded-full bg-amber-500 px-4 py-2 text-xs font-black text-white hover:bg-amber-600" />
         </div>
       </div>
 
@@ -2272,28 +2516,37 @@ function FeedAdCard({ ad }) {
 
 function AdInfoModal({ onClose }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm" onClick={(event) => { event.stopPropagation(); if (event.target === event.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-2xl">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <div className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">Reklam alanı</div>
             <h3 className="mt-1 text-xl font-black">Reklamınız burada görünsün ister misiniz?</h3>
           </div>
-          <button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><X size={18} /></button>
+          <button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200" title="Kapat"><X size={18} /></button>
         </div>
         <p className="text-sm leading-6 text-slate-600">Aquagram aracılığıyla akvaryum hobisine ilgi duyan doğrudan hedef kitlenize ulaşın. Marka, ürün, mağaza veya hizmetinizi ilan akışı içinde doğal ve görünür biçimde konumlandırın.</p>
-        <button onClick={onClose} className="mt-4 w-full rounded-full bg-amber-500 px-4 py-3 text-sm font-black text-white hover:bg-amber-600">Reklam ver</button>
+        <button
+          onClick={() => {
+            onClose();
+            window.dispatchEvent(new CustomEvent("aquagram:open-ads"));
+          }}
+          className="mt-4 w-full rounded-full bg-amber-500 px-4 py-3 text-sm font-black text-white hover:bg-amber-600"
+        >
+          Reklam ver
+        </button>
       </div>
     </div>
   );
 }
 
 function DetailBannerAd({ ad }) {
+  useAdImpression(ad);
   return (
-    <div className="mb-5 overflow-hidden rounded-[22px] border border-amber-200 bg-amber-50/80 shadow-sm">
+    <div onClick={() => openAd(ad)} className={"mb-5 overflow-hidden rounded-[22px] border border-amber-200 bg-amber-50/80 shadow-sm " + (ad.url ? "cursor-pointer" : "")}>
       <div className="grid min-h-[92px] gap-0 sm:grid-cols-[150px_1fr_auto]">
         <div className="relative hidden overflow-hidden sm:block">
-          <img src={ad.image} alt="" className="h-full w-full object-cover" />
+          <AdImage ad={ad} />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/55 to-transparent" />
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-700">
             Reklam
@@ -2313,9 +2566,7 @@ function DetailBannerAd({ ad }) {
         </div>
 
         <div className="flex items-center px-4 pb-3 sm:pb-0">
-          <button className="rounded-full bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600">
-            {ad.cta}
-          </button>
+          <AdCta ad={ad} className="rounded-full bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600" />
         </div>
       </div>
     </div>
@@ -2404,7 +2655,8 @@ function AccountPage({ auth, onSaved }) {
       </div>
       {auth.isStaff && (
         <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
-          <ShieldCheck size={17} /> {auth.staff.role === "super_admin" ? "Süper yönetici" : "Moderatör"} hesabıyla giriş yaptın. Yönetim paneli yakında burada olacak.
+          <ShieldCheck size={17} /> {auth.staff.role === "super_admin" ? "Süper yönetici" : "Moderatör"} hesabıyla giriş yaptın.
+          <a href="/#/yonetim" className="ml-auto rounded-full bg-amber-900 px-3 py-1 text-xs font-black text-white hover:bg-amber-800">Yönetim paneli</a>
         </div>
       )}
       {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
@@ -2422,10 +2674,7 @@ function AccountPage({ auth, onSaved }) {
               {uploading ? "Yükleniyor…" : profile.avatar_url ? "Profil resmini değiştir" : "Profil resmi ekle"}
             </button>
           </div>
-          <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-900">
-            <div className="mb-1 flex items-center gap-2 font-black"><ShieldCheck size={17} /> Güven profili</div>
-            Telefon ve e-posta doğrulaması tamamlandığında kullanıcı adının yanında mavi tik görünür.
-          </div>
+          <VerificationCard auth={auth} onToast={onSaved} />
           <div className="mt-4 rounded-2xl border border-slate-200 p-3">
             <div className="mb-2 text-sm font-black text-slate-800">Gizlilik</div>
             <button type="button" role="switch" aria-checked={form.hide_from_search} onClick={toggleHidden} disabled={busy} className="flex w-full items-start justify-between gap-3 text-left">
@@ -2832,282 +3081,11 @@ function EditListingModal({ listing, mode, onClose }) {
 }
 
 
-function AdsManagerPage() {
-  const [statsAd, setStatsAd] = useState(null);
-  const [rejectAd, setRejectAd] = useState(null);
-  const [paymentAd, setPaymentAd] = useState(null);
-  const [liveOpen, setLiveOpen] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [liveAds, setLiveAds] = useState([
-    { ...adPool[0], remaining: "6 gün 14 saat", impressions: 1842, clicks: 73, paid: "89 TL", startDate: "19.05.2026" },
-    { ...adPool[2], remaining: "2 gün 8 saat", impressions: 965, clicks: 31, paid: "49 TL", startDate: "16.05.2026" }
-  ]);
-  const reviewAds = [
-    { ...adPool[1], status: "Reddedildi", reason: "Reklam görselinde okunabilir iletişim bilgisi ve fiyat bilgisi bulunuyor. Reklam politikası gereği görselde yoğun metin yerine sade ürün/marka görseli kullanılmalı." },
-    { ...adPool[3], status: "Yayımlanmaya hazır" }
-  ];
-  const previewAd = adPool[0];
-
-  function publishAd(ad, plan, price) {
-    setLiveAds((current) => [{ ...ad, remaining: plan, impressions: 0, clicks: 0, paid: price, startDate: "19.05.2026" }, ...current]);
-  }
-
-  return (
-    <div className="mx-auto max-w-5xl p-5">
-      <div className="mb-5 border-b border-slate-200 pb-4">
-        <h2 className="text-2xl font-black tracking-tight">Reklamlarım</h2>
-        <p className="mt-1 text-sm text-slate-500">Reklam görselini, marka bilgisini ve hedef linkini gir; reklam havuzuna alınması için incelemeye gönder.</p>
-      </div>
-      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 text-lg font-black">Yeni reklam oluştur</h3>
-          <div className="grid gap-3">
-            <div className="grid h-40 place-items-center rounded-[24px] border-2 border-dashed border-amber-300 bg-amber-50 text-center text-amber-800">
-              <div><Upload className="mx-auto mb-2" size={28} /><strong>Görsel yükle</strong><p className="mt-1 text-xs">Reklam havuzunda farklı alanlara otomatik uyarlanır.</p></div>
-            </div>
-            <input className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" placeholder="Firma / marka adı" />
-            <input className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" placeholder="Reklam başlığı" />
-            <textarea rows={4} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" placeholder="Kısa açıklama" />
-            <input className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none" placeholder="Hedef link" />
-            <div className="rounded-2xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">
-  Onaylanan reklamlar havuza alınır ve sitenin uygun alanlarında seçtiğiniz süre boyunca otomatik olarak gösterilir.{" "}
-  <a
-    href="https://siteadi.com/reklam-politikasi"
-    target="_blank"
-    rel="noreferrer"
-    className="font-black text-cyan-800 underline decoration-cyan-800/30 underline-offset-2 hover:text-cyan-950"
-  >
-    Reklam politikamızı
-  </a>{" "}
-  inceleyerek reklamınızın yayımlanmasını kolaylaştırabilirsiniz.
-</div>
-            <button className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white hover:bg-cyan-900">İnceleme için gönder</button>
-          </div>
-        </div>
-
-        <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-4">
-          <h3 className="mb-3 text-lg font-black">Canlı önizleme</h3>
-          <div className="mb-4 overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
-            <div className="relative h-28 overflow-hidden">
-              <img src={previewAd.image} alt="" className="h-full w-full object-cover" />
-              <span className="absolute right-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-700 shadow-sm">Reklam</span>
-            </div>
-            <div className="p-3">
-              <div className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-amber-700">{previewAd.brand}</div>
-              <div className="text-sm font-black text-slate-900">{previewAd.title}</div>
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">{previewAd.text}</p>
-            </div>
-          </div>
-
-          <AdAccordion title="Yayındaki reklamlarım" count={liveAds.length} open={liveOpen} onToggle={() => setLiveOpen(!liveOpen)}>
-            {liveAds.map((ad) => (
-              <AdSmallCard key={ad.id + ad.startDate} ad={ad} status="Yayında" onStats={() => setStatsAd(ad)} />
-            ))}
-          </AdAccordion>
-
-          <AdAccordion title="İncelemedeki reklamlarım" count={reviewAds.length} open={reviewOpen} onToggle={() => setReviewOpen(!reviewOpen)}>
-            {reviewAds.map((ad) => (
-              <div key={ad.id + ad.status} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                <img src={ad.image} alt="" className="h-24 w-full object-cover" />
-                <div className="p-3">
-                  <div className="mb-1 flex items-center justify-between gap-2"><span className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">{ad.brand}</span><span className={(ad.status === "Reddedildi" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700") + " rounded-full px-2 py-1 text-[11px] font-black"}>{ad.status}</span></div>
-                  <div className="text-sm font-black text-slate-900">{ad.title}</div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">{ad.text}</p>
-                  {ad.status === "Reddedildi" ? <button onClick={() => setRejectAd(ad)} className="mt-3 w-full rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100">Reddedilme nedeni</button> : <button onClick={() => setPaymentAd(ad)} className="mt-3 w-full rounded-full bg-cyan-950 px-3 py-2 text-xs font-black text-white hover:bg-cyan-900">Öde ve yayımla</button>}
-                </div>
-              </div>
-            ))}
-          </AdAccordion>
-        </div>
-      </div>
-      {statsAd && <AdStatsModal ad={statsAd} onClose={() => setStatsAd(null)} />}
-      {rejectAd && <AdRejectModal ad={rejectAd} onClose={() => setRejectAd(null)} />}
-      {paymentAd && <AdPaymentModal ad={paymentAd} onClose={() => setPaymentAd(null)} onPublish={publishAd} />}
-    </div>
-  );
-}
-
-function AdAccordion({ title, count, open, onToggle, children }) {
-  return (
-    <div className="mb-3 rounded-2xl border border-slate-200 bg-white">
-      <button onClick={onToggle} className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left">
-        <span className="font-black text-slate-900">{title}</span>
-        <span className="flex items-center gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">{count}</span><span className={(open ? "rotate-180" : "") + " text-slate-400 transition"}>⌄</span></span>
-      </button>
-      {open && <div className="grid gap-3 border-t border-slate-100 p-3">{children}</div>}
-    </div>
-  );
-}
-
-function AdSmallCard({ ad, status, onStats }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      <img src={ad.image} alt="" className="h-24 w-full object-cover" />
-      <div className="p-3">
-        <div className="mb-1 flex items-center justify-between gap-2"><span className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">{ad.brand}</span><span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">{status}</span></div>
-        <div className="text-sm font-black text-slate-900">{ad.title}</div>
-        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">{ad.text}</p>
-        <div className="mt-2 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600"><Hourglass size={14} /> Kalan süre: {ad.remaining}</div>
-        <div className="mt-3 grid grid-cols-3 gap-2"><button className="rounded-full border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">Düzenle</button><button onClick={onStats} className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-800 hover:bg-cyan-100">İstatistik</button><button className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100">Durdur</button></div>
-      </div>
-    </div>
-  );
-}
-
-function AdRejectModal({ ad, onClose }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[30px] bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-black">Reddedilme nedeni</h2>
-            <p className="mt-1 text-sm text-slate-500">{ad.title}</p>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">
-          {ad.reason}
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
-            onClick={onClose}
-            className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
-          >
-            Tamam
-          </button>
-
-          <button
-            onClick={onClose}
-            className="rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white hover:bg-cyan-900"
-          >
-            Tekrar düzenle
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AdPaymentModal({ ad, onClose, onPublish }) {
-  const [plan, setPlan] = useState("15 gün");
-  const [success, setSuccess] = useState(false);
-  const prices = { "7 gün": "199 TL", "15 gün": "349 TL", "30 gün": "599 TL" };
-
-  function completePayment() {
-    onPublish(ad, plan, prices[plan]);
-    setSuccess(true);
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-[30px] bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-black">Reklamı yayımla</h2><p className="mt-1 text-sm text-slate-500">{ad.title}</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><X size={18} /></button></div>
-        {success ? (
-          <div className="rounded-2xl bg-emerald-50 p-5 text-center text-emerald-800">
-            <CheckCircle2 className="mx-auto mb-2" size={34} />
-            <div className="text-xl font-black">Ödeme başarılı</div>
-            <p className="mt-1 text-sm leading-6">Reklam yayındaki reklamlarım bölümüne eklendi.</p>
-            <button onClick={onClose} className="mt-4 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white">Tamam</button>
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-2 sm:grid-cols-3">{Object.keys(prices).map((item) => <button key={item} onClick={() => setPlan(item)} className={(plan === item ? "border-amber-400 bg-amber-50" : "border-slate-200 bg-white hover:bg-slate-50") + " rounded-2xl border p-3 text-left"}><div className="text-sm font-black">{item}</div><div className="mt-1 text-lg font-black text-amber-700">{prices[item]}</div></button>)}</div>
-            <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-3"><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="Kart üzerindeki isim" /><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="Kart numarası" /><div className="grid grid-cols-2 gap-3"><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="AA / YY" /><input className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none" placeholder="CVC" /></div></div>
-            <button onClick={completePayment} className="mt-5 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white">{prices[plan]} öde ve yayımla</button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AdStatsModal({ ad, onClose }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[30px] bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-black">Reklam istatistikleri</h2><p className="mt-1 text-sm text-slate-500">{ad.title}</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><X size={18} /></button></div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl bg-slate-50 p-3 text-center"><div className="text-2xl font-black text-slate-950">{ad.impressions}</div><div className="text-xs font-black text-slate-500">Gösterim</div></div>
-          <div className="rounded-2xl bg-slate-50 p-3 text-center"><div className="text-2xl font-black text-slate-950">{ad.clicks}</div><div className="text-xs font-black text-slate-500">Tıklanma</div></div>
-          <div className="rounded-2xl bg-amber-50 p-3 text-center"><div className="text-lg font-black text-amber-800">{ad.remaining}</div><div className="text-xs font-black text-amber-700">Kalan süre</div></div>
-          <div className="rounded-2xl bg-slate-50 p-3 text-center"><div className="text-lg font-black text-slate-950">{ad.paid || "89 TL"}</div><div className="text-xs font-black text-slate-500">Ödenen tutar</div></div>
-        </div>
-        <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-600"><strong>Yayına başlama tarihi:</strong> {ad.startDate || "19.05.2026"}</div>
-        <button onClick={onClose} className="mt-5 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white">Tamam</button>
-      </div>
-    </div>
-  );
-}
-
-const SEED_CONVERSATIONS = [
-    {
-      id: 1,
-      user: "@kadikoytank",
-      title: "160x40x45h akvaryum ve sehpa",
-      last: "Merhaba, ölçüler net 160x40x45 mi?",
-      date: "18.05.2026",
-      unread: true,
-      deleted: false,
-      messages: [
-        { from: "@kadikoytank", body: "Merhaba, ölçüler net 160x40x45 mi?", time: "10:24" },
-        { from: "sen", body: "Evet net ölçü bu, sehpa da dahil.", time: "10:31" }
-      ]
-    },
-    {
-      id: 2,
-      user: "@nanoankara",
-      title: "Java fern budama paketi",
-      last: "Takas için karides düşünebilirim.",
-      date: "17.05.2026",
-      unread: false,
-      deleted: false,
-      messages: [
-        { from: "sen", body: "Moss paketi hâlâ duruyor mu?", time: "18:12" },
-        { from: "@nanoankara", body: "Duruyor. Takas için karides düşünebilirim.", time: "18:20" }
-      ]
-    },
-    {
-      id: 3,
-      user: "@izmirfiltre",
-      title: "Oase dış filtre",
-      last: "Hortum aparatı duruyor mu?",
-      date: "16.05.2026",
-      unread: false,
-      deleted: false,
-      messages: [
-        { from: "@izmirfiltre", body: "Hortum aparatı duruyor mu?", time: "14:03" },
-        { from: "sen", body: "Duruyor ama medya dahil değil.", time: "14:18" }
-      ]
-    },
-    {
-      id: 4,
-      user: "@eskitank",
-      title: "Bitkili tank dekorları",
-      last: "Tamamdır, ben vazgeçtim teşekkürler.",
-      date: "12.05.2026",
-      unread: false,
-      deleted: true,
-      messages: [
-        { from: "@eskitank", body: "Dekorların tamamı duruyor mu?", time: "09:10" },
-        { from: "sen", body: "Evet duruyor.", time: "09:18" },
-        { from: "@eskitank", body: "Tamamdır, ben vazgeçtim teşekkürler.", time: "09:30" }
-      ]
-    }
-  ];
-
 function nowTime() {
   return new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete }) {
+function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, onReview, onReportUser, onToggleBlock }) {
   const [tab, setTab] = useState("active");
   const [draft, setDraft] = useState("");
   const selectedConversation = conversations.find((item) => item.id === activeId) || null;
@@ -3259,12 +3237,12 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete }
                 </div>
 
                 <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                  <button className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700">
-                    <Flag size={13} className="mr-1 inline" /> Şikayet et
+                  <button onClick={() => onReportUser(activeConversation)} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 hover:bg-amber-100">
+                    <Flag size={13} className="mr-1 inline" /> Şikâyet et
                   </button>
 
-                  <button className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700">
-                    Engelle
+                  <button onClick={() => onToggleBlock(activeConversation)} className={"rounded-full border px-3 py-2 text-xs font-black " + (activeConversation.blockedByMe ? "border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100" : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100")}>
+                    {activeConversation.blockedByMe ? "Engeli kaldır" : "Engelle"}
                   </button>
 
                   {!activeConversation.deleted && (
@@ -3275,6 +3253,12 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete }
                 </div>
               </div>
 
+              {activeConversation.blockedByMe && (
+                <div className="mb-3 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
+                  Bu kullanıcıyı engelledin: birbirinize mesaj gönderemezsiniz ve yeni konuşma başlatamazsınız. Engeli kaldırmak için yukarıdaki düğmeyi kullan.
+                </div>
+              )}
+              <ReviewStrip conversation={activeConversation} onReview={() => onReview(activeConversation)} />
               <div className="grid flex-1 content-start gap-3">
                 {activeConversation.messages.length === 0 && (
                   <div className="rounded-2xl bg-cyan-50/60 p-4 text-center text-sm text-slate-600">
@@ -3310,15 +3294,16 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete }
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" && draft.trim()) { onSend(activeConversation.id, draft.trim()); setDraft(""); }
+                      if (event.key === "Enter" && draft.trim() && !activeConversation.blockedByMe) { onSend(activeConversation.id, draft.trim()); setDraft(""); }
                     }}
-                    className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-700"
-                    placeholder="Mesaj yaz..."
+                    disabled={activeConversation.blockedByMe}
+                    className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-700 disabled:opacity-50"
+                    placeholder={activeConversation.blockedByMe ? "Engellediğin kullanıcıya mesaj gönderemezsin" : "Mesaj yaz..."}
                   />
 
                   <button
                     onClick={() => { if (draft.trim()) { onSend(activeConversation.id, draft.trim()); setDraft(""); } }}
-                    disabled={!draft.trim()}
+                    disabled={!draft.trim() || activeConversation.blockedByMe}
                     className="rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40"
                   >
                     Gönder
@@ -3346,6 +3331,8 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete }
 }
 function UserListingsPage({ user, onBack, onOpen, onProfile, onMessage }) {
   const userId = userIdOf(users, user);
+  const dbReviews = useProfileReviews(user.real ? user.id : null, Boolean(user.real));
+  const positiveCount = user.real ? dbReviews.stats.positive : user.reviewStats?.positive || 0;
   const userListings = listings.filter((item) => item.userId === userId);
 
   return (
@@ -3400,7 +3387,7 @@ function UserListingsPage({ user, onBack, onOpen, onProfile, onMessage }) {
           </div>
 
           <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-            <div className="text-2xl font-black text-emerald-700">{user.reviewStats?.positive || 0}</div>
+            <div className="text-2xl font-black text-emerald-700">{positiveCount}</div>
             <div className="text-xs font-black text-slate-500">Olumlu değerlendirme</div>
           </div>
 
@@ -3524,8 +3511,9 @@ function MediaThumb({ item, size = "h-11 w-11" }) {
   return null;
 }
 
-function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSpecies = [], kb, onMessage, onClose, onViewListings, onViewPosts, onOpenPost, onOpenGroup }) {
-  const stats = user.reviewStats || { positive: 0, neutral: 0, negative: 0 };
+function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSpecies = [], kb, onMessage, onClose, onViewListings, onViewPosts, onOpenPost, onOpenGroup, myId, onToast, onReportReview, onProfileRow }) {
+  const dbReviews = useProfileReviews(user.real ? user.id : null, Boolean(user.real));
+  const stats = user.real ? dbReviews.stats : user.reviewStats || { positive: 0, neutral: 0, negative: 0 };
   const totalReviews = stats.positive + stats.neutral + stats.negative;
   const hasSocials = user.socials && (user.socials.instagram || user.socials.facebook || user.socials.x);
   const recentPosts = userPosts.slice(0, 3);
@@ -3600,23 +3588,17 @@ function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSp
           <div className="mb-2 flex items-center gap-2 text-sm font-black">
             <Star size={16} /> Değerlendirme özeti
           </div>
-
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200">
-              <div className="text-lg font-black text-emerald-700">{stats.positive}</div>
-              <div className="text-xs font-bold text-slate-500">Olumlu</div>
-            </div>
-
-            <div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200">
-              <div className="text-lg font-black text-slate-700">{stats.neutral}</div>
-              <div className="text-xs font-bold text-slate-500">Nötr</div>
-            </div>
-
-            <div className="rounded-xl bg-white p-2 text-center ring-1 ring-slate-200">
-              <div className="text-lg font-black text-red-700">{stats.negative}</div>
-              <div className="text-xs font-bold text-slate-500">Olumsuz</div>
-            </div>
-          </div>
+          <ReviewSummary stats={stats} />
+          {user.real ? (
+            <ReviewList data={dbReviews} myId={myId} onProfile={onProfileRow} onReport={onReportReview} onToast={onToast} />
+          ) : (
+            (user.reviews || []).length > 0 && (
+              <ul className="mt-3 grid gap-2">
+                {user.reviews.map((text) => <li key={text} className="rounded-xl bg-white p-3 text-sm text-slate-700 ring-1 ring-slate-200">“{text}”</li>)}
+              </ul>
+            )
+          )}
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">Değerlendirmeler, ilan üzerinden yazışıp alışveriş yapan üyeler tarafından Mesajlarım ekranından verilir.</p>
         </div>
 
         <div className="mb-4 rounded-2xl bg-slate-50 p-3">
@@ -3778,13 +3760,17 @@ function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSp
 const reportReasons = {
   listing: ["Yanıltıcı ilan", "Uygunsuz canlı / ürün", "Sahte fotoğraf", "Satıldı ama yayında", "Diğer"],
   post: ["Spam veya reklam", "Hakaret, taciz ya da nefret söylemi", "Yanıltıcı veya tehlikeli bilgi", "Uygunsuz görsel / video", "Topluluk akışında satış yapılıyor", "Hayvan refahına aykırı içerik", "Diğer"],
-  comment: ["Spam veya reklam", "Hakaret, taciz ya da nefret söylemi", "Yanıltıcı veya tehlikeli bilgi", "Uygunsuz görsel / video", "Diğer"]
+  comment: ["Spam veya reklam", "Hakaret, taciz ya da nefret söylemi", "Yanıltıcı veya tehlikeli bilgi", "Uygunsuz görsel / video", "Diğer"],
+  review: ["Gerçek bir alışverişe dayanmıyor", "Hakaret veya kişisel bilgi içeriyor", "Haksız / kasıtlı olumsuz değerlendirme", "Diğer"],
+  user: ["Dolandırıcılık şüphesi", "Hakaret, taciz ya da tehdit", "Spam / istenmeyen mesaj", "Sahte hesap", "Hayvan refahına aykırı davranış", "Diğer"]
 };
 
 const reportCopy = {
   listing: { title: "İlanı bildir", text: "Bu ilanla ilgili kısa bir bildirim gönder." },
   post: { title: "Paylaşımı bildir", text: "Topluluk kurallarına aykırı içerikleri ekibimize ilet." },
-  comment: { title: "Yorumu bildir", text: "Topluluk kurallarına aykırı yorumları ekibimize ilet." }
+  comment: { title: "Yorumu bildir", text: "Topluluk kurallarına aykırı yorumları ekibimize ilet." },
+  review: { title: "Değerlendirmeyi bildir", text: "Kurallara aykırı ya da gerçeğe dayanmayan değerlendirmeleri ekibimiz inceler." },
+  user: { title: "Kullanıcıyı şikâyet et", text: "Bu üyeyle yaşadığın sorunu kısaca anlat; ekibimiz inceler. Şikâyetin karşı tarafa bildirilmez." }
 };
 
 function ReportModal({ target, onClose, onSubmit }) {
@@ -4131,7 +4117,7 @@ function timeAgoTr(value) {
 }
 
 function NotificationsPage({ notifs, onOpen, onProfile }) {
-  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", system: "🔔" };
+  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", review: "⭐", system: "🔔", content_removed: "🛡️", content_restored: "✅", ad_approved: "📣", ad_rejected: "⚠️", account_suspended: "⛔", account_restored: "✅", report_resolved: "🛡️", group_closed: "🔒", group_reopened: "🔓", verification_approved: "✔️", verification_rejected: "⚠️", suggestion_approved: "🐟", suggestion_rejected: "🐟" };
   return (
     <div className="mx-auto max-w-2xl p-5">
       <div className="mb-4 flex items-end justify-between gap-3 border-b border-slate-200 pb-4">

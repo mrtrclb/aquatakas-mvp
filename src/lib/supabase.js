@@ -12,7 +12,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 // E-posta bağlantılarının döneceği adres (alan adı değişse de doğru çalışır)
 export function siteUrl() {
-  return window.location.origin + window.location.pathname;
+  return window.location.origin + "/";
 }
 
 const ERRORS = [
@@ -26,7 +26,14 @@ const ERRORS = [
   [/same.?password|different from the old/i, "Yeni şifre eskisiyle aynı olamaz."],
   [/profiles_username_key|duplicate key.*username/i, "Bu kullanıcı adı alınmış."],
   [/username_check|profiles_username_check/i, "Kullanıcı adı 3-24 karakter olmalı; yalnızca küçük harf, rakam, nokta ve alt çizgi içerebilir."],
-  [/failed to fetch|network/i, "Bağlantı kurulamadı. İnternet bağlantını kontrol et."]
+  [/failed to fetch|network/i, "Bağlantı kurulamadı. İnternet bağlantını kontrol et."],
+  [/row-level security policy for table "messages"/i, "Bu kullanıcıyla mesajlaşamazsın (engellenmiş olabilirsin ya da hesabın kısıtlı)."],
+  [/Bu kullanıcıyla mesajlaşamazsınız/i, "Bu kullanıcıyla mesajlaşamazsın."],
+  [/izin verilmeyen bir ifade/i, "Metinde izin verilmeyen bir ifade var. Lütfen düzenleyip tekrar dene."],
+  [/Yetkiniz yok|yetkiniz yok/, "Bu işlem için yetkin yok."],
+  [/Süper yönetici askıya alınamaz/, "Süper yönetici askıya alınamaz."],
+  [/Kendi yetkinizi/, "Kendi yetkini buradan değiştiremezsin."],
+  [/zaten incelendi/, "Bu başvuru zaten incelenmiş; sayfayı yenile."]
 ];
 
 export function trError(error) {

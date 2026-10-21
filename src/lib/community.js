@@ -102,7 +102,7 @@ export function useDbCommunity(myId) {
         saves: new Set((saves.data || []).map((row) => row.post_id)),
         commentLikes: new Set((commentLikes.data || []).map((row) => row.comment_id)),
         votes: new Map((votes.data || []).map((row) => [row.post_id, row.option_id])),
-        tags: (tags.data || []).map((row) => String(row.tag))
+        tags: (tags.data || []).map((row) => "#" + String(row.tag).replace(/^#/, ""))
       };
     }
     setProfiles(profileRows);

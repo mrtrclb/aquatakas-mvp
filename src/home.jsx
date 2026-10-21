@@ -285,7 +285,7 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
     let sinceListing = 0;
     let adSlot = 0;
     while (pi < feedPosts.length || li < normal.length || fi < featured.length) {
-      if (result.length > 0 && result.length % AD_EVERY === 0 && result[result.length - 1].kind !== "ad") {
+      if (ctx.adPool.length && result.length > 0 && result.length % AD_EVERY === 0 && result[result.length - 1].kind !== "ad") {
         result.push({ kind: "ad", key: "ad-" + adSlot, ad: ctx.adPool[(adSlot + 1) % ctx.adPool.length] });
         adSlot += 1;
         continue;

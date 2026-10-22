@@ -407,7 +407,7 @@ export function Avatar({ user, size = 44, onClick }) {
   );
 }
 
-function RichText({ text, onTag }) {
+export function RichText({ text, onTag }) {
   const parts = text.split(new RegExp("(" + URL_RE.source + "|#[\\p{L}\\p{N}_]+)", "giu"));
   return parts.map((part, index) =>
     /^https?:\/\//i.test(part) ? (
@@ -1193,7 +1193,7 @@ function CommentItem({ comment, postId, ctx }) {
             </div>
           </div>
         ) : (
-          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed text-slate-800">{comment.text}</p>
+          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed text-slate-800"><RichText text={comment.text} onTag={ctx.onSearch} /></p>
         )}
         {hasMedia && (
           <div className="max-w-md">
@@ -1201,6 +1201,7 @@ function CommentItem({ comment, postId, ctx }) {
             <VideoBlock video={comment.video} />
           </div>
         )}
+        {!editing && !hasMedia && comment.text && firstUrl(comment.text) && <div className="max-w-md"><LinkPreviewCard url={firstUrl(comment.text)} compact /></div>}
         {lightbox !== null && <Lightbox images={images} start={lightbox} onClose={() => setLightbox(null)} />}
         <button
           type="button"
@@ -1241,6 +1242,12 @@ export function MediaComposer({ me, onSubmit, placeholder = "Yanıtını paylaş
   const videoInput = useRef(null);
 
   const value = text.trim();
+  // Yorumda bağlantı varsa yazarken önizleme (gönderi yazarındaki gibi 600 ms gecikmeli)
+  const [previewUrl, setPreviewUrl] = useState(null);
+  useEffect(() => {
+    const timer = setTimeout(() => setPreviewUrl(firstUrl(text)), 600);
+    return () => clearTimeout(timer);
+  }, [text]);
   const canSubmit = Boolean(value) || images.length > 0 || Boolean(video);
 
   function addImages(event) {
@@ -1306,6 +1313,7 @@ export function MediaComposer({ me, onSubmit, placeholder = "Yanıtını paylaş
           placeholder={placeholder}
           className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-cyan-400"
         />
+        {previewUrl && images.length === 0 && !video && <div className="mt-2"><LinkPreviewCard url={previewUrl} compact /></div>}
 
         {images.length > 0 && (
           <div className="mt-2 grid grid-cols-4 gap-2">
@@ -1491,7 +1499,7 @@ export function MyPostsPage({ posts, ctx }) {
                   <span className="min-w-0 truncate">{post.userId === ctx.currentUserId ? "Kendi paylaşımına yorum" : <><UserName user={author} /> paylaşımına yorum</>}</span>
                   <span className="shrink-0">· {timeAgo(comment.createdAt)}</span>
                 </div>
-                {comment.text && <p className="mt-1.5 whitespace-pre-line break-words text-[16px] text-slate-900">{comment.text}</p>}
+                {comment.text && <p className="mt-1.5 whitespace-pre-line break-words text-[16px] text-slate-900"><RichText text={comment.text} onTag={ctx.onSearch} /></p>}
                 {comment.images.length > 0 && (
                   <div className="mt-2 flex gap-2">
                     {comment.images.slice(0, 4).map((url) => <img key={url} src={url} alt="" className="h-16 w-16 rounded-xl object-cover ring-1 ring-slate-200" />)}

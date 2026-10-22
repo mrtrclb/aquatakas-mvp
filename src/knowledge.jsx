@@ -24,7 +24,8 @@ import {
   Trash2,
   X
 } from "lucide-react";
-import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostCard, VideoBlock, normalizeTr, timeAgo } from "./community.jsx";
+import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostCard, RichText, VideoBlock, normalizeTr, timeAgo } from "./community.jsx";
+import { LinkPreviewCard, firstUrl } from "./link-preview.jsx";
 import { DIFFICULTY_COLORS, KB_CATEGORIES, KB_SECTIONS, categoryById, detectSpecies } from "./species.js";
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
@@ -508,7 +509,7 @@ function SpeciesComment({ comment, kb, ctx }) {
             </div>
           </div>
         ) : (
-          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed text-slate-800">{comment.text}</p>
+          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed text-slate-800"><RichText text={comment.text} onTag={ctx.onSearch} /></p>
         )}
         {hasMedia && (
           <div className="max-w-md">
@@ -516,6 +517,7 @@ function SpeciesComment({ comment, kb, ctx }) {
             <VideoBlock video={comment.video} />
           </div>
         )}
+        {!editing && !hasMedia && comment.text && firstUrl(comment.text) && <div className="max-w-md"><LinkPreviewCard url={firstUrl(comment.text)} compact /></div>}
         {lightbox !== null && <Lightbox images={images} start={lightbox} onClose={() => setLightbox(null)} />}
         <button onClick={() => (ctx.isMember ? kb.onLikeComment(comment.id) : ctx.onAuth())} className={"mt-1.5 flex items-center gap-1.5 text-xs font-semibold " + (comment.likedByMe ? "text-rose-600" : "text-slate-500 hover:text-rose-600")}>
           <Heart size={15} fill={comment.likedByMe ? "currentColor" : "none"} /> {comment.likes} faydalı

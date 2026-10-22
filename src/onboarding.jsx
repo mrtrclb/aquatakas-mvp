@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { Suspense, lazy, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, CheckCircle2, ChevronLeft, Loader2, MapPin, Search, Star, X } from "lucide-react";
 import { Field, inputClass, normalizeUsername } from "./auth.jsx";
-import { LEGAL_VERSION, LegalModal } from "./legal.jsx";
+import { LEGAL_VERSION } from "./lib/legal-meta.js";
+const LegalModal = lazy(() => import("./legal.jsx").then((mod) => ({ default: mod.LegalModal })));
+
 import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES } from "./lib/listings";
 import { SpeciesImage } from "./knowledge.jsx";
@@ -21,16 +23,6 @@ const SOCIALS = [
 ];
 const BASE_STEPS = ["species", "groups", "about", "socials", "done"];
 
-export function shouldOnboard(auth) {
-  const user = auth && auth.user;
-  const profile = auth && auth.profile;
-  if (!user || !profile || profile.deleted_at) return false;
-  const meta = user.user_metadata || {};
-  if (meta.onboarded_at) return false;
-  // Yalnızca yeni hesaplar (son 14 gün içinde açılmış)
-  const created = new Date(profile.created_at || user.created_at || 0).getTime();
-  return Date.now() - created < 14 * 86400000;
-}
 
 export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
   const profile = auth.profile;
@@ -409,7 +401,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
         </div>
       </div>
       {legalOpen && (
-        <LegalModal
+        <Suspense fallback={null}><LegalModal
           docKey={legalOpen}
           mustRead
           onClose={() => setLegalOpen(null)}
@@ -420,7 +412,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
             setLegalOpen(null);
             setError("");
           }}
-        />
+        /></Suspense>
       )}
     </div>,
     document.body

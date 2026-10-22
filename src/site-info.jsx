@@ -5,7 +5,9 @@ import { supabase, trError } from "./lib/supabase";
 import { AD_PLACEMENTS } from "./lib/ads";
 import { CONTACT_EMAIL, LEGAL_DOCS, LegalBody } from "./legal.jsx";
 
-export const BLOG_URL = "https://blog.aquagram.com.tr";
+import { BLOG_URL } from "./site-links.jsx";
+
+export { BLOG_URL };
 
 export const SITE_INFO_TABS = [
   ["nedir", "Nedir?"],
@@ -301,21 +303,6 @@ function WarningsTab() {
         </div>
       ))}
       <p className="flex items-center gap-1.5 text-xs text-slate-400"><Mail size={13} /> Sorun mu yaşıyorsun? {CONTACT_EMAIL}</p>
-    </div>
-  );
-}
-
-// Mobil menüde site bağlantıları (masaüstünde sağ sütunun altında yer alır)
-export function SiteLinks({ className = "" }) {
-  const [tab, setTab] = useState(null);
-  const links = [["nedir", "Nedir?"], ["contact", "Bize ulaşın"], ["terms", "Kullanım şartları"], ["ads", "Reklam verin"], ["adpolicy", "Reklam politikası"], ["warnings", "Önemli uyarılar"], ["privacy", "Gizlilik politikası"], ["kvkk", "KVKK"]];
-  return (
-    <div className={"flex flex-wrap gap-1 " + className}>
-      {links.map(([key, label]) => (
-        <button key={key} type="button" onClick={() => setTab(key)} className="rounded-xl px-2.5 py-1.5 text-[12px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">{label}</button>
-      ))}
-      <a href={BLOG_URL} target="_blank" rel="noopener" className="rounded-xl px-2.5 py-1.5 text-[12px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">Blog</a>
-      {tab && <SiteInfoModal activeTab={tab} setActiveTab={setTab} onClose={() => setTab(null)} />}
     </div>
   );
 }

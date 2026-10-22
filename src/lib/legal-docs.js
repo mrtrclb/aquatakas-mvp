@@ -1,7 +1,8 @@
 // Yasal metinler. Yayına almadan önce bir hukukçuya kontrol ettirilmelidir.
 // Köşeli parantezli alanlar ([...]) doldurulmalıdır.
-export const LEGAL_VERSION = "2026-10-21";
-export const CONTACT_EMAIL = "bilgi@aquagram.com.tr";
+import { CONTACT_EMAIL, LEGAL_PATHS, LEGAL_VERSION } from "./legal-meta.js";
+
+export { CONTACT_EMAIL, LEGAL_PATHS, LEGAL_VERSION };
 const CONTACT = CONTACT_EMAIL;
 const CONTROLLER = "[VERİ SORUMLUSUNUN ADI SOYADI / UNVANI]";
 const ADDRESS = "[YAZIŞMA ADRESİ]";
@@ -166,5 +167,3 @@ export const LEGAL_DOCS = {
   }
 };
 
-// Doğrudan açılabilen yasal sayfa adresleri (Google/Apple giriş ve mağaza başvuruları için)
-export const LEGAL_PATHS = { "/kullanim-kosullari": "terms", "/gizlilik": "privacy", "/kvkk": "kvkk" };

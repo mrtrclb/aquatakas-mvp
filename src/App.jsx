@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth, AuthModal, NewPasswordModal, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, uploadListingImages, loadFeaturedPlans } from "./lib/listings";
@@ -9,10 +9,9 @@ import { useDbKnowledge } from "./lib/knowledge";
 import { useSiteSettings } from "./lib/settings";
 import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
 import { SeenMarker, markSeen, pickLeastSeen, rotate } from "./lib/rotation";
-import AdsManagerPage from "./ads-manager.jsx";
-import { SiteInfoModal, SiteLinks, BLOG_URL } from "./site-info.jsx";
-import { LEGAL_PATHS } from "./lib/legal-docs.js";
-import { OnboardingModal, shouldOnboard } from "./onboarding.jsx";
+import { LazySiteInfoModal as SiteInfoModal, SiteLinks, BLOG_URL } from "./site-links.jsx";
+import { LEGAL_PATHS } from "./lib/legal-meta.js";
+import { shouldOnboard } from "./lib/onboarding-check.js";
 import { BumpButton, ProBadge, ProCard, useProStatus } from "./pro.jsx";
 import { VerificationCard } from "./verification.jsx";
 import { AccountSecurity, DeleteAccountDialog } from "./account-security.jsx";
@@ -89,6 +88,10 @@ import { HomeAside, HomeFeed, HomeTopBar, loadHomeFilter, saveHomeFilter } from 
 import { KbAside, KbCategoryPage, KbHome, KbMinePage, KbWidgets, KeptSpeciesChips, SpeciesPage, SuggestSpeciesModal } from "./knowledge.jsx";
 import { ArticlePage, ArticlesPage } from "./articles.jsx";
 import { useArticles } from "./lib/articles";
+
+// Seyrek kullanılan bölümler ayrı parçalar halinde, açıldıklarında indirilir
+const AdsManagerPage = lazy(() => import("./ads-manager.jsx"));
+const OnboardingModal = lazy(() => import("./onboarding.jsx").then((mod) => ({ default: mod.OnboardingModal })));
 import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, speciesBySlug } from "./species.js";
 
 const locations = {
@@ -1860,7 +1863,7 @@ export default function AquagramApp() {
     onProfile={(actor) => actor && users[actor.id] && setProfileUser(users[actor.id])}
   />
 ) : effectiveMemberPage === "ads" ? (
-  <AdsManagerPage auth={auth} onToast={setToast} previews={{ FeedAdCard, SidebarAd, DetailBannerAd }} />
+  <Suspense fallback={<div className="p-10 text-center text-sm font-bold text-slate-400">Yükleniyor…</div>}><AdsManagerPage auth={auth} onToast={setToast} previews={{ FeedAdCard, SidebarAd, DetailBannerAd }} /></Suspense>
 ) : selectedListing ? (
   <ListingDetail
     item={selectedListing}
@@ -2151,7 +2154,7 @@ export default function AquagramApp() {
       )}
       {legalTab && <SiteInfoModal activeTab={legalTab} setActiveTab={setLegalTab} onClose={() => { setLegalTab(null); leaveTo("/"); }} />}
       {onboardOpen && !onboardDismissed && !auth.recovery && auth.profile && (
-        <OnboardingModal
+        <Suspense fallback={null}><OnboardingModal
           auth={auth}
           species={kb.species}
           groups={groups}
@@ -2164,7 +2167,7 @@ export default function AquagramApp() {
               auth.reloadProfile();
             }
           }}
-        />
+        /></Suspense>
       )}
       {auth.recovery && auth.session && (
         <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); leaveTo("/"); setMemberPage("account"); }} />

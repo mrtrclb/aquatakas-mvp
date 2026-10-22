@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import { CheckCircle2, Eye, EyeOff, Loader2, Mail, X } from "lucide-react";
 import { supabase, siteUrl, trError, enabledProviders } from "./lib/supabase";
 import { useCaptcha } from "./lib/captcha";
-import { LEGAL_VERSION, LegalModal } from "./legal.jsx";
+import { LEGAL_VERSION } from "./lib/legal-meta.js";
+
+// Yasal metin penceresi ayrı parça: yalnızca açılınca indirilir
+const LegalModal = lazy(() => import("./legal.jsx").then((mod) => ({ default: mod.LegalModal })));
+
 
 // ---------------------------------------------------------------------------
 // Oturum + profil + ekip yetkisi
@@ -369,7 +373,7 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
         </div>
       </div>
       {legalOpen && (
-        <LegalModal
+        <Suspense fallback={null}><LegalModal
           docKey={legalOpen}
           mustRead
           onClose={() => setLegalOpen(null)}
@@ -380,7 +384,7 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
             setLegalOpen(null);
             setError("");
           }}
-        />
+        /></Suspense>
       )}
     </div>
   );

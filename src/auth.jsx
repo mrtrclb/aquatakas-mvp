@@ -360,7 +360,7 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
                       <div className="h-px flex-1 bg-slate-200" />
                     </div>
                     <OAuthButtons onError={setError} />
-                    <p className="mt-3 text-center text-[11px] leading-snug text-slate-400">Google ya da Apple ile ilk girişte Kullanım Koşulları'nı onaylaman istenir.</p>
+                    <p className="mt-3 text-center text-[11px] leading-snug text-slate-400">Google ile ilk girişte Kullanım Koşulları'nı onaylaman istenir.</p>
                   </>
                 )}
               </>
@@ -387,7 +387,7 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
 }
 
 // ---------------------------------------------------------------------------
-// Google / Apple ile giriş (Supabase OAuth). Hesap yoksa otomatik açılır.
+// Google ile giriş (Supabase OAuth). Hesap yoksa otomatik açılır.
 // ---------------------------------------------------------------------------
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
@@ -395,11 +395,6 @@ const GoogleIcon = () => (
     <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.9l-3.88-3.01c-1.07.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.3v3.11A12 12 0 0 0 12 24Z" />
     <path fill="#FBBC05" d="M5.29 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.3a12 12 0 0 0 0 10.8l3.99-3.11Z" />
     <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44A11.97 11.97 0 0 0 1.3 6.6l3.99 3.11C6.23 6.88 8.88 4.77 12 4.77Z" />
-  </svg>
-);
-const AppleIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden="true">
-    <path d="M16.37 12.73c-.03-2.6 2.12-3.85 2.22-3.91a4.78 4.78 0 0 0-3.76-2.03c-1.6-.16-3.12.94-3.93.94-.82 0-2.06-.92-3.39-.9a5.03 5.03 0 0 0-4.25 2.58c-1.82 3.15-.47 7.81 1.3 10.37.87 1.25 1.9 2.65 3.25 2.6 1.31-.05 1.8-.84 3.38-.84 1.57 0 2.02.84 3.39.82 1.4-.03 2.29-1.27 3.15-2.53a11.1 11.1 0 0 0 1.42-2.93 4.53 4.53 0 0 1-2.78-4.17ZM13.78 5.1A4.55 4.55 0 0 0 14.85 1.8a4.63 4.63 0 0 0-3 1.55 4.33 4.33 0 0 0-1.1 3.15 3.83 3.83 0 0 0 3.03-1.4Z" />
   </svg>
 );
 
@@ -425,12 +420,9 @@ export function OAuthButtons({ onError }) {
     // Başarılıysa tarayıcı sağlayıcıya yönlenir; dönüşte oturum adres çubuğundan okunur
   }
   return (
-    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+    <div className="grid gap-2.5">
       <button type="button" onClick={() => go("google")} disabled={Boolean(busy) || (enabled && !enabled.google)} title={enabled && !enabled.google ? "Yakında" : undefined} className="flex items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
         {busy === "google" ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />} Google ile devam et
-      </button>
-      <button type="button" onClick={() => go("apple")} disabled={Boolean(busy) || (enabled && !enabled.apple)} title={enabled && !enabled.apple ? "Yakında" : undefined} className="flex items-center justify-center gap-2.5 rounded-2xl bg-black px-3 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
-        {busy === "apple" ? <Loader2 size={18} className="animate-spin" /> : <AppleIcon />} Apple ile devam et
       </button>
     </div>
   );

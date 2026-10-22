@@ -3,6 +3,8 @@ const MapPicker = lazy(() => import("./species-map.jsx").then((mod) => ({ defaul
 import {
   ArrowLeft,
   Ban,
+  BarChart3,
+  RefreshCw,
   Check,
   ChevronLeft,
   Crown,
@@ -68,6 +70,7 @@ export const PERMISSION_HELP = {
 
 const SECTIONS = [
   { id: "ozet", label: "Özet", icon: LayoutDashboard, perm: null },
+  { id: "istatistik", label: "İstatistikler", icon: BarChart3, perm: null },
   { id: "sikayetler", label: "Şikâyetler", icon: Flag, perm: "reports", stat: "reports_open" },
   { id: "iletisim", label: "İletişim", icon: Mail, perm: "contact", stat: "contact_open" },
   { id: "one-cikarma", label: "Öne çıkarma", icon: Pin, perm: "ads", stat: "features_pending" },
@@ -458,6 +461,7 @@ export default function AdminApp() {
 
   const views = {
     ozet: DashboardSection,
+    istatistik: StatsSection,
     sikayetler: ReportsSection,
     iletisim: ContactSection,
     "one-cikarma": FeaturesSection,
@@ -646,6 +650,275 @@ function VisitsCard() {
         }}
       </LoadState>
     </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* İstatistikler: kendi ziyaret sayacımız + Google Search Console       */
+/* ------------------------------------------------------------------ */
+
+const nf = (value, digits = 0) => Number(value || 0).toLocaleString("tr-TR", { maximumFractionDigits: digits, minimumFractionDigits: digits });
+const pct = (value) => "%" + nf((value || 0) * 100, 1);
+const DEVICE_LABELS = { DESKTOP: "Masaüstü", MOBILE: "Mobil", TABLET: "Tablet" };
+const COUNTRY_LABELS = { tur: "Türkiye", deu: "Almanya", nld: "Hollanda", usa: "ABD", gbr: "Birleşik Krallık", aze: "Azerbaycan", cyp: "Kıbrıs", fra: "Fransa", bel: "Belçika", aut: "Avusturya" };
+
+function sumRows(rows) {
+  const clicks = rows.reduce((t, r) => t + r.clicks, 0);
+  const impressions = rows.reduce((t, r) => t + r.impressions, 0);
+  const position = impressions ? rows.reduce((t, r) => t + r.position * r.impressions, 0) / impressions : 0;
+  return { clicks, impressions, ctr: impressions ? clicks / impressions : 0, position };
+}
+
+function Change({ cur, prev, invert = false, suffix = "" }) {
+  if (!prev) return <span className="text-xs font-bold text-slate-400">önceki dönem verisi yok</span>;
+  const diff = (cur - prev) / prev;
+  const good = invert ? diff < 0 : diff > 0;
+  if (Math.abs(diff) < 0.005) return <span className="text-xs font-bold text-slate-400">değişmedi</span>;
+  return <span className={"text-xs font-black " + (good ? "text-emerald-600" : "text-rose-600")}>{diff > 0 ? "▲" : "▼"} {pct(Math.abs(diff))}{suffix} <span className="font-bold text-slate-400">önceki 28 güne göre</span></span>;
+}
+
+function StatsSection() {
+  return (
+    <Section title="İstatistikler" subtitle="Kendi ziyaret sayacımız ve Google aramalarından gelen trafik. Çerez ya da kişisel veri kullanılmaz.">
+      <VisitsCard />
+      <SearchConsoleCard />
+    </Section>
+  );
+}
+
+function SearchConsoleCard() {
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState("");
+  const autoTried = useRef(false);
+  const state = useLoad(async () => {
+    const [syncRows, daily, top] = await Promise.all([
+      must(supabase.from("gsc_sync").select("*").eq("id", 1)),
+      must(supabase.from("gsc_daily").select("day, clicks, impressions, ctr, position").order("day")),
+      must(supabase.from("gsc_top").select("kind, period, key, clicks, impressions, ctr, position"))
+    ]);
+    return { sync: syncRows[0] || null, daily, top };
+  }, []);
+
+  async function sync() {
+    setSyncing(true);
+    setSyncError("");
+    const { data, error } = await supabase.functions.invoke("gsc-sync", { method: "POST" });
+    setSyncing(false);
+    if (error) setSyncError(trError(error));
+    else if (data && data.ok === false) setSyncError(data.error || "Güncellenemedi.");
+    state.reload();
+  }
+
+  // Panel açılınca veri 12 saatten eskiyse kendiliğinden yenile
+  useEffect(() => {
+    if (!state.data || autoTried.current) return;
+    autoTried.current = true;
+    const last = state.data.sync && state.data.sync.synced_at ? new Date(state.data.sync.synced_at).getTime() : 0;
+    if (Date.now() - last > 12 * 3600000) sync();
+  }, [state.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <Card className="mt-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="font-black">Google aramaları</h2>
+          <p className="text-xs text-slate-400">Search Console verisi · 2–3 gün gecikmeli gelir</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {state.data && state.data.sync && state.data.sync.synced_at && (
+            <span className="text-xs font-bold text-slate-400">Son güncelleme: {new Date(state.data.sync.synced_at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}</span>
+          )}
+          <Btn small onClick={sync} disabled={syncing}>{syncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Yenile</Btn>
+        </div>
+      </div>
+      {(syncError || (state.data && state.data.sync && !state.data.sync.ok && state.data.sync.message)) && (
+        <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <b>Google verisi alınamadı.</b> {syncError || state.data.sync.message}
+        </div>
+      )}
+      <LoadState state={state}>{(data) => <SearchConsoleBody data={data} />}</LoadState>
+    </Card>
+  );
+}
+
+function SearchConsoleBody({ data }) {
+  const daily = data.daily.map((row) => ({ ...row, day: String(row.day).slice(0, 10) }));
+  if (!daily.length && !data.top.length) {
+    return <Empty>Henüz Google verisi yok. Site Search Console'a yeni eklendiği için ilk birkaç gün boş görünmesi normal.</Empty>;
+  }
+  const last = daily.length ? daily[daily.length - 1].day : null;
+  const shift = (d, n) => new Date(new Date(d).getTime() + n * 86400000).toISOString().slice(0, 10);
+  const cur = sumRows(daily.filter((r) => last && r.day > shift(last, -28)));
+  const prev = sumRows(daily.filter((r) => last && r.day <= shift(last, -28) && r.day > shift(last, -56)));
+  const top = (kind, period = "cur") => data.top.filter((r) => r.kind === kind && r.period === period);
+  const prevOf = (kind) => Object.fromEntries(top(kind, "prev").map((r) => [r.key, r]));
+  const queries = top("query").sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions);
+  const pages = top("page").sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions);
+  const prevQueries = prevOf("query");
+  const devices = top("device").sort((a, b) => b.clicks + b.impressions - (a.clicks + a.impressions));
+  const countries = top("country").sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions).slice(0, 6);
+  // Fırsat: çok gösterilen ama az tıklanan, ilk 2 sayfada çıkan sorgu/sayfalar
+  const chances = [...queries.map((r) => ({ ...r, type: "Arama" })), ...pages.map((r) => ({ ...r, type: "Sayfa" }))]
+    .filter((r) => r.impressions >= 30 && r.ctr < 0.03 && r.position <= 20)
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, 8);
+  const pathOf = (url) => url.replace(/^https?:\/\/(www\.)?aquagram\.com\.tr/, "") || "/";
+
+  return (
+    <>
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          ["Tıklama", nf(cur.clicks), <Change key="c" cur={cur.clicks} prev={prev.clicks} />],
+          ["Gösterim", nf(cur.impressions), <Change key="i" cur={cur.impressions} prev={prev.impressions} />],
+          ["Tıklama oranı", pct(cur.ctr), <Change key="t" cur={cur.ctr} prev={prev.ctr} />],
+          ["Ortalama sıra", cur.position ? nf(cur.position, 1) : "–", <Change key="p" cur={cur.position} prev={prev.position} invert />]
+        ].map(([label, value, change]) => (
+          <div key={label} className="rounded-2xl bg-slate-50 p-3">
+            <div className="text-xs font-black uppercase tracking-wide text-slate-400">{label} · 28 gün</div>
+            <div className="text-2xl font-black text-slate-900">{value}</div>
+            {change}
+          </div>
+        ))}
+      </div>
+
+      {daily.length > 0 && <DailyChart rows={daily.slice(-90)} />}
+
+      <div className="mt-5 grid gap-4 xl:grid-cols-2">
+        <TopTable
+          title="Bizi bulan aramalar"
+          hint="Son 28 gün · Google'da bu aramalarla göründük"
+          rows={queries.slice(0, 15)}
+          label={(r) => r.key}
+          extra={(r) => {
+            const before = prevQueries[r.key];
+            if (!before) return <Badge tone="cyan">yeni</Badge>;
+            const d = r.clicks - before.clicks;
+            return d ? <span className={"text-xs font-black " + (d > 0 ? "text-emerald-600" : "text-rose-600")}>{d > 0 ? "+" : ""}{d}</span> : null;
+          }}
+        />
+        <TopTable
+          title="Google'dan en çok tıklanan sayfalar"
+          hint="Son 28 gün"
+          rows={pages.slice(0, 15)}
+          label={(r) => <a href={r.key} target="_blank" rel="noopener" className="hover:underline">{decodeURIComponent(pathOf(r.key))}</a>}
+        />
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+          <h3 className="font-black text-slate-900">Fırsatlar</h3>
+          <p className="mb-3 text-xs text-slate-500">Çok gösterilip az tıklanan aramalar ve sayfalar. Başlık ve açıklamayı daha çekici yapmak tıklamayı artırabilir.</p>
+          {chances.length ? (
+            <div className="grid gap-1.5">
+              {chances.map((r) => (
+                <div key={r.type + r.key} className="flex items-center gap-2 text-sm">
+                  <Badge tone={r.type === "Arama" ? "violet" : "cyan"}>{r.type}</Badge>
+                  <span className="min-w-0 flex-1 truncate font-bold text-slate-700">{r.type === "Sayfa" ? decodeURIComponent(pathOf(r.key)) : r.key}</span>
+                  <span className="shrink-0 text-xs text-slate-500">{nf(r.impressions)} gösterim · {pct(r.ctr)} · {nf(r.position, 1)}. sıra</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">Şimdilik öne çıkan fırsat yok.</p>
+          )}
+        </div>
+        <div className="grid gap-4">
+          <SplitBars title="Cihazlar" rows={devices.map((r) => [DEVICE_LABELS[r.key] || r.key, r.clicks, r.impressions])} />
+          <SplitBars title="Ülkeler" rows={countries.map((r) => [COUNTRY_LABELS[r.key] || r.key.toUpperCase(), r.clicks, r.impressions])} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+function DailyChart({ rows }) {
+  const W = 900, H = 160, pad = 4;
+  const maxImp = Math.max(1, ...rows.map((r) => r.impressions));
+  const maxClk = Math.max(1, ...rows.map((r) => r.clicks));
+  const step = (W - pad * 2) / Math.max(1, rows.length - 1);
+  const x = (i) => pad + i * step;
+  const yImp = (v) => H - pad - (v / maxImp) * (H - pad * 2);
+  const area = rows.map((r, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + yImp(r.impressions).toFixed(1)).join(" ") + " L" + x(rows.length - 1).toFixed(1) + " " + (H - pad) + " L" + pad + " " + (H - pad) + " Z";
+  const barW = Math.max(2, step * 0.55);
+  return (
+    <div>
+      <div className="mb-1 flex items-center gap-4 text-xs font-bold text-slate-500">
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-cyan-800" /> Tıklama (en fazla {nf(maxClk)})</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-cyan-200" /> Gösterim (en fazla {nf(maxImp)})</span>
+      </div>
+      <svg viewBox={"0 0 " + W + " " + H} className="h-40 w-full" preserveAspectRatio="none" role="img" aria-label="Günlük Google tıklama ve gösterimleri">
+        <path d={area} fill="#a5f3fc" opacity="0.55" />
+        {rows.map((r, i) => {
+          const h = (r.clicks / maxClk) * (H - pad * 2) * 0.9;
+          return (
+            <rect key={r.day} x={x(i) - barW / 2} y={H - pad - h} width={barW} height={Math.max(r.clicks ? 2 : 0, h)} rx="1" fill="#155e75">
+              <title>{new Date(r.day).toLocaleDateString("tr-TR")}: {r.clicks} tıklama, {r.impressions} gösterim</title>
+            </rect>
+          );
+        })}
+      </svg>
+      <div className="mt-1 flex justify-between text-[12px] font-bold text-slate-400">
+        <span>{new Date(rows[0].day).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</span>
+        <span>{new Date(rows[rows.length - 1].day).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</span>
+      </div>
+    </div>
+  );
+}
+
+function TopTable({ title, hint, rows, label, extra }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-slate-200 p-4">
+      <h3 className="font-black text-slate-900">{title}</h3>
+      <p className="mb-2 text-xs text-slate-400">{hint}</p>
+      {rows.length ? (
+        <table className="w-full table-fixed text-sm">
+          <thead>
+            <tr className="text-left text-[12px] font-black uppercase tracking-wide text-slate-400">
+              <th className="py-1.5">&nbsp;</th>
+              <th className="w-[72px] py-1.5 pl-2 text-right">Tıklama</th>
+              <th className="w-[84px] py-1.5 pl-2 text-right">Gösterim</th>
+              <th className="w-14 py-1.5 pl-2 text-right">Sıra</th>
+              {extra && <th className="w-12 py-1.5" />}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key} className="border-t border-slate-100">
+                <td className="truncate py-1.5 pr-2 font-bold text-slate-700" title={r.key}>{label(r)}</td>
+                <td className="py-1.5 text-right font-black text-slate-900">{nf(r.clicks)}</td>
+                <td className="py-1.5 text-right text-slate-600">{nf(r.impressions)}</td>
+                <td className="py-1.5 text-right text-slate-600">{nf(r.position, 1)}</td>
+                {extra && <td className="py-1.5 text-right">{extra(r)}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="py-4 text-sm text-slate-400">Henüz veri yok.</p>
+      )}
+    </div>
+  );
+}
+
+function SplitBars({ title, rows }) {
+  const total = rows.reduce((t, [, , imp]) => t + imp, 0) || 1;
+  return (
+    <div className="rounded-2xl border border-slate-200 p-4">
+      <h3 className="mb-2 font-black text-slate-900">{title}</h3>
+      {rows.length ? (
+        <div className="grid gap-1.5">
+          {rows.map(([name, clicks, impressions]) => (
+            <div key={name} className="grid grid-cols-[96px_1fr_auto] items-center gap-2 text-xs">
+              <span className="truncate font-bold text-slate-600">{name}</span>
+              <span className="h-2 overflow-hidden rounded-full bg-slate-100"><span className="block h-full rounded-full bg-cyan-700" style={{ width: (impressions / total) * 100 + "%" }} /></span>
+              <span className="text-right font-black text-slate-700">{nf(clicks)} <span className="font-bold text-slate-400">/ {nf(impressions)}</span></span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-slate-400">Henüz veri yok.</p>
+      )}
+    </div>
   );
 }
 

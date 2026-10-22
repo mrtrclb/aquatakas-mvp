@@ -104,17 +104,17 @@ function SpeciesCard({ species, kb }) {
       onKeyDown={(event) => event.key === "Enter" && kb.openSpecies(species)}
       className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-left transition hover:border-cyan-200 hover:shadow-lg"
     >
-      <SpeciesImage species={species} className="h-28 text-base" />
-      <div className="flex flex-1 flex-col p-3">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-black leading-snug text-slate-900 group-hover:underline">{species.name}</h3>
-          <DifficultyChip value={species.difficulty} />
-        </div>
-        <p className="mt-0.5 text-xs italic text-slate-500">{species.latin}</p>
-        <div className="mt-auto flex items-center gap-3 pt-2 text-[12px] font-bold text-slate-400">
-          <span className="flex items-center gap-1"><Fish size={12} /> {keepers} besleyen</span>
-          <span className="flex items-center gap-1"><MessageCircle size={12} /> {comments}</span>
-          {species.rare && <span className="text-violet-600">💎 nadir</span>}
+      <div className="relative">
+        <SpeciesImage species={species} className="h-28 text-base sm:h-32" />
+        <span className="absolute left-2 top-2 shadow-sm [&>span]:ring-1 [&>span]:ring-white/70"><DifficultyChip value={species.difficulty} /></span>
+        {species.rare && <span className="absolute right-2 top-2 rounded-full bg-white/90 px-1.5 py-0.5 text-[11px] font-black text-violet-700 shadow-sm" title="Nadir tür">💎 Nadir</span>}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col p-3">
+        <h3 className="line-clamp-2 break-words text-sm font-black leading-snug text-slate-900 group-hover:underline">{species.name}</h3>
+        <p className="mt-0.5 truncate text-xs italic text-slate-500" title={species.latin}>{species.latin}</p>
+        <div className="mt-auto flex min-h-[18px] items-center gap-3 whitespace-nowrap pt-2 text-[12px] font-bold text-slate-400">
+          {keepers > 0 && <span className="flex items-center gap-1" title={keepers + " üye besliyor"}><Fish size={12} /> {keepers} besleyen</span>}
+          {comments > 0 && <span className="flex items-center gap-1" title={comments + " deneyim"}><MessageCircle size={12} /> {comments}</span>}
         </div>
         <div className="mt-2 flex gap-1.5">
           <button

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import { setSpeciesCatalog } from "../species.js";
 
@@ -7,6 +7,20 @@ const PROFILE_COLS = "id, username, city, bio, avatar_url, phone_verified, socia
 
 // Veritabanı tür satırını arayüzdeki tür nesnesine çevirir (koddaki örnek veriyle aynı biçim)
 export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at, care_notice, range_areas";
+// Açılışta yalnızca hafif sütunlar yüklenir; açıklama, bilgi tablosu, bakım notu ve yayılım alanları
+// sayfa açıldıktan sonra ayrıca gelir (ilk yüklemede ~190 KB yerine ~40 KB). Tür sayfalarında hemen yüklenir.
+export const SPECIES_LIGHT_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, keywords, is_rare, image_url, images, status, created_at";
+const SPECIES_DETAIL_COLS = "id, description, facts, care_notice, range_areas";
+export function mapSpeciesDetails(row) {
+  return {
+    desc: row.description || "",
+    facts: Array.isArray(row.facts) ? row.facts.filter((pair) => Array.isArray(pair) && pair[0]) : [],
+    notice: row.care_notice || "",
+    ranges: Array.isArray(row.range_areas) ? row.range_areas.filter((area) => area && Number.isFinite(area.lat) && Number.isFinite(area.lng)) : []
+  };
+}
+const needsDetailsNow = () => typeof window !== "undefined" && /^\/(tur|bilgi|makale|ilan)(\/|$)/.test(window.location.pathname);
+
 export function mapSpeciesRow(row) {
   const images = Array.isArray(row.images) ? row.images.filter(Boolean) : [];
   if (row.image_url && !images.includes(row.image_url)) images.unshift(row.image_url);
@@ -84,10 +98,33 @@ export function useDbKnowledge(myId) {
   const [profiles, setProfiles] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [redirects, setRedirects] = useState({}); // eski tür adresi → { slug, form }
+  const detailsRef = useRef(null); // { [id]: ayrıntılar } — bir kez yüklenince saklanır
+  const fullLoadingRef = useRef(false); // tam sütunlu yükleme sürüyorsa ayrıntılar ayrıca istenmez
+
+  // Ağır tür sütunlarını yükleyip listeye ekler
+  const loadDetails = useCallback(async () => {
+    if (detailsRef.current || fullLoadingRef.current) return detailsRef.current;
+    fullLoadingRef.current = true;
+    const { data, error } = await supabase.from("species").select(SPECIES_DETAIL_COLS);
+    fullLoadingRef.current = false;
+    if (error || !data) return null;
+    const map = {};
+    data.forEach((row) => (map[row.id] = mapSpeciesDetails(row)));
+    detailsRef.current = map;
+    setSpeciesList((prev) => {
+      if (!prev) return prev;
+      const next = prev.map((sp) => (map[sp.dbId] ? { ...sp, ...map[sp.dbId] } : sp));
+      setSpeciesCatalog(next);
+      return next;
+    });
+    return map;
+  }, []);
 
   const reload = useCallback(async () => {
+    const full = Boolean(detailsRef.current) || needsDetailsNow();
+    if (full && !detailsRef.current) fullLoadingRef.current = true;
     let [speciesRes, keepersRes, commentsRes, formsRes, redirectRes] = await Promise.all([
-      supabase.from("species").select(SPECIES_COLS).order("name"),
+      supabase.from("species").select(full ? SPECIES_COLS : SPECIES_LIGHT_COLS).order("name"),
       supabase.from("species_keepers").select("species_id, user_id").limit(10000),
       supabase
         .from("species_comments")
@@ -99,7 +136,7 @@ export function useDbKnowledge(myId) {
       supabase.from("species_redirects").select("old_slug, new_slug, form_name")
     ]);
     // Tür görselleri sütunu henüz yoksa (0013 uygulanmadan önce) onsuz tekrar dene
-    if (speciesRes.error) speciesRes = await supabase.from("species").select(SPECIES_COLS.replace(", images", "")).order("name");
+    if (speciesRes.error) speciesRes = await supabase.from("species").select((full ? SPECIES_COLS : SPECIES_LIGHT_COLS).replace(", images", "")).order("name");
     const bySlug = {};
     const bySpeciesId = {};
     (speciesRes.data || []).forEach((row) => {
@@ -127,9 +164,14 @@ export function useDbKnowledge(myId) {
     setIds({ bySlug, bySpeciesId });
     const formsBySpecies = {};
     (formsRes.data || []).forEach((row) => (formsBySpecies[row.species_id] = formsBySpecies[row.species_id] || []).push(mapSpeciesForm(row)));
+    const known = detailsRef.current;
     const published = (speciesRes.data || [])
       .filter((row) => row.status === "published")
-      .map((row) => ({ ...mapSpeciesRow(row), forms: formsBySpecies[row.id] || [] }));
+      .map((row) => {
+        const sp = { ...mapSpeciesRow(row), forms: formsBySpecies[row.id] || [] };
+        // Hafif yüklemede daha önce alınmış ayrıntılar korunur
+        return !full || !("description" in row) ? (known && known[row.id] ? { ...sp, ...known[row.id] } : sp) : sp;
+      });
     const redirectMap = {};
     (redirectRes.data || []).forEach((row) => (redirectMap[String(row.old_slug)] = { slug: String(row.new_slug), form: row.form_name || null }));
     setRedirects(redirectMap);
@@ -143,7 +185,20 @@ export function useDbKnowledge(myId) {
     setLikedComments(new Set(likeRows.map((row) => row.comment_id)));
     setProfiles(profileRows);
     setLoaded(true);
-  }, [myId]);
+    if (!full) {
+      // Sayfa çizildikten sonra, tarayıcı boşaldığında ayrıntıları getir
+      const run = () => loadDetails();
+      setTimeout(() => {
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 2000 });
+        else run();
+      }, 2500);
+    } else if (!detailsRef.current) {
+      const map = {};
+      (speciesRes.data || []).forEach((row) => (map[row.id] = mapSpeciesDetails(row)));
+      detailsRef.current = map;
+      fullLoadingRef.current = false;
+    }
+  }, [myId, loadDetails]);
 
   useEffect(() => {
     reload();
@@ -161,6 +216,7 @@ export function useDbKnowledge(myId) {
   return {
     loaded,
     reload,
+    loadDetails,
     speciesList,
     redirects,
     profiles,

@@ -529,6 +529,11 @@ export default function AquagramApp() {
     return true;
   }
 
+  // Bilgi Bankası / tür sayfası ya da ilan açılınca tür ayrıntılarını beklemeden getir
+  useEffect(() => {
+    if (kbRoute || selectedListing) kbDb.loadDetails();
+  }, [kbRoute, selectedListing]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Yasal sayfa adresleri (/kullanim-kosullari, /gizlilik, /kvkk) site bilgileri penceresini açar
   const [legalTab, setLegalTab] = useState(null);
 

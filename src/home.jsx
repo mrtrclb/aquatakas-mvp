@@ -1,3 +1,4 @@
+import { imgProps } from "./lib/img";
 import React, { useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, Flame, Hash, Info, MapPin, MessageCircle, Pin, Play, Sparkles, Users, X } from "lucide-react";
 import { Avatar, PostCard, extractTags, mediaLabel, normalizeTr, timeAgo } from "./community.jsx";
@@ -130,7 +131,7 @@ function HomeListingCard({ item, ctx, featured }) {
         </div>
         <div className="mt-2 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white sm:flex-row sm:gap-3">
           <div className="relative aspect-[16/9] w-full shrink-0 bg-gradient-to-br from-cyan-800 to-teal-500 sm:aspect-auto sm:h-28 sm:w-36">
-            <img src={item.images[0]} alt="" loading="lazy" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+            <img {...imgProps(item.images[0], "160px", [240, 480])} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
             {item.youtube && <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white"><Play size={12} fill="currentColor" /></span>}
           </div>
           <div className="min-w-0 flex-1 px-3 py-2.5 sm:pl-0">
@@ -343,10 +344,10 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
   return (
     <div>
       {showOnboarding && <OnboardingCard groups={groups} ctx={ctx} onDone={finishOnboarding} />}
-      {items.slice(0, limit).map((entry) => {
+      {items.slice(0, limit).map((entry, index) => {
         if (entry.kind === "ad") return <FeedAdCard key={entry.key} ad={entry.ad} />;
         if (entry.kind === "listing") return <HomeListingCard key={entry.key} item={entry.item} featured={entry.featured} ctx={ctx} />;
-        return <PostCard key={entry.key} post={entry.post} ctx={ctx} />;
+        return <PostCard key={entry.key} post={entry.post} ctx={ctx} eager={index < 2} />;
       })}
       {items.length === 0 ? (
         <div className="p-10 text-center">

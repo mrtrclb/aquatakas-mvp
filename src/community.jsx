@@ -1,3 +1,4 @@
+import { imgProps } from "./lib/img";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -479,7 +480,7 @@ export function Lightbox({ images, start = 0, onClose }) {
 }
 
 // Twitter benzeri görsel ızgarası: 1, 2, 3, 4 ve 4+ görsel
-export function ImageGrid({ images, onOpen }) {
+export function ImageGrid({ images, onOpen, eager = false }) {
   const count = images.length;
   if (!count) return null;
   const extra = count - 4;
@@ -492,7 +493,7 @@ export function ImageGrid({ images, onOpen }) {
         onClick={(event) => { event.stopPropagation(); onOpen(index); }}
         className={"relative block overflow-hidden bg-slate-100 " + className}
       >
-        <img src={images[index]} alt="" loading="lazy" className="h-full w-full object-cover transition hover:opacity-90" />
+        <img {...imgProps(images[index], "(max-width: 640px) 50vw, 300px", [320, 640])} alt="" loading={eager && index === 0 ? "eager" : "lazy"} fetchpriority={eager && index === 0 ? "high" : undefined} decoding="async" className="h-full w-full object-cover transition hover:opacity-90" />
         {index === 3 && extra > 0 && (
           <span className="absolute inset-0 grid place-items-center bg-slate-950/55 text-2xl font-black text-white">+{extra}</span>
         )}
@@ -504,7 +505,7 @@ export function ImageGrid({ images, onOpen }) {
   if (count === 1) {
     body = (
       <button type="button" onClick={(event) => { event.stopPropagation(); onOpen(0); }} className="block w-full bg-slate-100">
-        <img src={images[0]} alt="" loading="lazy" className="max-h-[420px] w-full object-cover transition hover:opacity-90" />
+        <img {...imgProps(images[0])} alt="" width="1200" height="900" loading={eager ? "eager" : "lazy"} fetchpriority={eager ? "high" : undefined} decoding="async" className="h-auto max-h-[420px] w-full object-cover transition hover:opacity-90" />
       </button>
     );
   } else if (count === 2) {
@@ -694,7 +695,7 @@ export function SpeciesChips({ slugs, ctx, className = "mt-2.5" }) {
   );
 }
 
-export function PostCard({ post, ctx, detail = false, hideGroup = false }) {
+export function PostCard({ post, ctx, detail = false, hideGroup = false, eager = false }) {
   const [lightbox, setLightbox] = useState(null);
   const user = ctx.users[post.userId];
   const UserName = ctx.UserName;
@@ -755,7 +756,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false }) {
           </p>
         )}
 
-        <ImageGrid images={post.images} onOpen={(index) => setLightbox(index)} />
+        <ImageGrid images={post.images} eager={eager || detail} onOpen={(index) => setLightbox(index)} />
         <VideoBlock video={post.video} />
         {!post.video && !(post.images && post.images.length) && firstUrl(post.text) && <LinkPreviewCard url={firstUrl(post.text)} />}
         <PollBlock post={post} ctx={ctx} />
@@ -1122,10 +1123,10 @@ export function CommunityFeed({ posts, members, ctx, search = "", embedded = fal
       ) : (
         <ComposerPrompt ctx={ctx} />
       )}
-      {items.map((entry) => {
+      {items.map((entry, index) => {
         if (entry.kind === "ad") return <FeedAdCard key={entry.key} ad={entry.ad} />;
         if (entry.kind === "members") return <NewMembersCard key={entry.key} members={members} ctx={ctx} />;
-        return <PostCard key={entry.post.id} post={entry.post} ctx={ctx} />;
+        return <PostCard key={entry.post.id} post={entry.post} ctx={ctx} eager={index < 2} />;
       })}
       {searching && visible.length === 0 ? (
         <div className="p-10 text-center">

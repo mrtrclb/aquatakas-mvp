@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronLeft, Loader2, MapPin, Search, Star, X } from "lucide-react";
+import { Check, CheckCircle2, ChevronLeft, Loader2, MapPin, Search, Star, X } from "lucide-react";
+import { Field, inputClass, normalizeUsername } from "./auth.jsx";
+import { LEGAL_VERSION, LegalModal } from "./legal.jsx";
 import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES } from "./lib/listings";
 import { SpeciesImage } from "./knowledge.jsx";
 import { KB_CATEGORIES, KB_SECTIONS } from "./species.js";
 
-// Yeni üyeye ilk girişte adım adım profil kurulumu: türler → gruplar → hakkında + şehir → sosyal hesaplar → bitti
+// Yeni üyeye ilk girişte adım adım profil kurulumu: (Google/Apple ile gelene önce kullanıcı adı + koşullar) → türler → gruplar → hakkında + şehir → sosyal hesaplar → bitti
 
 const fold = (text) => (text || "").toLocaleLowerCase("tr").replace(/[çğıöşü]/g, (ch) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[ch]);
 const TANKS = ["1", "2", "3", "4", "5+"];
@@ -17,7 +19,7 @@ const SOCIALS = [
   ["facebook", "Facebook", "Profil bağlantısı"],
   ["web", "Web sitesi", "https://"]
 ];
-const STEPS = ["species", "groups", "about", "socials", "done"];
+const BASE_STEPS = ["species", "groups", "about", "socials", "done"];
 
 export function shouldOnboard(auth) {
   const user = auth && auth.user;
@@ -32,7 +34,13 @@ export function shouldOnboard(auth) {
 
 export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
   const profile = auth.profile;
+  // Google/Apple ile gelen üye koşulları kayıt formunda görmedi: ilk adım onay
+  const [steps] = useState(() => (auth.needsTerms ? ["terms", ...BASE_STEPS] : BASE_STEPS));
   const [step, setStep] = useState(0);
+  const [username, setUsername] = useState(profile.username || "");
+  const [termsAt, setTermsAt] = useState(null);
+  const [kvkkAt, setKvkkAt] = useState(null);
+  const [legalOpen, setLegalOpen] = useState(null);
   const [mode, setMode] = useState("keep"); // keep | fav
   const [keep, setKeep] = useState([]);
   const [fav, setFav] = useState([]);
@@ -44,7 +52,10 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
   const [socials, setSocials] = useState(() => ({ instagram: "", x: "", youtube: "", facebook: "", web: "", ...(profile.socials || {}) }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const name = STEPS[step];
+  const name = steps[step];
+  const go = (key) => setStep(steps.indexOf(key));
+  const firstStep = steps[0] === "terms" ? 1 : 0; // onay verildikten sonra geri dönülmez
+  const totalDots = steps.length - 1;
 
   const speciesList = useMemo(() => {
     const q = fold(query.trim());
@@ -70,6 +81,29 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
   const selected = mode === "keep" ? keep : fav;
   const toggle = (list, setList, value) => setList(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
 
+  async function acceptTerms() {
+    setError("");
+    if (!termsAt || !kvkkAt) return setError(!termsAt ? "Devam etmek için Kullanım Koşulları'nı okuyup kabul etmelisin." : "Devam etmek için KVKK Aydınlatma Metni'ni okumalısın.");
+    const handle = normalizeUsername(username);
+    if (handle.length < 3) return setError(trError(new Error("username_check")));
+    setBusy(true);
+    try {
+      if (handle !== profile.username) {
+        const { data: taken } = await supabase.from("profiles").select("id").eq("username", handle).maybeSingle();
+        if (taken) throw new Error("profiles_username_key");
+        const { error: err } = await supabase.from("profiles").update({ username: handle }).eq("id", profile.id);
+        if (err) throw err;
+        auth.reloadProfile();
+      }
+      const { error: err } = await supabase.auth.updateUser({ data: { terms_version: LEGAL_VERSION, terms_accepted_at: termsAt, kvkk_read_at: kvkkAt } });
+      if (err) throw err;
+      go("species");
+    } catch (err) {
+      setError(trError(err));
+    }
+    setBusy(false);
+  }
+
   async function markDone() {
     await supabase.auth.updateUser({ data: { onboarded_at: new Date().toISOString() } }).catch(() => {});
   }
@@ -86,7 +120,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
       const names = keep.map((slug) => (species.find((item) => item.slug === slug) || {}).name).filter(Boolean);
       setBio("Beslediğim türler: " + names.join(", ") + ". ");
     }
-    setStep(2);
+    go("about");
   }
 
   async function saveAll(withSocials) {
@@ -114,14 +148,14 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
       const { error: err } = await supabase.from("profiles").update(patch).eq("id", profile.id);
       if (err) throw err;
       await markDone();
-      setStep(4);
+      go("done");
     } catch (err) {
       setError(trError(err));
     }
     setBusy(false);
   }
 
-  const progress = Math.min(step, 3);
+  const progress = Math.min(step, totalDots - 1);
 
   function tile(item) {
     const on = selected.includes(item.slug);
@@ -150,21 +184,63 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
         {/* Üst çubuk */}
         {name !== "done" && (
           <div className="flex items-center gap-2 px-4 pt-4">
-            {step > 0 ? (
+            {step > firstStep ? (
               <button type="button" onClick={() => setStep(step - 1)} className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100" aria-label="Geri"><ChevronLeft size={20} /></button>
             ) : (
               <span className="w-8" />
             )}
-            <div className="flex flex-1 justify-center gap-1.5" aria-label={"Adım " + (progress + 1) + " / 4"}>
-              {[0, 1, 2, 3].map((index) => (
+            <div className="flex flex-1 justify-center gap-1.5" aria-label={"Adım " + (progress + 1) + " / " + totalDots}>
+              {Array.from({ length: totalDots }, (_, index) => index).map((index) => (
                 <span key={index} className={"h-1.5 rounded-full transition-all " + (index <= progress ? "w-8 bg-cyan-700" : "w-4 bg-slate-200")} />
               ))}
             </div>
-            <button type="button" onClick={skipAll} disabled={busy} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100" aria-label="Kapat" title="Şimdilik geç"><X size={18} /></button>
+            {name === "terms" ? (
+              <span className="w-8" />
+            ) : (
+              <button type="button" onClick={skipAll} disabled={busy} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100" aria-label="Kapat" title="Şimdilik geç"><X size={18} /></button>
+            )}
           </div>
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-3">
+          {name === "terms" && (
+            <>
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">Aquagram'a hoş geldin! 🐠</h2>
+              <p className="mt-1 text-sm text-slate-500">Hesabın açıldı. Önce kullanıcı adını kontrol et ve koşulları onayla; ardından profilini birlikte kuralım.</p>
+              <div className="mt-4 space-y-3">
+                <Field label="Kullanıcı adı" hint="Küçük harf, rakam, nokta ve alt çizgi; 3-24 karakter.">
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">@</span>
+                    <input value={username} onChange={(event) => setUsername(normalizeUsername(event.target.value))} className={inputClass + " pl-8"} autoComplete="username" />
+                  </div>
+                </Field>
+                <div className="grid gap-2 pt-1">
+                  {[
+                    ["terms", termsAt, "Kullanım Koşulları", "’nı (topluluk ve ilan kuralları dahil) okudum, anladım ve kabul ediyorum."],
+                    ["kvkk", kvkkAt, "KVKK Aydınlatma Metni", "’ni okudum ve anladım."]
+                  ].map(([key, done, label, rest]) => (
+                    <div key={key} className="flex items-start gap-2 text-xs leading-relaxed text-slate-500">
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={Boolean(done)}
+                        aria-label={label}
+                        onClick={() => (done ? (key === "terms" ? setTermsAt(null) : setKvkkAt(null)) : setLegalOpen(key))}
+                        className={"mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border " + (done ? "border-cyan-950 bg-cyan-950 text-white" : "border-slate-300 bg-white")}
+                      >
+                        {done && <CheckCircle2 size={11} />}
+                      </button>
+                      <span>
+                        <button type="button" onClick={() => setLegalOpen(key)} className="font-black text-cyan-800 underline decoration-cyan-800/30 underline-offset-2 hover:text-cyan-950">{label}</button>
+                        {rest}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
           {name === "species" && (
             <>
               <h2 className="text-2xl font-black tracking-tight text-slate-950">Hoş geldin @{profile.username}! 🐠</h2>
@@ -292,10 +368,18 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
 
         {/* Alt düğmeler */}
         <div className="flex items-center gap-2 border-t border-slate-100 px-5 py-3">
+          {name === "terms" && (
+            <>
+              <button type="button" onClick={() => auth.signOut()} disabled={busy} className="flex-1 rounded-full px-4 py-2.5 text-sm font-black text-slate-500 hover:bg-slate-100">Vazgeç, çıkış yap</button>
+              <button type="button" onClick={acceptTerms} disabled={busy} className="flex items-center gap-2 rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900 disabled:opacity-60">
+                {busy && <Loader2 size={15} className="animate-spin" />} Kabul et ve devam et
+              </button>
+            </>
+          )}
           {name === "species" && (
             <>
               <span className="flex-1 text-xs font-bold text-slate-400">{keep.length + fav.length > 0 ? keep.length + " besliyor · " + fav.length + " favori" : "İstediğin kadar seç"}</span>
-              <button type="button" onClick={() => setStep(1)} className="rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">{keep.length + fav.length ? "Devam" : "Geç"}</button>
+              <button type="button" onClick={() => go("groups")} className="rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">{keep.length + fav.length ? "Devam" : "Geç"}</button>
             </>
           )}
           {name === "groups" && (
@@ -307,7 +391,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
           {name === "about" && (
             <>
               <span className="flex-1" />
-              <button type="button" onClick={() => setStep(3)} className="rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">Devam</button>
+              <button type="button" onClick={() => go("socials")} className="rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900">Devam</button>
             </>
           )}
           {name === "socials" && (
@@ -323,6 +407,20 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
           )}
         </div>
       </div>
+      {legalOpen && (
+        <LegalModal
+          docKey={legalOpen}
+          mustRead
+          onClose={() => setLegalOpen(null)}
+          onAccept={() => {
+            const now = new Date().toISOString();
+            if (legalOpen === "terms") setTermsAt(now);
+            else setKvkkAt(now);
+            setLegalOpen(null);
+            setError("");
+          }}
+        />
+      )}
     </div>,
     document.body
   );

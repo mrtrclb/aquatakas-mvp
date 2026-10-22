@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useAuth, AuthModal, NewPasswordModal, OAuthTermsModal, AquagramMark } from "./auth";
+import { useAuth, AuthModal, NewPasswordModal, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, uploadListingImages, loadFeaturedPlans } from "./lib/listings";
 import { detectSpecies } from "./species";
@@ -636,8 +636,12 @@ export default function AquagramApp() {
   }, [memberPage, notifs.unread]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Yeni üyeye ilk girişte profil kurulumu (açıldıktan sonra kapanana kadar açık kalır)
+  // Çıkış yapılınca kurulum penceresi kapanır (başka hesapla girişte yanlışlıkla açılmasın)
   useEffect(() => {
-    if (!onboardOpen && !onboardDismissed && !authOpen && !auth.needsTerms && shouldOnboard(auth)) setOnboardOpen(true);
+    if (!auth.user) setOnboardOpen(false);
+  }, [auth.user]);
+  useEffect(() => {
+    if (!onboardOpen && !onboardDismissed && !authOpen && (auth.needsTerms ? Boolean(auth.profile) : shouldOnboard(auth))) setOnboardOpen(true);
   }, [auth.user, auth.profile, authOpen, auth.needsTerms]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Google/Apple girişinden hata ile dönüldü
@@ -2135,7 +2139,7 @@ export default function AquagramApp() {
       {toast && (
         <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 z-[80] max-w-[92vw] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-center text-sm font-black text-white shadow-xl lg:bottom-6">{toast}</div>
       )}
-      {onboardOpen && !onboardDismissed && !auth.recovery && (
+      {onboardOpen && !onboardDismissed && !auth.recovery && auth.profile && (
         <OnboardingModal
           auth={auth}
           species={kb.species}
@@ -2150,9 +2154,6 @@ export default function AquagramApp() {
             }
           }}
         />
-      )}
-      {auth.needsTerms && auth.profile && !auth.recovery && (
-        <OAuthTermsModal auth={auth} onDone={() => setToast("Hoş geldin!")} />
       )}
       {auth.recovery && auth.session && (
         <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); leaveTo("/"); setMemberPage("account"); }} />

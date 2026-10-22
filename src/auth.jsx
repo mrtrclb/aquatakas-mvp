@@ -111,9 +111,9 @@ export function normalizeUsername(value) {
     .slice(0, 24);
 }
 
-const inputClass = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800 focus:bg-white";
+export const inputClass = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-800 focus:bg-white";
 
-function Field({ label, hint, children }) {
+export function Field({ label, hint, children }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-black text-slate-500">{label}</span>
@@ -432,104 +432,6 @@ export function OAuthButtons({ onError }) {
       <button type="button" onClick={() => go("apple")} disabled={Boolean(busy) || (enabled && !enabled.apple)} title={enabled && !enabled.apple ? "Yakında" : undefined} className="flex items-center justify-center gap-2.5 rounded-2xl bg-black px-3 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
         {busy === "apple" ? <Loader2 size={18} className="animate-spin" /> : <AppleIcon />} Apple ile devam et
       </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Google/Apple ile ilk kez gelen üye: kullanıcı adı + koşulların kabulü
-// ---------------------------------------------------------------------------
-export function OAuthTermsModal({ auth, onDone }) {
-  const [username, setUsername] = useState(auth.profile?.username || "");
-  const [termsAt, setTermsAt] = useState(null);
-  const [kvkkAt, setKvkkAt] = useState(null);
-  const [legalOpen, setLegalOpen] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!username && auth.profile?.username) setUsername(auth.profile.username);
-  }, [auth.profile]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function submit(event) {
-    event.preventDefault();
-    setError("");
-    if (!termsAt || !kvkkAt) return setError(!termsAt ? "Devam etmek için Kullanım Koşulları'nı okuyup kabul etmelisin." : "Devam etmek için KVKK Aydınlatma Metni'ni okumalısın.");
-    const name = normalizeUsername(username);
-    if (name.length < 3) return setError(trError(new Error("username_check")));
-    setBusy(true);
-    try {
-      if (auth.profile && name !== auth.profile.username) {
-        const { data: taken } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
-        if (taken) throw new Error("profiles_username_key");
-        const { error: err } = await supabase.from("profiles").update({ username: name }).eq("id", auth.user.id);
-        if (err) throw err;
-      }
-      const { error: err } = await supabase.auth.updateUser({ data: { terms_version: LEGAL_VERSION, terms_accepted_at: termsAt, kvkk_read_at: kvkkAt } });
-      if (err) throw err;
-      await auth.reloadProfile();
-      onDone();
-    } catch (err) {
-      setError(trError(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <form onSubmit={submit} className="w-full max-w-md space-y-3 rounded-[28px] bg-white p-6 shadow-2xl sm:p-8">
-        <h3 className="text-2xl font-black tracking-tight">Aquagram'a hoş geldin</h3>
-        <p className="text-sm text-slate-500">Hesabın açıldı. Kullanıcı adını kontrol et ve koşulları onayla.</p>
-        <Field label="Kullanıcı adı" hint="Küçük harf, rakam, nokta ve alt çizgi; 3-24 karakter.">
-          <div className="relative">
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">@</span>
-            <input value={username} onChange={(event) => setUsername(normalizeUsername(event.target.value))} className={inputClass + " pl-8"} required />
-          </div>
-        </Field>
-        <div className="grid gap-2 pt-1">
-          {[
-            ["terms", termsAt, "Kullanım Koşulları", "’nı (topluluk ve ilan kuralları dahil) okudum, anladım ve kabul ediyorum."],
-            ["kvkk", kvkkAt, "KVKK Aydınlatma Metni", "’ni okudum ve anladım."]
-          ].map(([key, done, label, rest]) => (
-            <div key={key} className="flex items-start gap-2 text-xs leading-relaxed text-slate-500">
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={Boolean(done)}
-                aria-label={label}
-                onClick={() => (done ? (key === "terms" ? setTermsAt(null) : setKvkkAt(null)) : setLegalOpen(key))}
-                className={"mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border " + (done ? "border-cyan-950 bg-cyan-950 text-white" : "border-slate-300 bg-white")}
-              >
-                {done && <CheckCircle2 size={11} />}
-              </button>
-              <span>
-                <button type="button" onClick={() => setLegalOpen(key)} className="font-black text-cyan-800 underline decoration-cyan-800/30 underline-offset-2 hover:text-cyan-950">{label}</button>
-                {rest}
-              </span>
-            </div>
-          ))}
-        </div>
-        {error && <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
-        <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-5 py-3.5 text-sm font-black text-white disabled:opacity-60">
-          {busy && <Loader2 size={16} className="animate-spin" />} Kabul et ve devam et
-        </button>
-        <button type="button" onClick={() => auth.signOut()} className="w-full text-center text-sm font-black text-slate-500 hover:text-slate-800">Vazgeç ve çıkış yap</button>
-      </form>
-      {legalOpen && (
-        <LegalModal
-          docKey={legalOpen}
-          mustRead
-          onClose={() => setLegalOpen(null)}
-          onAccept={() => {
-            const now = new Date().toISOString();
-            if (legalOpen === "terms") setTermsAt(now);
-            else setKvkkAt(now);
-            setLegalOpen(null);
-            setError("");
-          }}
-        />
-      )}
     </div>
   );
 }

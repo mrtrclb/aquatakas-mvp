@@ -86,3 +86,12 @@ begin
 end; $$;
 revoke execute on function public.whatsapp_otp_complete(uuid, text) from public, anon, authenticated;
 grant execute on function public.whatsapp_otp_complete(uuid, text) to service_role;
+
+-- Twilio gönderemezse kayıt geri alınır (günlük haktan düşmesin); yalnızca sunucu fonksiyonu çağırır
+create or replace function public.whatsapp_otp_undo(p_user uuid, p_phone text)
+returns void language sql security definer set search_path = '' as $$
+  delete from private.phone_otp_log
+  where id = (select id from private.phone_otp_log where user_id = p_user and phone = p_phone order by id desc limit 1);
+$$;
+revoke execute on function public.whatsapp_otp_undo(uuid, text) from public, anon, authenticated;
+grant execute on function public.whatsapp_otp_undo(uuid, text) to service_role;

@@ -2798,10 +2798,7 @@ function AccountPage({ auth, onSaved }) {
 
         {/* 3. Doğrulama + mavi tik */}
         <AccountSection title="Doğrulama" desc="Doğrulanmış üyeler ilan ve mesajlarda daha çok güven verir.">
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <VerificationRow icon={<Mail size={18} />} title="E-posta adresi" value={auth.email} verified={auth.emailConfirmed} />
-            <VerificationRow icon={<Phone size={18} />} title="Telefon numarası" value={profile.phone_verified ? "Doğrulandı" : "Mavi tik talebiyle doğrulanır"} verified={profile.phone_verified} />
-          </div>
+          <VerificationRow icon={<Mail size={18} />} title="E-posta adresi" value={auth.email} verified={auth.emailConfirmed} />
           <VerificationCard auth={auth} onToast={onSaved} />
         </AccountSection>
 

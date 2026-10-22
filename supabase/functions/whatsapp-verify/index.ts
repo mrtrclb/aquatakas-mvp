@@ -25,9 +25,9 @@ function e164(phone: string) {
 }
 
 async function twilio(path: string, params: Record<string, string>) {
-  const sid = Deno.env.get("TWILIO_ACCOUNT_SID")!;
-  const token = Deno.env.get("TWILIO_AUTH_TOKEN")!;
-  const service = Deno.env.get("TWILIO_VERIFY_SID")!;
+  const sid = Deno.env.get("TWILIO_ACCOUNT_SID")!.trim();
+  const token = Deno.env.get("TWILIO_AUTH_TOKEN")!.trim();
+  const service = Deno.env.get("TWILIO_VERIFY_SID")!.trim();
   const res = await fetch("https://verify.twilio.com/v2/Services/" + service + path, {
     method: "POST",
     headers: { Authorization: "Basic " + btoa(sid + ":" + token), "Content-Type": "application/x-www-form-urlencoded" },
@@ -62,6 +62,10 @@ Deno.serve(async (req) => {
     const r = await twilio("/Verifications", { To: phone, Channel: "whatsapp", Locale: "tr" });
     if (!r.ok) {
       console.error("twilio send", r.status, JSON.stringify(r.body));
+      // Gönderilemeyen kod günlük haktan düşmesin
+      const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+      await admin.rpc("whatsapp_otp_undo", { p_user: auth.user.id, p_phone: phone });
+      if (r.status === 401) return json({ error: "WhatsApp doğrulama servisine bağlanılamadı (hesap ayarı). Lütfen bize bildir." }, origin);
       const msg = r.body && r.body.code === 60200 ? "Numara geçersiz görünüyor." : r.body && r.body.code === 60203 ? "Bu numaraya çok fazla kod gönderildi, biraz sonra tekrar dene." : "WhatsApp mesajı gönderilemedi. Numaranda WhatsApp olduğundan emin ol.";
       return json({ error: msg }, origin);
     }

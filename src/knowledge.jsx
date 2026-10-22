@@ -939,13 +939,14 @@ function DistributionSection({ species, focus }) {
     .map((form) => ({ id: form.dbId, lat: form.lat, lng: form.lng, title: form.kind === "lokalite" ? "'" + form.name + "'" : form.name, origin: form.origin }));
   const areas = species.ranges || [];
   // Harita kütüphanesi yalnızca bölüm ekrana yaklaşınca yüklenir
+  const hasData = points.length > 0 || areas.length > 0;
   useEffect(() => {
-    if (!ref.current || visible) return undefined;
+    if (!hasData || !ref.current || visible) return undefined;
     if (!("IntersectionObserver" in window)) { setVisible(true); return undefined; }
     const io = new IntersectionObserver((entries) => entries.some((entry) => entry.isIntersecting) && setVisible(true), { rootMargin: "300px" });
     io.observe(ref.current);
     return () => io.disconnect();
-  }, [visible]);
+  }, [visible, hasData]);
   useEffect(() => {
     if (focus) { setVisible(true); ref.current && ref.current.scrollIntoView({ behavior: "smooth", block: "center" }); }
   }, [focus]);

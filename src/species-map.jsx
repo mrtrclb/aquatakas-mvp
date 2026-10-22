@@ -3,6 +3,15 @@ import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+// Kart görünümlü ipucu ve açılır pencere
+if (typeof document !== "undefined" && !document.getElementById("aq-map-style")) {
+  const style = document.createElement("style");
+  style.id = "aq-map-style";
+  style.textContent = ".aq-map-card.leaflet-tooltip{padding:6px;border:0;border-radius:14px;box-shadow:0 8px 24px rgba(15,23,42,.18);white-space:normal}" +
+    ".aq-map-card .leaflet-popup-content-wrapper{border-radius:16px;padding:0}.aq-map-card .leaflet-popup-content{margin:8px}";
+  document.head.appendChild(style);
+}
+
 const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıcıları';
 const POINT_STYLE = { radius: 7, color: "#ffffff", weight: 2, fillColor: "#059669", fillOpacity: 0.95 };
@@ -36,6 +45,18 @@ function fit(map, points, areas) {
   else map.setView([10, 20], 1.5);
 }
 
+// Nokta kartı: varsa küçük görsel, ad ve yer
+function cardHtml(p, w, h) {
+  const img = p.image
+    ? "<img src='" + esc(p.image) + "' alt='' loading='lazy' style='display:block;width:" + w + "px;height:" + h + "px;object-fit:cover;border-radius:10px;margin-bottom:6px;background:#f1f5f9' onerror=\"this.style.display='none'\">"
+    : "";
+  return "<div style='width:" + (p.image ? w : "auto") + "px;max-width:" + w + "px;font-family:inherit'>" + img +
+    "<div style='font-weight:900;color:#0f172a;font-size:13px;line-height:1.25'>" + esc(p.title) + "</div>" +
+    (p.origin ? "<div style='color:#64748b;font-size:12px;line-height:1.3;margin-top:2px;white-space:normal'>" + esc(p.origin) + "</div>" : "") +
+    (p.imageNote ? "<div style='color:#94a3b8;font-size:11px;margin-top:3px'>" + esc(p.imageNote) + "</div>" : "") +
+    "</div>";
+}
+
 /* Tür sayfasındaki salt görüntüleme haritası ------------------------------- */
 export default function SpeciesMap({ points = [], areas = [], focus = null, height = 300 }) {
   const ref = useRef(null);
@@ -53,8 +74,8 @@ export default function SpeciesMap({ points = [], areas = [], focus = null, heig
     markers.current = {};
     points.forEach((p) => {
       const marker = L.circleMarker([p.lat, p.lng], POINT_STYLE)
-        .bindPopup("<strong>" + esc(p.title) + "</strong>" + (p.origin ? "<br><span style='color:#475569'>" + esc(p.origin) + "</span>" : ""), { closeButton: false })
-        .bindTooltip(esc(p.title), { direction: "top", offset: [0, -6] })
+        .bindPopup(cardHtml(p, 220, 132), { closeButton: false, className: "aq-map-card", maxWidth: 240 })
+        .bindTooltip(cardHtml(p, 150, 90), { direction: "top", offset: [0, -8], className: "aq-map-card", opacity: 1 })
         .addTo(map);
       markers.current[p.id] = marker;
     });

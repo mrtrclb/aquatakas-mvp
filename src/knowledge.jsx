@@ -936,7 +936,13 @@ function DistributionSection({ species, focus }) {
   const [visible, setVisible] = useState(false);
   const points = (species.forms || [])
     .filter((form) => form.lat != null && form.lng != null)
-    .map((form) => ({ id: form.dbId, lat: form.lat, lng: form.lng, title: form.kind === "lokalite" ? "'" + form.name + "'" : form.name, origin: form.origin }));
+    .map((form) => ({
+      id: form.dbId, lat: form.lat, lng: form.lng,
+      title: form.kind === "lokalite" ? "'" + form.name + "'" : form.name,
+      origin: form.origin,
+      image: form.images[0] || (species.images || [])[0] || "",
+      imageNote: !form.images[0] && (species.images || [])[0] ? "Görsel türün genel fotoğrafıdır" : ""
+    }));
   const areas = species.ranges || [];
   // Harita kütüphanesi yalnızca bölüm ekrana yaklaşınca yüklenir
   const hasData = points.length > 0 || areas.length > 0;

@@ -571,7 +571,7 @@ export default function AquagramApp() {
         setProfileUser(null);
         setPostsUser(null);
         setMenuOpen(false);
-        if (!/^\/ilan\/\d+$/.test(path)) setSelectedListing(null);
+        if (!/^\/ilan\/(ornek-)?\d+$/.test(path)) setSelectedListing(null);
         setListingsOpen(path === "/ilanlar");
         setCommunityOpen(path === "/topluluk");
       } else {
@@ -614,11 +614,13 @@ export default function AquagramApp() {
   selectedListingRef.current = selectedListing;
   useEffect(() => {
     function openFromRoute() {
-      const match = routePath().match(/^\/ilan\/(\d+)$/);
-      if (!match) return;
+      const path = routePath();
+      const match = path.match(/^\/ilan\/(\d+)$/);
+      const demo = path.match(/^\/ilan\/ornek-(\d+)$/); // örnek (demo) ilanlar
+      if (!match && !demo) return;
       const current = selectedListingRef.current;
-      if (current && current.dbId === Number(match[1])) return;
-      const item = dbListings.find((row) => row.dbId === Number(match[1]));
+      if (current && (match ? current.dbId === Number(match[1]) : !current.dbId && current.id === Number(demo[1]))) return;
+      const item = match ? dbListings.find((row) => row.dbId === Number(match[1])) : SHOW_DEMO ? demoListings.find((row) => row.id === Number(demo[1])) : null;
       if (item) {
         clearViews();
         setListingsOpen(false);
@@ -1378,7 +1380,7 @@ export default function AquagramApp() {
     clearViews();
     setSelectedListing(item);
     if (item.dbId) navigate("/ilan/" + item.dbId);
-    else if (routePath() !== "/") navigate("/");
+    else navigate("/ilan/ornek-" + item.id); // örnek ilanlar: sayfa yenilenince de açılsın
     setActiveImage(0);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }

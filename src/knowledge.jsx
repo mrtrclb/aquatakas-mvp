@@ -512,7 +512,7 @@ function SpeciesComment({ comment, kb, ctx }) {
             </div>
           </div>
         ) : (
-          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed text-slate-800"><RichText text={comment.text} onTag={ctx.onSearch} /></p>
+          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed sm:text-[17px] text-slate-800"><RichText text={comment.text} onTag={ctx.onSearch} /></p>
         )}
         {hasMedia && (
           <div className="max-w-md">

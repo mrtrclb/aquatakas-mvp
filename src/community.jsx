@@ -742,7 +742,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false, eager =
             )}
           </div>
         )}
-        <div className="flex items-center gap-1.5 text-sm">
+        <div className="flex items-center gap-1.5 text-sm sm:text-[15px]">
           <button type="button" onClick={(event) => { event.stopPropagation(); ctx.onProfile(user); }} className="font-black text-slate-900 hover:underline">
             <UserName user={user} />
           </button>
@@ -751,7 +751,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false, eager =
         </div>
 
         {post.text && (
-          <p className={"mt-1 whitespace-pre-wrap break-words leading-relaxed text-slate-900 " + (detail ? "text-[18px]" : "text-[16px]")}>
+          <p className={"mt-1 whitespace-pre-wrap break-words leading-relaxed text-slate-900 " + (detail ? "text-[18px] sm:text-[20px]" : "text-[16px] sm:text-[18px]")}>
             <RichText text={post.text} onTag={ctx.onSearch} />
           </p>
         )}
@@ -1194,7 +1194,7 @@ function CommentItem({ comment, postId, ctx }) {
             </div>
           </div>
         ) : (
-          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed text-slate-800"><RichText text={comment.text} onTag={ctx.onSearch} /></p>
+          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed sm:text-[17px] text-slate-800"><RichText text={comment.text} onTag={ctx.onSearch} /></p>
         )}
         {hasMedia && (
           <div className="max-w-md">

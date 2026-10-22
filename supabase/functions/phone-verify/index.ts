@@ -48,6 +48,15 @@ Deno.serve(async (req) => {
     return json({ ok: true, phone }, origin);
   }
 
+  // SMS gönderilemediyse (Firebase hatası) son kayıt geri alınır; deneme günlük haktan düşmez
+  if (input.action === "undo") {
+    const phone = e164(input.phone || "");
+    if (!phone) return json({ ok: true }, origin);
+    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+    await admin.rpc("whatsapp_otp_undo", { p_user: auth.user.id, p_phone: phone });
+    return json({ ok: true }, origin);
+  }
+
   if (input.action === "complete") {
     let phone: string | null = null;
     try {

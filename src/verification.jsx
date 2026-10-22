@@ -71,6 +71,8 @@ export function VerificationCard({ auth, onToast }) {
       try {
         confirmation.current = await sms.sendSmsCode(e164, "sms-recaptcha");
       } catch (err) {
+        console.error("SMS gönderilemedi", err && err.code, err);
+        callServer({ action: "undo", phone: e164 }).catch(() => {});
         throw new Error(sms.phoneError(err));
       }
       setSentTo(normalize(phone));

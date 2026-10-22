@@ -1495,6 +1495,37 @@ function UsageBar({ label, used, limit, detail }) {
   );
 }
 
+// Teknik altyapı künyesi — dışarıdan destek alınacak bir geliştiriciye ilk bakışta sistemi anlatmak için.
+// Gizli anahtar içermez; anahtarlar yalnızca GitHub/Supabase/Brevo/Cloudflare panellerinde durur.
+const TECH_STACK = [
+  ["Ön yüz", "React 18 + Vite 5, Tailwind CSS 3, lucide-react ikonları. Tek sayfa uygulama (hash yönlendirme).", "https://github.com/mrtrclb/aquatakas-mvp", "GitHub deposu"],
+  ["Yayın", "GitHub Pages. main dalına her push'ta GitHub Actions derleyip yayına alır; her gece de yeniden derlenir. scripts/prerender.mjs tür, makale, ilan ve grup sayfalarını hazır HTML ve site haritası olarak üretir.", "https://github.com/mrtrclb/aquatakas-mvp/actions", "Actions"],
+  ["Arka uç", "Supabase (Pro): Postgres + satır düzeyi güvenlik (RLS), üyelik (Auth), dosya depolama, link-preview Edge Function. Veritabanı değişiklikleri supabase/migrations klasöründe sırayla tutulur; yönetici işlemleri yetkiyi kendi içinde denetleyen admin_* / moderate_* fonksiyonlarıyla yapılır.", "https://supabase.com/dashboard/project/kqgcaegwewdsivkbrjjr", "Supabase paneli"],
+  ["E-posta", "Brevo SMTP, Supabase Auth'a bağlı (kayıt doğrulama, şifre sıfırlama, e-posta değişikliği, giriş bağlantısı). Şablonlar: supabase/email-templates.", "https://app.brevo.com", "Brevo"],
+  ["Bot koruması", "Cloudflare Turnstile: giriş, kayıt ve şifre sıfırlamada. Yalnızca aquagram.com.tr alan adında çalışır.", "https://dash.cloudflare.com/?to=/:account/turnstile", "Turnstile"],
+  ["Geliştirme", "Kod Claude (Anthropic) ile yazılıyor; commit'lerin yazarı Claude. Yetki modeli ve tablo açıklamaları supabase/README.md dosyasında.", "https://github.com/mrtrclb/aquatakas-mvp/blob/main/supabase/README.md", "README"]
+];
+
+function TechStackBox() {
+  return (
+    <div className="rounded-2xl border border-slate-200 p-3">
+      <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Teknik altyapı · destek için künye</div>
+      <dl className="grid gap-2 text-xs">
+        {TECH_STACK.map(([label, text, href, linkLabel]) => (
+          <div key={label}>
+            <dt className="font-black text-slate-700">{label}</dt>
+            <dd className="leading-relaxed text-slate-500">
+              {text}{" "}
+              <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-black text-cyan-800 underline">{linkLabel} <ExternalLink size={11} /></a>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-800">Gizli anahtarlar (Supabase service key, SMTP şifresi, Turnstile secret) repoda yoktur. Geliştiriciye anahtar değil, ilgili panelde sınırlı erişim verin.</p>
+    </div>
+  );
+}
+
 const TABLE_LABELS = { posts: "Paylaşımlar", comments: "Yorumlar", listings: "İlanlar", messages: "Mesajlar", notifications: "Bildirimler", species: "Türler", profiles: "Profiller", site_visits_daily: "Ziyaret sayaçları", admin_audit_log: "İşlem kaydı", species_comments: "Tür deneyimleri", post_likes: "Beğeniler", conversations: "Konuşmalar", contact_messages: "İletişim mesajları", reports: "Şikâyetler", ads: "Reklamlar" };
 const BUCKET_LABELS = { "listing-images": "İlan görselleri", "post-media": "Paylaşım görselleri", avatars: "Profil resimleri", "ad-images": "Reklam görselleri", "species-images": "Tür görselleri" };
 
@@ -1573,6 +1604,7 @@ function SystemCard() {
                   Doğrulanmamış hesap: <b>{e.unconfirmed || 0}</b> · Silinmiş hesap: <b>{data.deleted_accounts || 0}</b>. Supabase her üye için yalnızca son gönderim zamanını tuttuğundan sayılar alt sınırdır (aynı kişiye giden tekrar e-postalar bir kez sayılır). Kesin gönderim, açılma ve teslim raporları için{" "}
                   <a href="https://app.brevo.com/statistics/transactional" target="_blank" rel="noreferrer" className="font-black text-cyan-800 underline">Brevo istatistiklerine</a> bak.
                 </p>
+                <TechStackBox />
               </div>
             </div>
           );

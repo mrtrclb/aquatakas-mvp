@@ -160,7 +160,7 @@ function InterestChip({ group, active, onClick, large = false }) {
     <button
       onClick={onClick}
       className={
-        "flex shrink-0 snap-start items-center gap-1.5 rounded-full font-black transition " +
+        "flex items-center gap-1.5 rounded-full font-black transition " +
         (large ? "px-3.5 py-2 text-sm " : "px-3 py-1.5 text-sm ") +
         (active ? "bg-cyan-950 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50")
       }
@@ -193,8 +193,8 @@ function OnboardingCard({ groups, ctx, onDone }) {
         <h3 className="flex items-center gap-2 text-base font-black text-cyan-950"><Sparkles size={17} /> İlgi alanlarını seç</h3>
         <p className="mt-0.5 text-xs font-semibold text-slate-500">Seçtiğin gruplara katılırsın; akışın ilk günden sana göre şekillenir.</p>
       </div>
-      <div className="mt-3 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-        {sorted.map((group) => <InterestChip key={group.id} group={group} active={picked.includes(group.id)} onClick={() => toggle(group.id)} />)}
+      <div className="mt-3 flex flex-wrap gap-2 px-4">
+        {sorted.slice(0, 6).map((group) => <InterestChip key={group.id} group={group} active={picked.includes(group.id)} onClick={() => toggle(group.id)} />)}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 px-4">
         <button onClick={submit} disabled={ctx.isMember && picked.length === 0} className="rounded-full bg-cyan-950 px-4 py-2 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">{submitLabel}</button>
@@ -323,7 +323,8 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
     return result;
   }, [posts, listings, filter, tab, location, joinedIds.join(","), followedTags.join(","), myCity]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const showOnboarding = !onboardDone && tab === "foryou" && (!ctx.isMember || joinedIds.length === 0);
+  // Yalnız kayıt sırasında grup seçimini atlamış (hiç gruba katılmamış) üyelere gösterilir; ziyaretçiler kayıt akışında zaten seçer.
+  const showOnboarding = !onboardDone && tab === "foryou" && ctx.isMember && joinedIds.length === 0;
   function finishOnboarding() {
     setOnboardDone(true);
     try { window.localStorage.setItem(ONBOARD_KEY, "1"); } catch (e) { /* yoksay */ }

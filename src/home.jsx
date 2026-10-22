@@ -323,8 +323,8 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
     return result;
   }, [posts, listings, filter, tab, location, joinedIds.join(","), followedTags.join(","), myCity]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Yalnız kayıt sırasında grup seçimini atlamış (hiç gruba katılmamış) üyelere gösterilir; ziyaretçiler kayıt akışında zaten seçer.
-  const showOnboarding = !onboardDone && tab === "foryou" && ctx.isMember && joinedIds.length === 0;
+  // Yalnız hiç gruba katılmamış ve hiç etiket takip etmeyen üyelere gösterilir; ziyaretçiler kayıt akışında zaten seçer.
+  const showOnboarding = !onboardDone && tab === "foryou" && ctx.isMember && joinedIds.length === 0 && followedTags.length === 0;
   function finishOnboarding() {
     setOnboardDone(true);
     try { window.localStorage.setItem(ONBOARD_KEY, "1"); } catch (e) { /* yoksay */ }

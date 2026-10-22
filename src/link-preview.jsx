@@ -127,7 +127,7 @@ export function LinkPreviewCard({ url, compact = false, onRemove }) {
           )}
         </div>
         <a href={url} target="_blank" rel="noopener noreferrer nofollow" className="block px-3 py-2 hover:bg-slate-50">
-          <span className="block text-[11px] font-black uppercase tracking-wide text-slate-400">YouTube{data && data.author ? " · " + data.author : ""}</span>
+          <span className="block text-[12px] font-black uppercase tracking-wide text-slate-400">YouTube{data && data.author ? " · " + data.author : ""}</span>
           <span className="line-clamp-2 text-sm font-black text-slate-900">{title || "YouTube videosu"}</span>
         </a>
       </div>
@@ -151,7 +151,7 @@ export function LinkPreviewCard({ url, compact = false, onRemove }) {
           </span>
         )}
         <span className={"min-w-0 flex-1 px-3 py-2.5 " + (onRemove ? "pr-10" : "")}>
-          <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
+          <span className="flex items-center gap-1 text-[12px] font-black uppercase tracking-wide text-slate-400">
             {platform.known && (showImage || compact) && <span className={"inline-block h-2 w-2 rounded-full " + platform.color} />}
             {site}
             {loading && <Loader2 size={11} className="animate-spin" />}

@@ -312,9 +312,9 @@ export function SiteLinks({ className = "" }) {
   return (
     <div className={"flex flex-wrap gap-1 " + className}>
       {links.map(([key, label]) => (
-        <button key={key} type="button" onClick={() => setTab(key)} className="rounded-xl px-2.5 py-1.5 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">{label}</button>
+        <button key={key} type="button" onClick={() => setTab(key)} className="rounded-xl px-2.5 py-1.5 text-[12px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">{label}</button>
       ))}
-      <a href={BLOG_URL} target="_blank" rel="noopener" className="rounded-xl px-2.5 py-1.5 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">Blog</a>
+      <a href={BLOG_URL} target="_blank" rel="noopener" className="rounded-xl px-2.5 py-1.5 text-[12px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">Blog</a>
       {tab && <SiteInfoModal activeTab={tab} setActiveTab={setTab} onClose={() => setTab(null)} />}
     </div>
   );

@@ -219,7 +219,7 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
               <input value={form.title} onChange={set("title")} maxLength={LIMITS.title[1]} placeholder="Örn. Bitkili tanklar için bakım seti" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-cyan-700" />
             </Field>
             <Field label="Kısa açıklama" count={form.text.length} max={LIMITS.text[1]}>
-              <textarea value={form.text} onChange={set("text")} maxLength={LIMITS.text[1]} rows={3} placeholder="Ürün ya da hizmetini bir iki cümleyle anlat" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-cyan-700" />
+              <textarea value={form.text} onChange={set("text")} maxLength={LIMITS.text[1]} rows={3} placeholder="Ürün ya da hizmetini bir iki cümleyle anlat" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-base outline-none focus:border-cyan-700" />
             </Field>
             <div className="grid gap-3 sm:grid-cols-[1fr_170px]">
               <Field label="Hedef bağlantı">
@@ -291,7 +291,7 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
         <div className="mb-3 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-slate-100 p-1">
           {[["live", "Yayında"], ["pending", "İncelemede"], ["rejected", "Reddedilen"], ["ended", "Biten"]].map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)} className={"shrink-0 rounded-full px-3.5 py-1.5 text-xs font-black transition " + (tab === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800")}>
-              {label} <span className="ml-1 rounded-full bg-slate-200 px-1.5 text-[10px] text-slate-600">{groups[key].length}</span>
+              {label} <span className="ml-1 rounded-full bg-slate-200 px-1.5 text-[12px] text-slate-600">{groups[key].length}</span>
             </button>
           ))}
         </div>
@@ -355,8 +355,8 @@ function MyAdCard({ row, state, onEdit, onRepeat, onEnd }) {
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="relative h-28 bg-amber-50">
         {ad.image ? <img src={ad.image} alt="" className="h-full w-full object-cover" /> : null}
-        <span className={"absolute right-3 top-3 rounded-full px-2 py-1 text-[11px] font-black " + tone}>{label}</span>
-        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">{(AD_PLACEMENTS[row.placement] || {}).label} · {row.days} gün</span>
+        <span className={"absolute right-3 top-3 rounded-full px-2 py-1 text-[12px] font-black " + tone}>{label}</span>
+        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[12px] font-black uppercase tracking-[0.12em] text-slate-600">{(AD_PLACEMENTS[row.placement] || {}).label} · {row.days} gün</span>
       </div>
       <div className="p-3">
         <div className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">{row.brand}</div>
@@ -399,7 +399,7 @@ function MyAdCard({ row, state, onEdit, onRepeat, onEnd }) {
 function Stat({ icon: Icon, label, value }) {
   return (
     <div className="rounded-xl bg-slate-50 px-2 py-2">
-      <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-wide text-slate-400"><Icon size={11} /> {label}</div>
+      <div className="flex items-center justify-center gap-1 text-[12px] font-black uppercase tracking-wide text-slate-400"><Icon size={11} /> {label}</div>
       <div className="text-sm font-black text-slate-900">{value}</div>
     </div>
   );

@@ -72,13 +72,13 @@ export function SpeciesImage({ species, className = "", round = false, label = t
   return (
     <div className={"relative grid place-items-center overflow-hidden bg-gradient-to-br text-white " + category.tone + " " + (round ? "rounded-full " : "") + className}>
       <span className="select-none text-[2.4em] drop-shadow-sm">{category.emoji}</span>
-      {label && !round && <span className="absolute bottom-1.5 right-2 rounded-full bg-black/25 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide">Görsel yakında</span>}
+      {label && !round && <span className="absolute bottom-1.5 right-2 rounded-full bg-black/25 px-1.5 py-0.5 text-[12px] font-black uppercase tracking-wide">Görsel yakında</span>}
     </div>
   );
 }
 
 function DifficultyChip({ value }) {
-  return <span className={"rounded-full px-2 py-0.5 text-[11px] font-black " + (DIFFICULTY_COLORS[value] || "bg-slate-100 text-slate-600")}>{value}</span>;
+  return <span className={"rounded-full px-2 py-0.5 text-[12px] font-black " + (DIFFICULTY_COLORS[value] || "bg-slate-100 text-slate-600")}>{value}</span>;
 }
 
 function SpeciesCard({ species, kb }) {
@@ -107,7 +107,7 @@ function SpeciesCard({ species, kb }) {
           <DifficultyChip value={species.difficulty} />
         </div>
         <p className="mt-0.5 text-xs italic text-slate-500">{species.latin}</p>
-        <div className="mt-auto flex items-center gap-3 pt-2 text-[11px] font-bold text-slate-400">
+        <div className="mt-auto flex items-center gap-3 pt-2 text-[12px] font-bold text-slate-400">
           <span className="flex items-center gap-1"><Fish size={12} /> {keepers} besleyen</span>
           <span className="flex items-center gap-1"><MessageCircle size={12} /> {comments}</span>
           {species.rare && <span className="text-violet-600">💎 nadir</span>}
@@ -118,7 +118,7 @@ function SpeciesCard({ species, kb }) {
             onClick={(event) => act(event, kb.onToggleKeep)}
             aria-pressed={myKeep}
             title={myKeep ? "Beslediğin türlerden çıkar" : "Beslediğim türlere ekle"}
-            className={"flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[11px] font-black transition " + (myKeep ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-cyan-50 text-cyan-900 hover:bg-cyan-100")}
+            className={"flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[12px] font-black transition " + (myKeep ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-cyan-50 text-cyan-900 hover:bg-cyan-100")}
           >
             {myKeep ? <Check size={12} /> : <Fish size={12} />} Besliyorum
           </button>
@@ -166,7 +166,7 @@ export function KbAside({ kb, ctx, route }) {
       {ctx.isMember && (
         <button onClick={kb.openMine} className={"mt-4 flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm font-black transition " + (route.mine ? "bg-cyan-50 text-cyan-950" : "bg-slate-50 text-slate-700 hover:bg-cyan-50")}>
           <span className="flex items-center gap-2"><Fish size={16} /> Türlerim</span>
-          <span className="text-[11px] text-slate-500">{myKeep.length} besliyor · {myFav.length} favori</span>
+          <span className="text-[12px] text-slate-500">{myKeep.length} besliyor · {myFav.length} favori</span>
         </button>
       )}
 
@@ -185,7 +185,7 @@ export function KbAside({ kb, ctx, route }) {
                   {cats.map((cat) => (
                     <button key={cat.id} onClick={() => kb.openCategory(cat.id)} className={"flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-[13px] font-bold " + (activeCategory === cat.id ? "bg-cyan-50 text-cyan-950" : "text-slate-600 hover:bg-slate-50")}>
                       <span className="truncate">{cat.name}</span>
-                      <span className="text-[11px] text-slate-400">{kb.species.filter((item) => item.category === cat.id).length}</span>
+                      <span className="text-[12px] text-slate-400">{kb.species.filter((item) => item.category === cat.id).length}</span>
                     </button>
                   ))}
                 </div>
@@ -197,10 +197,10 @@ export function KbAside({ kb, ctx, route }) {
 
       <div className="mt-5 grid gap-1 border-t border-slate-100 pt-4">
         <button onClick={() => ctx.onOpenGroup(ctx.groupById("hastaliklar"))} className="flex items-center justify-between rounded-xl px-2 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50">
-          <span>🩺 Hastalıklar</span> <span className="text-[11px] font-black text-cyan-800">Gruba git →</span>
+          <span>🩺 Hastalıklar</span> <span className="text-[12px] font-black text-cyan-800">Gruba git →</span>
         </button>
         <button onClick={() => kb.openArticles()} data-testid="kb-articles-link" className={"flex items-center justify-between rounded-xl px-2 py-2 text-left text-sm font-bold " + (route.articles || route.article ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-50")}>
-          <span>📚 Makaleler</span> <span className="text-[11px] text-slate-400">{kb.articles.length || ""}</span>
+          <span>📚 Makaleler</span> <span className="text-[12px] text-slate-400">{kb.articles.length || ""}</span>
         </button>
       </div>
     </aside>
@@ -218,7 +218,7 @@ function SuggestCard({ kb, categoryId = "", query = "" }) {
     >
       <span className="grid h-11 w-11 place-items-center rounded-full bg-white text-cyan-800 shadow-sm"><Plus size={22} /></span>
       <span className="text-sm font-black">Tür öner</span>
-      <span className="text-[11px] leading-snug text-cyan-900/70">Burada olmayan bir türü bilgileri ve fotoğrafıyla öner; ekip inceleyip ekler.</span>
+      <span className="text-[12px] leading-snug text-cyan-900/70">Burada olmayan bir türü bilgileri ve fotoğrafıyla öner; ekip inceleyip ekler.</span>
     </button>
   );
 }
@@ -380,7 +380,7 @@ export function KbHome({ kb, section = "tatlisu" }) {
               <button key={cat.id} onClick={() => kb.openCategory(cat.id)} className="group flex flex-col items-center text-center">
                 <span className={"grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br text-4xl shadow-sm ring-4 ring-white transition group-hover:scale-105 group-hover:shadow-lg sm:h-28 sm:w-28 " + cat.tone}>{cat.emoji}</span>
                 <span className="mt-2 text-sm font-black leading-snug text-slate-800 group-hover:text-cyan-800">{cat.name}</span>
-                <span className="text-[11px] font-bold text-slate-400">{count} tür</span>
+                <span className="text-[12px] font-bold text-slate-400">{count} tür</span>
               </button>
             );
           })}
@@ -408,7 +408,7 @@ function CategoryBand({ category, section, onBack }) {
       <div className="relative flex min-h-[76px] items-center gap-3 px-3 py-3 sm:min-h-[92px]">
         <button onClick={onBack} className="rounded-full bg-white/20 p-2 text-white backdrop-blur hover:bg-white/30" title="Geri"><ArrowLeft size={19} /></button>
         <div className="min-w-0 text-white [text-shadow:0_1px_6px_rgba(0,0,0,.35)]">
-          <p className="text-[11px] font-black uppercase tracking-wide text-white/80">{section.name}</p>
+          <p className="text-[12px] font-black uppercase tracking-wide text-white/80">{section.name}</p>
           <h2 className="truncate text-xl font-black leading-tight sm:text-2xl">{category.name}</h2>
         </div>
       </div>
@@ -488,7 +488,7 @@ function SpeciesComment({ comment, kb, ctx }) {
           <button onClick={() => ctx.onProfile(user)} className="font-black text-slate-900 hover:underline"><UserName user={user} /></button>
           <span className="text-slate-400">· {timeAgo(comment.createdAt)}</span>
           {comment.editedAt && <span className="text-xs text-slate-400">· düzenlendi</span>}
-          {(kb.keeping[comment.userId] || []).includes(comment.slug) && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">Bu türü besliyor</span>}
+          {(kb.keeping[comment.userId] || []).includes(comment.slug) && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-black text-emerald-700">Bu türü besliyor</span>}
           {!editing && <MoreMenu items={menuItems} size={17} />}
         </div>
         {editing ? (
@@ -500,7 +500,7 @@ function SpeciesComment({ comment, kb, ctx }) {
               onKeyDown={(event) => { if (event.key === "Escape") setEditing(false); }}
               rows={3}
               maxLength={600}
-              className="w-full resize-none rounded-2xl border border-cyan-300 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-600"
+              className="w-full resize-none rounded-2xl border border-cyan-300 bg-white px-3 py-2 text-base outline-none focus:border-cyan-600"
             />
             <div className="mt-1.5 flex justify-end gap-2">
               <button onClick={() => setEditing(false)} className="rounded-full px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-100">Vazgeç</button>
@@ -508,7 +508,7 @@ function SpeciesComment({ comment, kb, ctx }) {
             </div>
           </div>
         ) : (
-          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-slate-800">{comment.text}</p>
+          comment.text && <p className="mt-0.5 whitespace-pre-wrap break-words text-[16px] leading-relaxed text-slate-800">{comment.text}</p>
         )}
         {hasMedia && (
           <div className="max-w-md">
@@ -578,7 +578,7 @@ function KeepersSection({ keepers, species, kb, ctx }) {
     <section className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
         <h3 className="flex items-center gap-2 text-sm font-black text-slate-800"><Users size={15} /> Bu türü besleyenler <span className="text-slate-400">({sorted.length})</span></h3>
-        <span className="text-[11px] font-semibold text-slate-400">Takas, yavru ve deneyim için ulaş</span>
+        <span className="text-[12px] font-semibold text-slate-400">Takas, yavru ve deneyim için ulaş</span>
       </div>
       {sorted.length ? (
         <div className="divide-y divide-slate-100">
@@ -710,7 +710,7 @@ function SpeciesGallery({ species }) {
               <button key={url + "-dot-" + i} type="button" onClick={() => go(i)} className={"h-1.5 rounded-full transition-all " + (i === index ? "w-4 bg-white" : "w-1.5 bg-white/60")} aria-label={"Görsel " + (i + 1)} />
             ))}
           </div>
-          <span className="absolute right-2 top-2 rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-black text-white">{index + 1}/{images.length}</span>
+          <span className="absolute right-2 top-2 rounded-full bg-black/40 px-2 py-0.5 text-[12px] font-black text-white">{index + 1}/{images.length}</span>
         </>
       )}
       {lightbox !== null && <Lightbox images={images} start={lightbox} onClose={() => setLightbox(null)} />}
@@ -735,7 +735,7 @@ function RelatedSection({ species, listings, posts, ctx }) {
         <div className="mt-1 flex">
           {tabs.map(([key, label, count, Icon]) => (
             <button key={key} onClick={() => { setTab(key); setLimit(4); }} className={"relative flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-black " + (tab === key ? "text-slate-950" : "text-slate-500 hover:text-slate-800")}>
-              <Icon size={14} /> {label} <span className="rounded-full bg-white px-1.5 text-[10px] text-slate-500 ring-1 ring-slate-200">{count}</span>
+              <Icon size={14} /> {label} <span className="rounded-full bg-white px-1.5 text-[12px] text-slate-500 ring-1 ring-slate-200">{count}</span>
               {tab === key && <span className="absolute bottom-0 left-1/2 h-1 w-12 -translate-x-1/2 rounded-full bg-cyan-700" />}
             </button>
           ))}
@@ -768,7 +768,7 @@ function RelatedSection({ species, listings, posts, ctx }) {
       {list.length > limit && (
         <button onClick={() => setLimit((value) => value + 6)} className="w-full border-t border-slate-100 py-2.5 text-xs font-black text-cyan-800 hover:bg-slate-50">Daha fazla göster ({list.length - limit})</button>
       )}
-      <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">Tür adı geçen ilan ve paylaşımlar buraya otomatik eklenir.</p>
+      <p className="border-t border-slate-100 px-4 py-2 text-[12px] text-slate-400">Tür adı geçen ilan ve paylaşımlar buraya otomatik eklenir.</p>
     </section>
   );
 }
@@ -791,7 +791,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
       <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
         <button onClick={() => kb.openCategory(category.id)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Geri"><ArrowLeft size={19} /></button>
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-black uppercase tracking-wide text-slate-400">{category.name}</p>
+          <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">{category.name}</p>
           <h2 className="truncate text-lg font-black leading-tight">{species.name}</h2>
         </div>
       </div>
@@ -806,8 +806,8 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <DifficultyChip value={species.difficulty} />
-            {species.temperament && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">{species.temperament}</span>}
-            {species.rare && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-black text-violet-700">💎 Nadir</span>}
+            {species.temperament && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-black text-slate-600">{species.temperament}</span>}
+            {species.rare && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[12px] font-black text-violet-700">💎 Nadir</span>}
           </div>
           <h1 className="mt-2 text-2xl font-black leading-tight tracking-tight text-slate-950">{species.name}</h1>
           <p className="text-sm italic text-slate-500">{species.latin}</p>
@@ -857,7 +857,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
             </div>
           ))}
         </dl>
-        <p className="px-4 py-2 text-[11px] text-slate-400">Değerler hobide yaygın kabul gören aralıklardır; hat, lokasyon ve bireye göre değişebilir.</p>
+        <p className="px-4 py-2 text-[12px] text-slate-400">Değerler hobide yaygın kabul gören aralıklardır; hat, lokasyon ve bireye göre değişebilir.</p>
       </section>
 
       <KeepersSection keepers={keepers} species={species} kb={kb} ctx={ctx} />
@@ -910,7 +910,7 @@ export function KbMinePage({ kb, ctx }) {
       <div className="flex border-b border-slate-200">
         {[["keep", "Beslediğim türler", keep.length], ["fav", "Favori türlerim", fav.length]].map(([key, label, count]) => (
           <button key={key} onClick={() => setTab(key)} className={"relative flex-1 py-3 text-sm font-black hover:bg-slate-50 " + (tab === key ? "text-slate-950" : "text-slate-500")}>
-            {label} <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{count}</span>
+            {label} <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[12px] text-slate-600">{count}</span>
             {tab === key && <span className="absolute bottom-0 left-1/2 h-1 w-16 -translate-x-1/2 rounded-full bg-cyan-700" />}
           </button>
         ))}
@@ -945,10 +945,10 @@ export function KbWidgets({ kb }) {
 
   const Row = ({ species, meta }) => (
     <button onClick={() => kb.openSpecies(species)} className="flex items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left hover:bg-slate-50">
-      <SpeciesImage species={species} round label={false} className="h-9 w-9 shrink-0 text-[9px]" />
+      <SpeciesImage species={species} round label={false} className="h-9 w-9 shrink-0 text-[12px]" />
       <span className="min-w-0">
         <span className="block truncate text-[13px] font-black text-slate-800">{species.name}</span>
-        <span className="block truncate text-[11px] text-slate-400">{meta}</span>
+        <span className="block truncate text-[12px] text-slate-400">{meta}</span>
       </span>
     </button>
   );

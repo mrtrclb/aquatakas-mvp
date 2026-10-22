@@ -108,7 +108,7 @@ function EditListingModal({ listing, onClose }) {
                 <textarea
                   rows={5}
                   defaultValue={listing.description}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 outline-none"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-base leading-6 outline-none"
                 />
               </label>
 

@@ -99,7 +99,7 @@ export function ReviewModal({ conversation, onClose, onSaved }) {
           maxLength={500}
           rows={3}
           placeholder="Kısa bir yorum (isteğe bağlı): canlılar sağlıklı mıydı, iletişim nasıldı?"
-          className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700"
+          className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-cyan-700"
         />
         {error && <div className="mt-2 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
         <button onClick={save} disabled={!rating || busy} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
@@ -185,7 +185,7 @@ export function ReviewList({ data, myId, onProfile, onReport, onToast }) {
                 <button type="button" onClick={() => onReport(review)} className="ml-auto text-slate-400 hover:text-amber-700" title="Değerlendirmeyi bildir" aria-label="Değerlendirmeyi bildir"><Flag size={13} /></button>
               )}
             </div>
-            {review.listing_title && <div className="mt-1 text-[11px] font-bold text-slate-400">İlan: {review.listing_title}</div>}
+            {review.listing_title && <div className="mt-1 text-[12px] font-bold text-slate-400">İlan: {review.listing_title}</div>}
             {review.comment && <p className="mt-1 text-sm leading-relaxed text-slate-700">{review.comment}</p>}
             {review.reply && (
               <div className="mt-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600"><strong className="text-slate-800">Yanıt:</strong> {review.reply}</div>
@@ -197,7 +197,7 @@ export function ReviewList({ data, myId, onProfile, onReport, onToast }) {
             )}
             {replying === review.id && (
               <div className="mt-2">
-                <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={500} rows={2} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm outline-none focus:border-cyan-700" placeholder="Kısa ve saygılı bir yanıt yaz" />
+                <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={500} rows={2} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-base outline-none focus:border-cyan-700" placeholder="Kısa ve saygılı bir yanıt yaz" />
                 <div className="mt-1 flex justify-end gap-2">
                   <button type="button" onClick={() => setReplying(null)} className="rounded-full px-3 py-1 text-xs font-black text-slate-500 hover:bg-slate-100">Vazgeç</button>
                   <button type="button" onClick={() => sendReply(review)} className="rounded-full bg-cyan-950 px-3 py-1 text-xs font-black text-white hover:bg-cyan-900">Kaydet</button>

@@ -110,7 +110,7 @@ function Field({ label, hint, children }) {
     <label className="block">
       <span className="mb-1.5 block text-xs font-black text-slate-500">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[11px] leading-snug text-slate-400">{hint}</span>}
+      {hint && <span className="mt-1 block text-[12px] leading-snug text-slate-400">{hint}</span>}
     </label>
   );
 }

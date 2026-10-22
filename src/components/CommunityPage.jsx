@@ -244,7 +244,7 @@ function Composer({ isMember, currentUser, onAuth, onAddPost }) {
                 ? "Topluluğa bir soru sor ya da tankından bir not paylaş..."
                 : "Paylaşım yapmak için giriş yapmalısın..."
             }
-            className="min-h-[96px] w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold leading-relaxed text-slate-700 outline-none focus:border-cyan-900"
+            className="min-h-[96px] w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold leading-relaxed text-slate-700 outline-none focus:border-cyan-900"
           />
 
           {hasImage ? (

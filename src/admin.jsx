@@ -209,7 +209,7 @@ function Badge({ children, tone = "slate" }) {
     emerald: "bg-emerald-50 text-emerald-700",
     violet: "bg-violet-50 text-violet-700"
   };
-  return <span className={"inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black " + tones[tone]}>{children}</span>;
+  return <span className={"inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-black " + tones[tone]}>{children}</span>;
 }
 
 function Card({ children, className = "" }) {
@@ -242,7 +242,7 @@ function Tabs({ value, onChange, items }) {
           className={"shrink-0 rounded-full px-3.5 py-1.5 text-xs font-black transition " + (value === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800")}
         >
           {label}
-          {count ? <span className="ml-1.5 rounded-full bg-rose-500 px-1.5 text-[10px] text-white">{count}</span> : null}
+          {count ? <span className="ml-1.5 rounded-full bg-rose-500 px-1.5 text-[12px] text-white">{count}</span> : null}
         </button>
       ))}
     </div>
@@ -276,12 +276,12 @@ function Person({ profile, sub }) {
   if (!profile) return <span className="text-sm text-slate-400">Silinmiş üye</span>;
   return (
     <a href={"#/yonetim/kullanicilar/" + profile.id} className="flex min-w-0 items-center gap-2 hover:underline" title="Kullanıcıyı yönet">
-      <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-cyan-950 text-[11px] font-black text-white">
+      <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-cyan-950 text-[12px] font-black text-white">
         {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile.username.slice(0, 1).toUpperCase()}
       </span>
       <span className="min-w-0">
         <span className="block truncate text-sm font-black text-slate-800">@{profile.username}</span>
-        {sub && <span className="block truncate text-[11px] text-slate-400">{sub}</span>}
+        {sub && <span className="block truncate text-[12px] text-slate-400">{sub}</span>}
       </span>
     </a>
   );
@@ -325,7 +325,7 @@ function ReasonDialog({ dialog, onClose }) {
               rows={3}
               maxLength={300}
               placeholder={dialog.placeholder || (dialog.required ? "Gerekçe yaz (zorunlu)" : "Not ekle (isteğe bağlı)")}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-cyan-700"
             />
           </>
         )}
@@ -448,7 +448,7 @@ export default function AdminApp() {
           >
             <Icon size={17} />
             <span className="flex-1">{item.label}</span>
-            {count > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[11px] text-white">{count}</span>}
+            {count > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[12px] text-white">{count}</span>}
           </a>
         );
       })}
@@ -483,7 +483,7 @@ export default function AdminApp() {
               <AquagramMark />
               <span className="leading-tight">
                 <span className="block text-base font-black">Aquagram</span>
-                <span className="block text-[11px] font-black uppercase tracking-wide text-amber-700">Yönetim paneli</span>
+                <span className="block text-[12px] font-black uppercase tracking-wide text-amber-700">Yönetim paneli</span>
               </span>
             </a>
             <div className="flex-1" />
@@ -622,7 +622,7 @@ function VisitsCard() {
                   );
                 })}
               </div>
-              <div className="mt-1 flex justify-between text-[10px] font-bold text-slate-400">
+              <div className="mt-1 flex justify-between text-[12px] font-bold text-slate-400">
                 <span>{new Date(data.days[0]).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</span>
                 <span>Bugün</span>
               </div>
@@ -959,7 +959,7 @@ function AdsSection() {
                   <div className="mt-3 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/60">
                     {row.image_url && <img src={row.image_url} alt="" className="h-32 w-full object-cover" />}
                     <div className="p-3">
-                      <div className="text-[11px] font-black uppercase tracking-wide text-amber-700">{row.brand}</div>
+                      <div className="text-[12px] font-black uppercase tracking-wide text-amber-700">{row.brand}</div>
                       <div className="font-black text-slate-900">{row.title}</div>
                       {row.text && <p className="mt-0.5 text-sm text-slate-600">{row.text}</p>}
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
@@ -1521,7 +1521,7 @@ function TechStackBox() {
           </div>
         ))}
       </dl>
-      <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-800">Gizli anahtarlar (Supabase service key, SMTP şifresi, Turnstile secret) repoda yoktur. Geliştiriciye anahtar değil, ilgili panelde sınırlı erişim verin.</p>
+      <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[12px] leading-relaxed text-amber-800">Gizli anahtarlar (Supabase service key, SMTP şifresi, Turnstile secret) repoda yoktur. Geliştiriciye anahtar değil, ilgili panelde sınırlı erişim verin.</p>
     </div>
   );
 }
@@ -2035,7 +2035,7 @@ function ArticlesAdmin({ speciesRows }) {
           <input className={ARTICLE_INPUT} value={form.speciesText} onChange={(event) => set("speciesText", event.target.value)} />
           {speciesSlugs.length > 0 && (
             <span className="flex flex-wrap gap-1.5 font-normal">
-              {speciesSlugs.map((slug) => <span key={slug} className={"rounded-full px-2 py-0.5 text-[11px] font-bold " + (nameBySlug[slug] ? "bg-cyan-50 text-cyan-900" : "bg-red-50 text-red-700")}>{nameBySlug[slug] || slug + " (bulunamadı)"}</span>)}
+              {speciesSlugs.map((slug) => <span key={slug} className={"rounded-full px-2 py-0.5 text-[12px] font-bold " + (nameBySlug[slug] ? "bg-cyan-50 text-cyan-900" : "bg-red-50 text-red-700")}>{nameBySlug[slug] || slug + " (bulunamadı)"}</span>)}
             </span>
           )}
         </label>
@@ -2512,7 +2512,7 @@ function SpeciesEditor({ param }) {
                 {form.images.map((url, index) => (
                   <div key={url} className="group relative aspect-square overflow-hidden rounded-xl bg-slate-100">
                     <img src={url} alt="" className="h-full w-full object-cover" />
-                    {index === 0 && <span className="absolute left-1 top-1 rounded-full bg-cyan-950 px-1.5 py-0.5 text-[10px] font-black text-white">Kapak</span>}
+                    {index === 0 && <span className="absolute left-1 top-1 rounded-full bg-cyan-950 px-1.5 py-0.5 text-[12px] font-black text-white">Kapak</span>}
                     <div className="absolute inset-x-1 bottom-1 flex justify-between gap-1">
                       <button type="button" onClick={() => moveImage(index, -1)} disabled={index === 0} className="grid h-6 w-6 place-items-center rounded-full bg-white/90 text-slate-700 shadow disabled:opacity-30" title="Öne al" aria-label="Öne al"><ChevronLeft size={14} /></button>
                       <button type="button" onClick={() => set("images", form.images.filter((_, i) => i !== index))} className="grid h-6 w-6 place-items-center rounded-full bg-white/90 text-rose-600 shadow" title="Görseli kaldır" aria-label="Görseli kaldır"><Trash2 size={13} /></button>
@@ -2522,7 +2522,7 @@ function SpeciesEditor({ param }) {
                 ))}
                 {form.images.length < MAX_SPECIES_IMAGES && (
                   <button type="button" onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading > 0} className="grid aspect-square place-items-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 hover:border-cyan-700 hover:text-cyan-800">
-                    {uploading > 0 ? <Loader2 className="animate-spin" size={20} /> : <span className="grid place-items-center gap-1 text-[11px] font-black"><Upload size={18} /> Görsel ekle</span>}
+                    {uploading > 0 ? <Loader2 className="animate-spin" size={20} /> : <span className="grid place-items-center gap-1 text-[12px] font-black"><Upload size={18} /> Görsel ekle</span>}
                   </button>
                 )}
               </div>
@@ -2589,7 +2589,7 @@ function SettingsForm({ data, act, reload }) {
       <Card>
         <h2 className="font-black">Duyuru bandı</h2>
         <p className="mb-3 text-xs text-slate-500">Açıkken sitenin en üstünde herkese görünür. {updatedLabel("announcement")}</p>
-        <textarea value={announcement.text} onChange={(event) => setAnnouncement({ ...announcement, text: event.target.value })} rows={2} maxLength={200} placeholder="Örn. Bu hafta sonu bakım çalışması yapılacak." className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700" />
+        <textarea value={announcement.text} onChange={(event) => setAnnouncement({ ...announcement, text: event.target.value })} rows={2} maxLength={200} placeholder="Örn. Bu hafta sonu bakım çalışması yapılacak." className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-cyan-700" />
         <input value={announcement.link || ""} onChange={(event) => setAnnouncement({ ...announcement, link: event.target.value })} placeholder="Bağlantı (isteğe bağlı, https://...)" className="mt-2 w-full rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700" />
         <label className="mt-3 flex items-center gap-2 text-sm font-bold">
           <input type="checkbox" checked={Boolean(announcement.active)} onChange={(event) => setAnnouncement({ ...announcement, active: event.target.checked })} className="h-4 w-4 accent-cyan-900" />
@@ -2620,7 +2620,7 @@ function SettingsForm({ data, act, reload }) {
       <Card>
         <h2 className="font-black">Yasaklı kelimeler</h2>
         <p className="mb-3 text-xs text-slate-500">Virgülle ayır. Bu kelimelerle başlayan ifadeler paylaşım, yorum, tür deneyimi, ilan ve grup metinlerinde kabul edilmez. {updatedLabel("banned_words")}</p>
-        <textarea value={words} onChange={(event) => setWords(event.target.value)} rows={3} placeholder="kelime1, kelime2" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700" />
+        <textarea value={words} onChange={(event) => setWords(event.target.value)} rows={3} placeholder="kelime1, kelime2" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-cyan-700" />
         <div className="mt-3">
           <Btn tone="primary" small disabled={saving === "banned_words"} onClick={() => save("banned_words", Array.from(new Set(words.split(",").map((word) => word.trim().toLocaleLowerCase("tr")).filter(Boolean))), "Yasaklı kelimeler kaydedildi")}>Kaydet</Btn>
         </div>

@@ -21,7 +21,7 @@ export function ArticleThumb({ article, kb, className = "" }) {
     );
   }
   const withImage = linked.find((item) => item.images && item.images[0]) || linked[0];
-  if (withImage) return <SpeciesImage species={withImage} label={false} className={className + " text-[11px]"} />;
+  if (withImage) return <SpeciesImage species={withImage} label={false} className={className + " text-[12px]"} />;
   return (
     <div className={"grid place-items-center bg-gradient-to-br from-cyan-700 to-teal-500 text-white " + className}>
       <BookOpen className="h-1/3 w-1/3 opacity-90" />
@@ -139,7 +139,7 @@ export function ArticlePage({ slug, kb, ctx }) {
       <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
         <button onClick={() => kb.openArticles()} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Makalelere dön"><ArrowLeft size={19} /></button>
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-black uppercase tracking-wide text-slate-400">Makaleler</p>
+          <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">Makaleler</p>
           <h2 className="truncate text-lg font-black leading-tight">{(article || meta || {}).title || "Makale"}</h2>
         </div>
       </div>
@@ -211,7 +211,7 @@ export function ArticlePage({ slug, kb, ctx }) {
               <ul className="mt-3 grid gap-2">
                 {article.sources.map((source, index) => (
                   <li key={index} className="flex flex-wrap items-baseline gap-x-2 text-[15px] leading-relaxed">
-                    {source.tag && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-500">{source.tag}</span>}
+                    {source.tag && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-black text-slate-500">{source.tag}</span>}
                     {source.url ? (
                       <a href={source.url} target="_blank" rel="nofollow noopener noreferrer" className="inline-flex items-center gap-1 font-bold text-cyan-800 underline-offset-2 hover:underline">
                         {sourceLabel(source)} <ExternalLink size={12} />

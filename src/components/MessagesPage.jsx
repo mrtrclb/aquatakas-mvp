@@ -152,13 +152,13 @@ export default function MessagesPage() {
                     <span className="truncate font-black text-slate-900">{message.user}</span>
 
                     {message.unread && (
-                      <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[11px] font-black text-white">
+                      <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[12px] font-black text-white">
                         Yeni
                       </span>
                     )}
 
                     {message.deleted && (
-                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-black text-red-700">
+                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-[12px] font-black text-red-700">
                         Silindi
                       </span>
                     )}
@@ -224,7 +224,7 @@ export default function MessagesPage() {
                         (mine ? "ml-auto bg-cyan-950 text-white" : "bg-slate-100 text-slate-700")
                       }
                     >
-                      <div className="mb-1 text-[11px] font-black opacity-70">
+                      <div className="mb-1 text-[12px] font-black opacity-70">
                         {item.from} · {item.time}
                       </div>
 

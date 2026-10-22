@@ -185,8 +185,8 @@ function roleOf(group, userId) {
 }
 
 function RoleBadge({ role }) {
-  if (role === "owner") return <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-800"><Crown size={11} /> Kurucu</span>;
-  if (role === "mod") return <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-black text-cyan-800"><Shield size={11} /> Moderatör</span>;
+  if (role === "owner") return <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-black text-amber-800"><Crown size={11} /> Kurucu</span>;
+  if (role === "mod") return <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-0.5 text-[12px] font-black text-cyan-800"><Shield size={11} /> Moderatör</span>;
   return null;
 }
 
@@ -218,7 +218,7 @@ function GroupCard({ group, posts, ctx }) {
           <JoinButton group={group} ctx={ctx} size="sm" />
         </div>
         <h3 className="mt-2 text-base font-black text-slate-950 group-hover:underline">{group.name}</h3>
-        <p className="text-[11px] font-black text-slate-400">{owner ? "Kuran: " + owner.username : "Resmi grup"}</p>
+        <p className="text-[12px] font-black text-slate-400">{owner ? "Kuran: " + owner.username : "Resmi grup"}</p>
         <p className="mt-1.5 line-clamp-2 flex-1 text-sm leading-relaxed text-slate-600">{group.description}</p>
         <div className="mt-3 flex items-center gap-3 text-xs font-bold text-slate-500">
           <span className="flex items-center gap-1"><Users size={13} /> {stats.memberCount} üye</span>
@@ -278,7 +278,7 @@ export function GroupsPage({ groups, posts, ctx }) {
                 <GroupTile group={group} size="sm" />
                 <span>
                   <span className="block text-sm font-black text-slate-900">{group.name}</span>
-                  <span className="block text-[11px] font-semibold text-slate-500">{groupStats(group, posts).postCount} paylaşım</span>
+                  <span className="block text-[12px] font-semibold text-slate-500">{groupStats(group, posts).postCount} paylaşım</span>
                 </span>
               </button>
             ))}
@@ -507,7 +507,7 @@ export function TagsPage({ posts, ctx }) {
               <span key={tag} className={"inline-flex items-center gap-1 rounded-full font-black ring-1 transition " + (following ? "bg-cyan-950 text-white ring-cyan-950" : "bg-cyan-50 text-cyan-900 ring-cyan-100") + " " + size(count)}>
                 <button onClick={() => ctx.onSearch(tag)} title={count + " paylaşımda kullanıldı · paylaşımları gör"} className="inline-flex items-center gap-2 hover:underline">
                   {tag}
-                  <span className={"rounded-full px-2 py-0.5 text-[11px] font-black " + (following ? "bg-white/15 text-white" : "bg-white/80 text-cyan-800")}>{count}</span>
+                  <span className={"rounded-full px-2 py-0.5 text-[12px] font-black " + (following ? "bg-white/15 text-white" : "bg-white/80 text-cyan-800")}>{count}</span>
                 </button>
                 <button
                   onClick={() => ctx.onToggleTag(tag)}
@@ -639,7 +639,7 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
 
           <label className="block">
             <span className="mb-1 flex justify-between text-xs font-black text-slate-500">Açıklama <span className="text-slate-400">{description.length}/160</span></span>
-            <textarea value={description} maxLength={160} rows={2} onChange={(event) => setDescription(event.target.value)} placeholder="Grup ne hakkında, kimler katılmalı?" className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700" />
+            <textarea value={description} maxLength={160} rows={2} onChange={(event) => setDescription(event.target.value)} placeholder="Grup ne hakkında, kimler katılmalı?" className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-cyan-700" />
           </label>
 
           <div>

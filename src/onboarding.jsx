@@ -172,7 +172,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
               <div className="mt-3 flex rounded-full bg-slate-100 p-1">
                 {[["keep", "🐟 Besliyorum", keep.length], ["fav", "⭐ Favorilerim", fav.length]].map(([key, label, count]) => (
                   <button key={key} type="button" onClick={() => setMode(key)} className={"flex-1 rounded-full py-2 text-sm font-black transition " + (mode === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>
-                    {label} {count > 0 && <span className="ml-1 rounded-full bg-cyan-700 px-1.5 text-[11px] text-white">{count}</span>}
+                    {label} {count > 0 && <span className="ml-1 rounded-full bg-cyan-700 px-1.5 text-[12px] text-white">{count}</span>}
                   </button>
                 ))}
               </div>
@@ -195,7 +195,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
                         <div className="mb-1.5 flex items-center justify-between gap-2">
                           <h3 className="flex items-center gap-1.5 text-sm font-black text-slate-800">
                             <span aria-hidden="true">{category.emoji}</span> {category.name}
-                            {picked > 0 && <span className="rounded-full bg-cyan-700 px-1.5 text-[10px] text-white">{picked}</span>}
+                            {picked > 0 && <span className="rounded-full bg-cyan-700 px-1.5 text-[12px] text-white">{picked}</span>}
                           </h3>
                           {items.length > 3 && (
                             <button type="button" onClick={() => setExpanded((prev) => ({ ...prev, [category.id]: !open }))} className="shrink-0 text-xs font-black text-cyan-800 hover:underline">
@@ -248,7 +248,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
                 ))}
               </div>
               <label className="mt-4 block text-xs font-black text-slate-500">Hakkında
-                <textarea value={bio} onChange={(event) => setBio(event.target.value.slice(0, 480))} rows={4} placeholder="Ör. 3 yıldır bitkili tanklarla uğraşıyorum, şu an 60 litrelik tankta neon tetra ve karides besliyorum." className="mt-1.5 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700 focus:bg-white" />
+                <textarea value={bio} onChange={(event) => setBio(event.target.value.slice(0, 480))} rows={4} placeholder="Ör. 3 yıldır bitkili tanklarla uğraşıyorum, şu an 60 litrelik tankta neon tetra ve karides besliyorum." className="mt-1.5 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base font-normal text-slate-900 outline-none focus:border-cyan-700 focus:bg-white" />
                 <span className="block text-right font-normal text-slate-400">{bio.length} / 480</span>
               </label>
               <label className="mt-2 block text-xs font-black text-slate-500">Şehrin

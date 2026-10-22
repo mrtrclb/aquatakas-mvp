@@ -93,9 +93,9 @@ export function ProCard({ auth, onToast, className = "mt-4 rounded-2xl" }) {
           <>
             <p className="mt-1 text-xs leading-relaxed text-cyan-50/80">Ücretsiz öne çıkarma ve reklam, günde 3 kez üste taşıma, +100 sohbet hakkı ve PRO rozeti.</p>
             {status && (status.features_balance > 0 || status.ads_balance > 0) && (
-              <p className="mt-2 rounded-xl bg-white/10 px-2.5 py-1.5 text-[11px] text-amber-200">Kullanılmamış hakların duruyor: {status.features_balance} öne çıkarma · {status.ads_balance} reklam (ayda en fazla 2 öne çıkarma ve 1 reklam).</p>
+              <p className="mt-2 rounded-xl bg-white/10 px-2.5 py-1.5 text-[12px] text-amber-200">Kullanılmamış hakların duruyor: {status.features_balance} öne çıkarma · {status.ads_balance} reklam (ayda en fazla 2 öne çıkarma ve 1 reklam).</p>
             )}
-            {status && <p className="mt-2 text-[11px] text-cyan-50/60">Mesaj kutun: {status.conversation_count} / {status.conversation_limit} sohbet · Bugün üste taşıma: {status.bumps_left} / {status.bump_limit}</p>}
+            {status && <p className="mt-2 text-[12px] text-cyan-50/60">Mesaj kutun: {status.conversation_count} / {status.conversation_limit} sohbet · Bugün üste taşıma: {status.bumps_left} / {status.bump_limit}</p>}
             <button type="button" onClick={() => setOpen(true)} className="mt-3 w-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2.5 text-sm font-black text-white shadow hover:brightness-105">
               PRO'ya yükselt · aylık {tl(monthly(plans[plans.length - 1]))}'den
             </button>
@@ -162,7 +162,7 @@ export function ProPlansDialog({ plans, pro, onClose, onDone }) {
                     <span className="block text-sm font-black">{plan.months === 12 ? "12 ay (1 yıl)" : plan.months + " ay"}</span>
                     <span className="block text-xs text-slate-500">aylık {tl(monthly(plan))}</span>
                   </span>
-                  {save > 0 && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">%{save} tasarruf</span>}
+                  {save > 0 && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-black text-emerald-700">%{save} tasarruf</span>}
                   <span className="text-base font-black">{tl(plan.price)}</span>
                 </button>
               );

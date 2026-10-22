@@ -284,7 +284,7 @@ function MultiSelectChips({ label, options, selected, onChange }) {
       <div className="mb-1 text-xs font-black text-slate-500">{label}</div>
       <div className="flex flex-wrap gap-1.5">
         {options.map((option) => (
-          <button key={option} type="button" onClick={() => toggle(option)} className={"rounded-full border px-2.5 py-1 text-[11px] font-black transition " + (selected.includes(option) ? "border-cyan-950 bg-cyan-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}>
+          <button key={option} type="button" onClick={() => toggle(option)} className={"rounded-full border px-2.5 py-1 text-[12px] font-black transition " + (selected.includes(option) ? "border-cyan-950 bg-cyan-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}>
             {option}
           </button>
         ))}
@@ -318,7 +318,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, placeholder =
     <div className="relative">
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="block text-xs font-black text-slate-500">{label}</span>
-        {selected.length > 0 && <button type="button" onClick={clearAll} className="text-[11px] font-black text-cyan-700 hover:text-cyan-950">temizle</button>}
+        {selected.length > 0 && <button type="button" onClick={clearAll} className="text-[12px] font-black text-cyan-700 hover:text-cyan-950">temizle</button>}
       </div>
       <button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-sm text-slate-700 transition hover:border-slate-300 hover:bg-white">
         <span className={"min-w-0 truncate " + (selected.length === 0 ? "text-slate-400" : "font-bold text-slate-700")}>{summary}</span>
@@ -328,8 +328,8 @@ function MultiSelectDropdown({ label, options, selected, onChange, placeholder =
         <div className="absolute left-0 right-0 z-30 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
           <div className="border-b border-slate-100 p-2">
             <div className="flex items-center justify-between gap-2 px-1 py-1">
-              <strong className="text-[11px] uppercase tracking-[0.12em] text-slate-500">{label}</strong>
-              {selected.length > 0 && <button type="button" onClick={clearAll} className="text-[11px] font-black text-cyan-700 hover:text-cyan-950">Seçimleri temizle</button>}
+              <strong className="text-[12px] uppercase tracking-[0.12em] text-slate-500">{label}</strong>
+              {selected.length > 0 && <button type="button" onClick={clearAll} className="text-[12px] font-black text-cyan-700 hover:text-cyan-950">Seçimleri temizle</button>}
             </div>
             {searchable && <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Ara..." className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-800" />}
           </div>
@@ -1625,8 +1625,8 @@ export default function AquagramApp() {
                         className={"flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-black " + (effectiveMemberPage === key ? "bg-cyan-50 text-cyan-950" : "text-slate-700 hover:bg-slate-50")}
                       >
                         <span className="flex-1">{label}</span>
-                        {key === "messages" && msgs.unreadCount > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[11px] font-black text-white">{msgs.unreadCount}</span>}
-                        {key === "notifications" && notifs.unread > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[11px] font-black text-white">{notifs.unread}</span>}
+                        {key === "messages" && msgs.unreadCount > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[12px] font-black text-white">{msgs.unreadCount}</span>}
+                        {key === "notifications" && notifs.unread > 0 && <span className="rounded-full bg-rose-500 px-1.5 text-[12px] font-black text-white">{notifs.unread}</span>}
                       </button>
                     ))}
                     {auth.isStaff && (
@@ -2076,7 +2076,7 @@ export default function AquagramApp() {
             const [key, label, Icon, onClick] = item;
             const active = navActive === key;
             return (
-              <button key={key} onClick={onClick} className={"flex flex-col items-center gap-0.5 py-1 text-[10px] font-black " + (active ? "text-cyan-950" : "text-slate-400")}>
+              <button key={key} onClick={onClick} className={"flex flex-col items-center gap-0.5 py-1 text-[12px] font-black " + (active ? "text-cyan-950" : "text-slate-400")}>
                 <Icon size={22} strokeWidth={active ? 2.4 : 2} />
                 <span className="max-w-full truncate px-0.5">{key === "kb" ? "Bilgi" : label}</span>
               </button>
@@ -2200,7 +2200,7 @@ function ListingFeed({ listings, onOpen, onProfile }) {
           >
             <SeenMarker kind="listing" id={item.id} enabled={isFeatured} />
             {isFeatured && (
-              <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 shadow-sm">
+              <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[12px] font-black text-amber-800 shadow-sm">
                 <Pin size={12} fill="currentColor" /> Öne çıkan
               </div>
             )}
@@ -2442,7 +2442,7 @@ function RightSidebar({ children, minimal = false }) {
       {!minimal && <div className="mt-4 overflow-hidden rounded-[28px] border border-slate-200 bg-white">
         <div className="relative h-52 overflow-hidden bg-slate-900 p-5 text-white" style={{ backgroundImage: "linear-gradient(120deg, rgba(8,51,68,.92), rgba(15,23,42,.62)), url(" + slide.image + ")", backgroundSize: "cover", backgroundPosition: "center" }}>
           <div className="relative z-10 flex h-full flex-col justify-end">
-            <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-100/80">Hoş geldin</div>
+            <div className="mb-2 text-[12px] font-black uppercase tracking-[0.18em] text-cyan-100/80">Hoş geldin</div>
             <h3 className="text-xl font-black leading-tight tracking-tight">{slide.title}</h3>
             <p className="mt-2 max-w-[240px] text-sm leading-relaxed text-cyan-50/90">{slide.text}</p>
           </div>
@@ -2459,11 +2459,11 @@ function RightSidebar({ children, minimal = false }) {
       <div className={(minimal ? "mt-4 border-t border-slate-100 pt-3 " : "mt-3 ") + "flex flex-wrap gap-1.5 opacity-75 transition hover:opacity-100"}>
         {footerLinks.map(([key, label]) =>
           key === "blog" ? (
-            <a key={key} href={BLOG_URL} target="_blank" rel="noopener" className="rounded-xl px-2.5 py-2 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">
+            <a key={key} href={BLOG_URL} target="_blank" rel="noopener" className="rounded-xl px-2.5 py-2 text-[12px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">
               {label}
             </a>
           ) : (
-            <button key={key} onClick={() => openInfo(key)} className="rounded-xl px-2.5 py-2 text-[11px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">
+            <button key={key} onClick={() => openInfo(key)} className="rounded-xl px-2.5 py-2 text-[12px] font-black text-slate-500 hover:bg-slate-50 hover:text-slate-800">
               {label}
             </button>
           )
@@ -2504,7 +2504,7 @@ function SidebarAd({ ad }) {
       <div className="relative h-28 overflow-hidden">
         <AdImage ad={ad} />
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/75 to-slate-950/10" />
-        <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-700">Reklam</div>
+        <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[12px] font-black uppercase tracking-[0.14em] text-amber-700">Reklam</div>
       </div>
       <div className="p-3">
         <div className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">{ad.brand}</div>
@@ -2529,7 +2529,7 @@ function FeedAdCard({ ad }) {
 
         <div className="min-w-0">
           <div className="mb-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[12px] font-black uppercase tracking-[0.12em] text-amber-700">
               Reklam
               <button
                 type="button"
@@ -2601,13 +2601,13 @@ function DetailBannerAd({ ad }) {
         <div className="relative hidden overflow-hidden sm:block">
           <AdImage ad={ad} />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/55 to-transparent" />
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-700">
+          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[12px] font-black uppercase tracking-[0.14em] text-amber-700">
             Reklam
           </span>
         </div>
 
         <div className="flex min-w-0 flex-col justify-center px-4 py-3">
-          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-700">
+          <div className="text-[12px] font-black uppercase tracking-[0.16em] text-amber-700">
             {ad.brand}
           </div>
           <div className="mt-0.5 line-clamp-1 text-base font-black leading-tight text-slate-950">
@@ -3066,7 +3066,7 @@ function EditListingModal({ listing, mode, onClose }) {
                   return (
                     <div
                       key={slot}
-                      className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-black text-slate-300"
+                      className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-[12px] font-black text-slate-300"
                     >
                       {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : slot + 1}
                     </div>
@@ -3108,7 +3108,7 @@ function EditListingModal({ listing, mode, onClose }) {
 
               <label>
                 <span className="mb-1 block text-xs font-black text-slate-500">Açıklama</span>
-                <textarea rows={5} defaultValue={listing.description || ""} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 outline-none" />
+                <textarea rows={5} defaultValue={listing.description || ""} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-base leading-6 outline-none" />
               </label>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -3317,13 +3317,13 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
                     <span className="truncate font-black text-slate-900">{message.user}</span>
 
                     {message.unread && (
-                      <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[11px] font-black text-white">
+                      <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[12px] font-black text-white">
                         Yeni
                       </span>
                     )}
 
                     {message.deleted && (
-                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-black text-red-700">
+                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-[12px] font-black text-red-700">
                         Silindi
                       </span>
                     )}
@@ -3409,7 +3409,7 @@ function MessagesPage({ conversations, activeId, setActiveId, onSend, onDelete, 
                         (mine ? "ml-auto bg-cyan-950 text-white" : "bg-slate-100 text-slate-700")
                       }
                     >
-                      <div className="mb-1 text-[11px] font-black opacity-70">
+                      <div className="mb-1 text-[12px] font-black opacity-70">
                         {item.from} · {item.time}
                       </div>
 
@@ -3550,7 +3550,7 @@ function DirectMessageForm({ onSend }) {
         <input value={topic} onChange={(event) => setTopic(event.target.value.slice(0, 80))} placeholder="Ör. Betta yavruları hakkında" className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700 focus:bg-white" />
       </label>
       <label className="grid gap-1 text-xs font-black text-slate-500">Mesajın
-        <textarea value={body} onChange={(event) => setBody(event.target.value.slice(0, 2000))} rows={5} placeholder="Merhaba!" className="resize-y rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-900 outline-none focus:border-cyan-700 focus:bg-white" />
+        <textarea value={body} onChange={(event) => setBody(event.target.value.slice(0, 2000))} rows={5} placeholder="Merhaba!" className="resize-y rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base font-normal text-slate-900 outline-none focus:border-cyan-700 focus:bg-white" />
       </label>
       {error && <div className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
       <div className="flex justify-end">
@@ -3660,7 +3660,7 @@ function UserListingsPage({ user, onBack, onOpen, onProfile, onMessage }) {
                 }
               >
                 {isFeatured && (
-                  <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 shadow-sm">
+                  <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[12px] font-black text-amber-800 shadow-sm">
                     <Pin size={12} fill="currentColor" /> Öne çıkan
                   </div>
                 )}
@@ -3739,7 +3739,7 @@ function MediaThumb({ item, size = "h-11 w-11" }) {
     return (
       <span className={"relative shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-cyan-800 to-teal-500 " + size}>
         <img src={item.images[0]} alt="" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-        {item.images.length > 1 && <span className="absolute bottom-0.5 right-0.5 rounded bg-slate-950/70 px-1 text-[9px] font-black text-white">+{item.images.length - 1}</span>}
+        {item.images.length > 1 && <span className="absolute bottom-0.5 right-0.5 rounded bg-slate-950/70 px-1 text-[12px] font-black text-white">+{item.images.length - 1}</span>}
       </span>
     );
   }
@@ -3835,7 +3835,7 @@ function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSp
               </ul>
             )
           )}
-          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">Değerlendirmeler, ilan üzerinden yazışıp alışveriş yapan üyeler tarafından Mesajlarım ekranından verilir.</p>
+          <p className="mt-2 text-[12px] leading-relaxed text-slate-400">Değerlendirmeler, ilan üzerinden yazışıp alışveriş yapan üyeler tarafından Mesajlarım ekranından verilir.</p>
         </div>
 
         <div className="mb-4 rounded-2xl bg-slate-50 p-3">
@@ -4058,7 +4058,7 @@ function ReportModal({ target, onClose, onSubmit }) {
 
         <label className="mt-3 block">
           <span className="mb-1 block text-xs font-black text-slate-500">Açıklama - opsiyonel</span>
-          <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={300} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700" placeholder="Kısaca açıklayın..." />
+          <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={300} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-cyan-700" placeholder="Kısaca açıklayın..." />
         </label>
         <p className="mt-2 text-xs leading-relaxed text-slate-400">Bildirimler gizlidir; içerik sahibi kimin bildirdiğini görmez.</p>
         <button onClick={() => onSubmit({ reason, note })} disabled={!reason} className="mt-4 w-full rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">Bildir</button>
@@ -4296,9 +4296,9 @@ function AddListingModal({ auth, listing = null, republish = false, species = nu
                   <div key={photo.url} className="group relative aspect-square overflow-hidden rounded-2xl bg-slate-100">
                     <img src={photo.url} alt="" className="h-full w-full object-cover" />
                     {index === 0 ? (
-                      <span className="absolute left-1 top-1 rounded-full bg-cyan-950 px-2 py-0.5 text-[10px] font-black text-white">Vitrin</span>
+                      <span className="absolute left-1 top-1 rounded-full bg-cyan-950 px-2 py-0.5 text-[12px] font-black text-white">Vitrin</span>
                     ) : (
-                      <button type="button" onClick={() => makeCover(index)} className="absolute left-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-slate-700">Vitrin yap</button>
+                      <button type="button" onClick={() => makeCover(index)} className="absolute left-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[12px] font-black text-slate-700">Vitrin yap</button>
                     )}
                     <button type="button" onClick={() => removePhoto(index)} className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-slate-950/70 text-white" title="Kaldır"><X size={13} /></button>
                   </div>

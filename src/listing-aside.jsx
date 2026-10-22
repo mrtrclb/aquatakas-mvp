@@ -72,7 +72,7 @@ function SpeciesCareCard({ species, onOpen }) {
           <span className={"grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-xl " + category.tone}>{category.emoji}</span>
         )}
         <span className="min-w-0">
-          <span className="block text-[10px] font-black uppercase tracking-wide text-cyan-800">Bakım kartı</span>
+          <span className="block text-[12px] font-black uppercase tracking-wide text-cyan-800">Bakım kartı</span>
           <span className="block truncate text-sm font-black text-slate-900">{species.name}</span>
           <span className="block truncate text-xs italic text-slate-500">{species.latin}</span>
         </span>

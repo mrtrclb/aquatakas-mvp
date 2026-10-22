@@ -61,7 +61,7 @@ function EditListingModal({ listing, mode, onClose }) {
                   return (
                     <div
                       key={slot}
-                      className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-black text-slate-300"
+                      className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-[12px] font-black text-slate-300"
                     >
                       {image ? (
                         <img src={image} alt="" className="h-full w-full object-cover" />
@@ -127,7 +127,7 @@ function EditListingModal({ listing, mode, onClose }) {
                 <textarea
                   rows={5}
                   defaultValue={listing.description || ""}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 outline-none"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-base leading-6 outline-none"
                 />
               </label>
 

@@ -100,7 +100,7 @@ export function HomeTopBar({ filter, onFilter, tab, onTab, location, onLocation,
         )}
       </div>
       {(filter === "listings" || filter === "posts") && (
-        <p className="px-4 pb-2 text-[11px] font-semibold text-slate-400">
+        <p className="px-4 pb-2 text-[12px] font-semibold text-slate-400">
           Bu seçim hatırlanır; ana sayfa bir dahaki girişte de {filter === "listings" ? "ilanlarla" : "içeriklerle"} açılır. Karışık akış için “Tümü”yü seç.
         </p>
       )}
@@ -126,7 +126,7 @@ function HomeListingCard({ item, ctx, featured }) {
         <div className="flex flex-wrap items-center gap-1.5 text-sm">
           <button type="button" onClick={(event) => { event.stopPropagation(); ctx.onProfile(user); }} className="font-black text-slate-900 hover:underline"><UserName user={user} /></button>
           <span className="text-slate-400">· ilan verdi</span>
-          {featured && <span className="ml-auto flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-800"><Pin size={10} fill="currentColor" /> Öne çıkan</span>}
+          {featured && <span className="ml-auto flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[12px] font-black text-amber-800"><Pin size={10} fill="currentColor" /> Öne çıkan</span>}
         </div>
         <div className="mt-2 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white sm:flex-row sm:gap-3">
           <div className="relative aspect-[16/9] w-full shrink-0 bg-gradient-to-br from-cyan-800 to-teal-500 sm:aspect-auto sm:h-28 sm:w-36">
@@ -135,8 +135,8 @@ function HomeListingCard({ item, ctx, featured }) {
           </div>
           <div className="min-w-0 flex-1 px-3 py-2.5 sm:pl-0">
             <div className="flex flex-wrap gap-1">
-              <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[11px] font-black text-white">{item.type}</span>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">{item.category}</span>
+              <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[12px] font-black text-white">{item.type}</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-black text-slate-600">{item.category}</span>
             </div>
             <h3 className="mt-1.5 line-clamp-2 text-[15px] font-black leading-snug text-slate-900 sm:line-clamp-1">{item.title}</h3>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
@@ -229,7 +229,7 @@ function OnboardingCard({ groups, ctx, onDone }) {
                         <span className={"grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] " + (active ? "bg-cyan-950 text-white" : "ring-1 ring-slate-300")}>{active ? "✓" : ""}</span>
                       </span>
                       <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-slate-500">{group.description}</span>
-                      <span className="mt-1 block text-[11px] font-bold text-slate-400">{group.memberIds.length} üye</span>
+                      <span className="mt-1 block text-[12px] font-bold text-slate-400">{group.memberIds.length} üye</span>
                     </span>
                   </button>
                 );
@@ -405,11 +405,11 @@ export function HomeAside({ ctx, groups, posts }) {
                   <span className={"grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg " + group.color}>{group.emoji}</span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-black text-slate-900 hover:underline">{group.name}</span>
-                    <span className="block text-[11px] font-semibold text-slate-400">{group.memberIds.length} üye</span>
+                    <span className="block text-[12px] font-semibold text-slate-400">{group.memberIds.length} üye</span>
                   </span>
                 </button>
                 {joined ? (
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-500">✓ Üyesin</span>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[12px] font-black text-slate-500">✓ Üyesin</span>
                 ) : (
                   <button onClick={() => ctx.onToggleJoin(group.id)} className="shrink-0 rounded-full bg-cyan-950 px-3 py-1.5 text-xs font-black text-white hover:bg-cyan-900">Katıl</button>
                 )}
@@ -453,7 +453,7 @@ export function HomeWidgets({ posts, ctx, className = "mt-4 grid gap-4" }) {
                 <span className="w-4 shrink-0 text-sm font-black text-slate-300">{index + 1}</span>
                 <span className="min-w-0">
                   <span className="line-clamp-2 text-[13px] font-bold leading-snug text-slate-800">{post.text || mediaLabel(post)}</span>
-                  <span className="mt-0.5 flex items-center gap-2 text-[11px] font-semibold text-slate-400">
+                  <span className="mt-0.5 flex items-center gap-2 text-[12px] font-semibold text-slate-400">
                     <span>{user.username}</span>
                     <span className="flex items-center gap-0.5"><MessageCircle size={11} /> {post.comments.length}</span>
                     <span>{timeAgo(post.createdAt)}</span>
@@ -468,12 +468,12 @@ export function HomeWidgets({ posts, ctx, className = "mt-4 grid gap-4" }) {
       <section className="rounded-[28px] border border-slate-200 p-4">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-black text-slate-900"><Hash size={16} className="text-cyan-700" /> Gündemdeki etiketler</h3>
-          <button onClick={ctx.onOpenTags} className="text-[11px] font-black text-cyan-800 hover:underline">Tümü →</button>
+          <button onClick={ctx.onOpenTags} className="text-[12px] font-black text-cyan-800 hover:underline">Tümü →</button>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {tags.map(({ tag, count }) => (
             <button key={tag} onClick={() => ctx.onSearch(tag)} className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-900 hover:bg-cyan-100">
-              {tag} <span className="text-[10px] text-cyan-700/70">{count}</span>
+              {tag} <span className="text-[12px] text-cyan-700/70">{count}</span>
             </button>
           ))}
         </div>

@@ -2,11 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Yazı ölçeği — tüm sitede tek kaynak. Mobil değerler tarayıcı varsayılanıyla aynıdır;
+   masaüstünde kök 14px olduğu için boyutlar ayrıca sabitlenir (aksi halde text-sm ≈ 12px kalıyordu). */
+:root {
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-base: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 20px;
+}
+@media (min-width: 1024px) {
+  :root {
+    --fs-xs: 12px;
+    --fs-sm: 13.5px;
+    --fs-base: 15px;
+    --fs-lg: 17px;
+    --fs-xl: 19px;
+  }
+}
+
 body {
   margin: 0;
 }
 @media (min-width: 1024px) {
   html {
     font-size: 14px;
+  }
+}
+
+/* Mobilde form alanları 16px altında olursa iOS odaklanınca sayfayı yakınlaştırır */
+@media (max-width: 1023px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
   }
 }

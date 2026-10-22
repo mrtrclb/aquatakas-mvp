@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+const MapPicker = lazy(() => import("./species-map.jsx").then((mod) => ({ default: mod.MapPicker })));
 import {
   ArrowLeft,
   Ban,
@@ -1897,7 +1898,15 @@ function GroupsSection() {
 /* ------------------------------------------------------------------ */
 
 const FORM_KIND_LABELS = { lokalite: "Lokalite", varyete: "Varyete", ticari: "Ticari ad" };
-const EMPTY_SPECIES_FORM = { id: null, name: "", kind: "lokalite", origin: "", note: "", aliases: "", images: [], source_url: "", position: 0, status: "published" };
+const EMPTY_SPECIES_FORM = { id: null, name: "", kind: "lokalite", origin: "", note: "", aliases: "", images: [], source_url: "", position: 0, status: "published", lat: null, lng: null };
+const coordText = (lat, lng) => (lat == null || lng == null ? "" : Number(lat).toFixed(4) + ", " + Number(lng).toFixed(4));
+// "-12.08, 34.62" ya da "-12.08 34.62" biçimindeki metni { lat, lng }'ye çevirir
+function parseCoord(text) {
+  const match = String(text || "").trim().match(/^(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)$/);
+  if (!match) return null;
+  const lat = Number(match[1].replace(",", ".")), lng = Number(match[2].replace(",", "."));
+  return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
+}
 
 function SpeciesFormsEditor({ speciesId, latin, slug }) {
   const { act, ask } = useAdmin();
@@ -1936,7 +1945,9 @@ function SpeciesFormsEditor({ speciesId, latin, slug }) {
       images: edit.images,
       source_url: edit.source_url.trim() || null,
       position: Number(edit.position) || 0,
-      status: edit.status
+      status: edit.status,
+      lat: edit.lat ?? null,
+      lng: edit.lat == null ? null : edit.lng
     };
     const request = edit.id ? supabase.from("species_forms").update(row).eq("id", edit.id) : supabase.from("species_forms").insert(row);
     if (await act(request, edit.id ? "Kayıt güncellendi" : "Kayıt eklendi")) {
@@ -1987,6 +1998,28 @@ function SpeciesFormsEditor({ speciesId, latin, slug }) {
               <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={addImages} />
             </div>
           </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-black text-slate-500">
+              <span>Haritadaki yeri {edit.kind !== "lokalite" && "(genellikle yalnızca lokaliteler için)"} · haritaya tıkla ya da koordinat yaz</span>
+              {edit.lat != null && <button type="button" onClick={() => setEdit((prev) => ({ ...prev, lat: null, lng: null }))} className="text-red-700 hover:underline">Konumu kaldır</button>}
+            </div>
+            <input
+              key={"c" + edit.lat + edit.lng}
+              className={input}
+              defaultValue={coordText(edit.lat, edit.lng)}
+              placeholder="-12.08, 34.62"
+              onBlur={(event) => { const c = parseCoord(event.target.value); if (c) setEdit((prev) => ({ ...prev, ...c })); else if (!event.target.value.trim()) setEdit((prev) => ({ ...prev, lat: null, lng: null })); }}
+            />
+            <Suspense fallback={<div className="h-[240px] animate-pulse rounded-2xl bg-slate-100" />}>
+              <MapPicker
+                key={edit.id || "yeni"}
+                height={240}
+                value={edit.lat != null ? { lat: edit.lat, lng: edit.lng } : null}
+                onPick={(c) => setEdit((prev) => ({ ...prev, ...c }))}
+                context={(state.data || []).filter((row) => row.lat != null && row.id !== edit.id).map((row) => ({ lat: row.lat, lng: row.lng, title: row.name }))}
+              />
+            </Suspense>
+          </div>
           <label className="flex items-center gap-2 text-sm font-bold sm:col-span-2">
             <input type="checkbox" className="h-4 w-4 accent-cyan-900" checked={edit.status === "published"} onChange={(event) => set("status", event.target.checked ? "published" : "draft")} /> Sitede göster
           </label>
@@ -2011,6 +2044,7 @@ function SpeciesFormsEditor({ speciesId, latin, slug }) {
                       <span className="font-black">{row.kind === "lokalite" ? (latin || "").replace(/\s*'.*$/, "") + " '" + row.name + "'" : row.name}</span>
                       <Badge tone={row.kind === "lokalite" ? "emerald" : row.kind === "varyete" ? "violet" : "amber"}>{FORM_KIND_LABELS[row.kind]}</Badge>
                       {row.status !== "published" && <Badge>Gizli</Badge>}
+                      {row.lat != null && <span title={coordText(row.lat, row.lng)} className="text-xs">📍</span>}
                     </div>
                     {row.origin && <div className="text-xs text-slate-500">{row.origin}</div>}
                     {row.aliases && row.aliases.length > 0 && <div className="text-xs text-slate-500">Diğer adlar: {row.aliases.join(", ")}</div>}
@@ -2364,6 +2398,7 @@ function SpeciesSection() {
                             </div>
                             {sp && <a href={"#/yonetim/turler/" + sp.id} className="text-sm font-bold text-cyan-800 hover:underline">{sp.name} <span className="font-normal italic text-slate-500">{sp.latin}</span></a>}
                             {row.origin && <p className="mt-1 text-sm text-slate-600">📍 {row.origin}</p>}
+                            {row.lat != null && <a href={"https://www.openstreetmap.org/?mlat=" + row.lat + "&mlon=" + row.lng + "#map=8/" + row.lat + "/" + row.lng} target="_blank" rel="noreferrer noopener" className="text-xs font-bold text-cyan-800 hover:underline">Haritada işaretlenen nokta: {coordText(row.lat, row.lng)}</a>}
                             {row.aliases && row.aliases.length > 0 && <p className="text-sm text-slate-500">Diğer adlar: {row.aliases.join(", ")}</p>}
                             {row.note && <p className="mt-1 whitespace-pre-line text-sm text-slate-600">{row.note}</p>}
                             {row.source_url && <a href={row.source_url} target="_blank" rel="noreferrer noopener" className="mt-1 block truncate text-xs font-bold text-cyan-800 hover:underline">{row.source_url}</a>}
@@ -2460,6 +2495,70 @@ function SpeciesSection() {
         }}
       </LoadState>
     </Section>
+  );
+}
+
+/* Tür yayılım alanları (haritadaki daireler) ----------------------------- */
+function SpeciesRangeEditor({ speciesId }) {
+  const { act } = useAdmin();
+  const [areas, setAreas] = useState(null);
+  const [active, setActive] = useState(0);
+  const [dirty, setDirty] = useState(false);
+  const state = useLoad(async () => {
+    const [sp, forms] = await Promise.all([
+      must(supabase.from("species").select("range_areas").eq("id", speciesId).single()),
+      must(supabase.from("species_forms").select("name, lat, lng").eq("species_id", speciesId).not("lat", "is", null))
+    ]);
+    return { areas: sp.range_areas || [], forms };
+  }, [speciesId]);
+  useEffect(() => { if (state.data && areas === null) setAreas(state.data.areas); }, [state.data, areas]);
+  const input = "w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm outline-none focus:border-cyan-700";
+  const update = (index, patch) => { setAreas((prev) => prev.map((area, i) => (i === index ? { ...area, ...patch } : area))); setDirty(true); };
+  async function save() {
+    const clean = (areas || []).filter((area) => Number.isFinite(area.lat) && Number.isFinite(area.lng)).map((area) => ({ label: (area.label || "").trim(), lat: area.lat, lng: area.lng, r: Math.max(5, Math.min(3000, Number(area.r) || 100)) }));
+    if (await act(supabase.from("species").update({ range_areas: clean }).eq("id", speciesId), "Yayılım alanları kaydedildi")) { setAreas(clean); setDirty(false); }
+  }
+  return (
+    <Card className="mt-4">
+      <div className="mb-3">
+        <h2 className="font-black">Doğadaki yayılım alanları</h2>
+        <p className="text-xs text-slate-500">Türün doğada yaygın görüldüğü bölgeler; tür sayfasındaki haritada yarı saydam daire olarak görünür. Bir satır seç, haritaya tıklayarak merkezini koy, yarıçapı km olarak ver. Gri noktalar lokaliteler.</p>
+      </div>
+      <LoadState state={state}>
+        {(data) => (
+          <>
+            <div className="mb-2 grid gap-1.5">
+              {(areas || []).map((area, index) => (
+                <div key={index} onClick={() => setActive(index)} className={"grid cursor-pointer grid-cols-[1fr_88px_auto] items-center gap-2 rounded-2xl border px-2 py-1.5 " + (active === index ? "border-cyan-700 bg-cyan-50/50" : "border-slate-100")}>
+                  <input className={input} value={area.label || ""} onChange={(event) => update(index, { label: event.target.value })} placeholder="Bölge adı (ör. Malavi Gölü)" />
+                  <label className="flex items-center gap-1 text-xs text-slate-500"><input type="number" min={5} max={3000} className={input} value={area.r || ""} onChange={(event) => update(index, { r: Number(event.target.value) })} />km</label>
+                  <div className="flex items-center gap-1">
+                    <span className="hidden text-[11px] text-slate-400 sm:inline">{coordText(area.lat, area.lng) || "konum yok"}</span>
+                    <Btn small tone="ghostDanger" onClick={(event) => { event.stopPropagation(); setAreas((prev) => prev.filter((_, i) => i !== index)); setActive(0); setDirty(true); }}><Trash2 size={13} /></Btn>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Btn small onClick={() => { setAreas((prev) => [...(prev || []), { label: "", lat: null, lng: null, r: 150 }]); setActive((areas || []).length); setDirty(true); }}><Plus size={13} /> Bölge ekle</Btn>
+              <Btn small tone="primary" disabled={!dirty} onClick={save}><Check size={13} /> Kaydet</Btn>
+            </div>
+            <Suspense fallback={<div className="h-[300px] animate-pulse rounded-2xl bg-slate-100" />}>
+              <MapPicker
+                height={300}
+                value={areas && areas[active] && areas[active].lat != null ? { lat: areas[active].lat, lng: areas[active].lng } : null}
+                areas={(areas || []).filter((area) => area.lat != null)}
+                context={data.forms.map((row) => ({ lat: row.lat, lng: row.lng, title: row.name }))}
+                onPick={(c) => {
+                  if (!areas || !areas.length) { setAreas([{ label: "", r: 150, ...c }]); setActive(0); setDirty(true); return; }
+                  update(Math.min(active, areas.length - 1), c);
+                }}
+              />
+            </Suspense>
+          </>
+        )}
+      </LoadState>
+    </Card>
   );
 }
 
@@ -2730,6 +2829,7 @@ function SpeciesEditor({ param }) {
           </div>
         </div>
         {!isNew && <SpeciesFormsEditor speciesId={Number(param)} latin={form.latin} slug={form.slug} />}
+        {!isNew && <SpeciesRangeEditor speciesId={Number(param)} />}
       </Section>
     </div>
   );

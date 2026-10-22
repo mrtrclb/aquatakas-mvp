@@ -230,7 +230,10 @@ function adsFor(placement) {
 }
 
 function AdImage({ ad, className = "h-full w-full object-cover" }) {
-  return ad.image ? <img src={ad.image} alt="" className={className} /> : <div className={className + " bg-gradient-to-br from-amber-200 via-amber-100 to-cyan-100"} />;
+  const [broken, setBroken] = useState(false);
+  return ad.image && !broken
+    ? <img src={ad.image} alt="" loading="lazy" onError={() => setBroken(true)} className={className} />
+    : <div className={className + " grid place-items-center bg-gradient-to-br from-amber-200 via-amber-100 to-cyan-100 text-lg font-black text-amber-700/70"}>{(ad.brand || "").slice(0, 1)}</div>;
 }
 
 function formatDate(iso) {
@@ -2512,7 +2515,7 @@ function SidebarAd({ ad }) {
         <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[12px] font-black uppercase tracking-[0.14em] text-amber-700">Reklam</div>
       </div>
       <div className="p-3">
-        <div className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">{ad.brand}</div>
+        <div className="text-[13px] font-black text-amber-800">{ad.brand}</div>
         <div className="mt-1 text-sm font-black leading-snug text-slate-900">{ad.title}</div>
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600">{ad.text}</p>
         <AdCta ad={ad} className="mt-3 rounded-full bg-amber-500 px-3 py-2 text-xs font-black text-white hover:bg-amber-600" />
@@ -2549,7 +2552,7 @@ function FeedAdCard({ ad }) {
               </button>
             </span>
 
-            <span className="min-w-0 truncate text-xs font-black uppercase tracking-[0.12em] text-amber-700">
+            <span className="min-w-0 truncate text-[13px] font-black text-amber-800">
               {ad.brand}
             </span>
           </div>
@@ -2599,34 +2602,29 @@ function AdInfoModal({ onClose }) {
 }
 
 function DetailBannerAd({ ad }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   useAdImpression(ad);
   return (
-    <div onClick={() => openAd(ad)} className={"mb-5 overflow-hidden rounded-[22px] border border-amber-200 bg-amber-50/80 shadow-sm " + (ad.url ? "cursor-pointer" : "")}>
-      <div className="grid min-h-[92px] gap-0 sm:grid-cols-[150px_1fr_auto]">
-        <div className="relative hidden overflow-hidden sm:block">
+    <div onClick={() => openAd(ad)} className={"mb-5 rounded-[22px] border border-amber-200 bg-amber-50/70 p-3 shadow-sm transition hover:bg-amber-50 " + (ad.url ? "cursor-pointer" : "")}>
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-amber-100 ring-1 ring-amber-200/70 sm:h-[72px] sm:w-[72px]">
           <AdImage ad={ad} />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/55 to-transparent" />
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[12px] font-black uppercase tracking-[0.14em] text-amber-700">
-            Reklam
-          </span>
         </div>
-
-        <div className="flex min-w-0 flex-col justify-center px-4 py-3">
-          <div className="text-[12px] font-black uppercase tracking-[0.16em] text-amber-700">
-            {ad.brand}
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.1em] text-amber-700">
+              Reklam
+              <button type="button" onClick={(event) => { event.stopPropagation(); setInfoOpen(true); }} className="grid h-3.5 w-3.5 place-items-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200" title="Bu reklam hakkında" aria-label="Bu reklam hakkında"><Info size={9} /></button>
+            </span>
+            {ad.brand && <span className="min-w-0 truncate text-[13px] font-black text-amber-800">{ad.brand}</span>}
           </div>
-          <div className="mt-0.5 line-clamp-1 text-base font-black leading-tight text-slate-950">
-            {ad.title}
-          </div>
-          <p className="mt-0.5 line-clamp-1 text-sm leading-relaxed text-slate-600">
-            {ad.text}
-          </p>
+          <div className="mt-1 line-clamp-2 text-[15px] font-black leading-snug text-slate-950 sm:line-clamp-1">{ad.title}</div>
+          {ad.text && <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-slate-600 sm:line-clamp-1">{ad.text}</p>}
         </div>
-
-        <div className="flex items-center px-4 pb-3 sm:pb-0">
-          <AdCta ad={ad} className="rounded-full bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600" />
-        </div>
+        {ad.cta && <AdCta ad={ad} className="hidden shrink-0 rounded-full bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600 sm:block" />}
       </div>
+      {ad.cta && <AdCta ad={ad} className="mt-2.5 w-full rounded-full bg-amber-500 px-4 py-1.5 text-[13px] font-black text-white hover:bg-amber-600 sm:hidden" />}
+      {infoOpen && <AdInfoModal onClose={() => setInfoOpen(false)} />}
     </div>
   );
 }

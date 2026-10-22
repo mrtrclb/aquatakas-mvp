@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+const SpeciesMap = lazy(() => import("./species-map.jsx"));
+const MapPicker = lazy(() => import("./species-map.jsx").then((mod) => ({ default: mod.MapPicker })));
 import {
   ArrowLeft,
   BookOpen,
@@ -580,7 +582,7 @@ function KeepersSection({ keepers, species, kb, ctx }) {
   return (
     <section className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-        <h3 className="flex items-center gap-2 text-sm font-black text-slate-800"><Users size={15} /> Bu türü besleyenler <span className="text-slate-400">({sorted.length})</span></h3>
+        <h3 className="flex items-center gap-2 text-sm font-black text-slate-800"><Users size={15} /> Bu türü besleyenler {sorted.length > 0 && <span className="text-slate-400">({sorted.length})</span>}</h3>
         <span className="text-[12px] font-semibold text-slate-400">Takas, yavru ve deneyim için ulaş</span>
       </div>
       {sorted.length ? (
@@ -786,6 +788,8 @@ const FORM_PREVIEW = 3;
 
 function SuggestFormModal({ species, userId, onClose, onDone }) {
   const [form, setForm] = useState({ name: "", kind: "lokalite", origin: "", aliases: "", note: "", source_url: "" });
+  const [point, setPoint] = useState(null); // { lat, lng }
+  const [showMap, setShowMap] = useState(false);
   const [images, setImages] = useState([]); // { url, file }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -832,6 +836,8 @@ function SuggestFormModal({ species, userId, onClose, onDone }) {
         aliases: form.aliases.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 8),
         note: form.note.trim(),
         source_url: source || null,
+        lat: form.kind === "lokalite" && point ? point.lat : null,
+        lng: form.kind === "lokalite" && point ? point.lng : null,
         images: urls
       });
       if (err) throw err;
@@ -871,6 +877,25 @@ function SuggestFormModal({ species, userId, onClose, onDone }) {
           <label className="grid gap-1 text-xs font-black text-slate-500">{form.kind === "lokalite" ? "Bulunduğu yer" : "Köken (biliyorsan)"}
             <input className={input} value={form.origin} onChange={set("origin")} maxLength={200} placeholder={form.kind === "lokalite" ? "Örn. Malavi Gölü, Mbenji Adası" : "Örn. Asya çiftlik üretimi"} />
           </label>
+          {form.kind === "lokalite" && (
+            <div className="sm:col-span-2">
+              {showMap ? (
+                <div className="grid gap-1.5">
+                  <div className="flex items-center justify-between gap-2 text-xs font-black text-slate-500">
+                    <span>Haritada yerini işaretle (yaklaşık yeterli)</span>
+                    {point && <button type="button" onClick={() => setPoint(null)} className="font-black text-red-700 hover:underline">İşareti kaldır</button>}
+                  </div>
+                  <Suspense fallback={<div className="h-[220px] animate-pulse rounded-2xl bg-slate-100" />}>
+                    <MapPicker height={220} value={point} onPick={setPoint} areas={species.ranges || []}
+                      context={(species.forms || []).filter((item) => item.lat != null).map((item) => ({ lat: item.lat, lng: item.lng, title: item.name }))} />
+                  </Suspense>
+                  <span className="text-[11px] text-slate-400">{point ? "Seçilen nokta: " + point.lat.toFixed(3) + ", " + point.lng.toFixed(3) : "Haritaya dokunarak nokta koy. Gri noktalar listedeki lokaliteler."}</span>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowMap(true)} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-black text-cyan-900 ring-1 ring-cyan-200 hover:bg-cyan-50"><MapPin size={13} /> Haritada işaretle (isteğe bağlı)</button>
+              )}
+            </div>
+          )}
           <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Diğer adları (virgülle ayır, isteğe bağlı)
             <input className={input} value={form.aliases} onChange={set("aliases")} maxLength={300} placeholder="Örn. OB, Orange Blotch" />
           </label>
@@ -906,7 +931,45 @@ function SuggestFormModal({ species, userId, onClose, onDone }) {
   );
 }
 
-function FormsSection({ species, ctx }) {
+function DistributionSection({ species, focus }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  const points = (species.forms || [])
+    .filter((form) => form.lat != null && form.lng != null)
+    .map((form) => ({ id: form.dbId, lat: form.lat, lng: form.lng, title: form.kind === "lokalite" ? "'" + form.name + "'" : form.name, origin: form.origin }));
+  const areas = species.ranges || [];
+  // Harita kütüphanesi yalnızca bölüm ekrana yaklaşınca yüklenir
+  useEffect(() => {
+    if (!ref.current || visible) return undefined;
+    if (!("IntersectionObserver" in window)) { setVisible(true); return undefined; }
+    const io = new IntersectionObserver((entries) => entries.some((entry) => entry.isIntersecting) && setVisible(true), { rootMargin: "300px" });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [visible]);
+  useEffect(() => {
+    if (focus) { setVisible(true); ref.current && ref.current.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  }, [focus]);
+  if (!points.length && !areas.length) return null;
+  return (
+    <section id="dagilim" ref={ref} className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
+      <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+        <h3 className="text-sm font-black text-slate-800">Doğadaki dağılımı</h3>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-slate-500">
+          {areas.length > 0 && <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full border border-dashed border-cyan-700 bg-cyan-400/30" /> Yaygın görüldüğü bölge</span>}
+          {points.length > 0 && <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600 ring-2 ring-white" /> Lokalite ({points.length})</span>}
+        </p>
+      </div>
+      {visible ? (
+        <Suspense fallback={<div className="h-[300px] animate-pulse bg-slate-100" />}>
+          <SpeciesMap points={points} areas={areas} focus={focus} />
+        </Suspense>
+      ) : <div className="h-[300px] bg-slate-100" />}
+      <p className="px-4 py-2 text-[12px] text-slate-400">Konumlar yaklaşıktır; lokalite adları çoğu zaman bir ada, resif, köy ya da nehir kesimini anlatır. Doğadan toplama yerlerini paylaşırken yaşam alanlarını korumayı unutmayalım.</p>
+    </section>
+  );
+}
+
+function FormsSection({ species, ctx, onLocate }) {
   const forms = species.forms || [];
   const [open, setOpen] = useState(false);
   const [lightbox, setLightbox] = useState(null); // { images, index }
@@ -953,6 +1016,9 @@ function FormsSection({ species, ctx }) {
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="font-black text-slate-900">{form.kind === "lokalite" ? "'" + form.name + "'" : form.name}</span>
                 <span className={"rounded-full px-2 py-0.5 text-[11px] font-black ring-1 " + FORM_TONE[form.kind]}>{FORM_KINDS[form.kind].label}</span>
+                {form.lat != null && onLocate && (
+                  <button type="button" onClick={() => onLocate(form.dbId)} className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-black text-cyan-800 hover:bg-cyan-50" title="Haritada göster"><MapPin size={12} /> Haritada</button>
+                )}
               </div>
               {form.kind === "lokalite" && latinBase && <p className="text-[12px] italic text-slate-400">{latinBase} '{form.name}'</p>}
               {form.origin && <p className="mt-0.5 flex items-start gap-1 text-sm text-slate-600"><MapPin size={14} className="mt-0.5 shrink-0 text-slate-400" /> {form.origin}</p>}
@@ -976,6 +1042,7 @@ function FormsSection({ species, ctx }) {
 
 export function SpeciesPage({ species, kb, ctx, listings, posts }) {
   const [sort, setSort] = useState("newest");
+  const [mapFocus, setMapFocus] = useState(null);
   const category = categoryById(species.category);
   const keepers = keepersOf(kb, species.slug);
   const myKeep = ctx.isMember && (kb.keeping[ctx.currentUserId] || []).includes(species.slug);
@@ -1036,7 +1103,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
                 {keepers.filter((id) => ctx.users[id]).slice(0, 5).map((id) => <span key={id} className="rounded-full ring-2 ring-white"><Avatar user={ctx.users[id]} size={24} onClick={() => ctx.onProfile(ctx.users[id])} /></span>)}
               </span>
             )}
-            <span><strong className="text-slate-900">{keepers.length}</strong> üye bu türü besliyor</span>
+            {keepers.length > 0 && <span><strong className="text-slate-900">{keepers.length}</strong> üye bu türü besliyor</span>}
           </div>
         </div>
       </div>
@@ -1061,7 +1128,8 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
         <p className="px-4 py-2 text-[12px] text-slate-400">Değerler hobide yaygın kabul gören aralıklardır; hat, lokasyon ve bireye göre değişebilir.</p>
       </section>
 
-      <FormsSection species={species} ctx={ctx} />
+      <DistributionSection species={species} focus={mapFocus} />
+      <FormsSection species={species} ctx={ctx} onLocate={(id) => setMapFocus({ id, n: Date.now() })} />
 
       <KeepersSection keepers={keepers} species={species} kb={kb} ctx={ctx} />
       <RelatedSection species={species} listings={linkedListings} posts={linkedPosts} ctx={ctx} />

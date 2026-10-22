@@ -6,7 +6,7 @@ const ts = (value) => (value ? new Date(value).getTime() : Date.now());
 const PROFILE_COLS = "id, username, city, bio, avatar_url, phone_verified, socials, created_at, pro_until";
 
 // Veritabanı tür satırını arayüzdeki tür nesnesine çevirir (koddaki örnek veriyle aynı biçim)
-export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at, care_notice";
+export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at, care_notice, range_areas";
 export function mapSpeciesRow(row) {
   const images = Array.isArray(row.images) ? row.images.filter(Boolean) : [];
   if (row.image_url && !images.includes(row.image_url)) images.unshift(row.image_url);
@@ -24,6 +24,7 @@ export function mapSpeciesRow(row) {
     keywords: row.keywords || [],
     notice: row.care_notice || "",
     rare: Boolean(row.is_rare),
+    ranges: Array.isArray(row.range_areas) ? row.range_areas.filter((area) => area && Number.isFinite(area.lat) && Number.isFinite(area.lng)) : [],
     images,
     status: row.status,
     addedAt: ts(row.created_at) + (row.id || 0) // aynı anda eklenenler için kararlı sıra
@@ -31,7 +32,7 @@ export function mapSpeciesRow(row) {
 }
 
 // Lokalite / varyete / ticari ad kaydı
-export const FORM_COLS = "id, species_id, name, kind, origin, note, aliases, images, source_url, position, status";
+export const FORM_COLS = "id, species_id, name, kind, origin, note, aliases, images, source_url, position, status, lat, lng";
 export const FORM_KINDS = {
   lokalite: { label: "Lokalite", hint: "Doğadaki belirli bir bölgenin popülasyonu" },
   varyete: { label: "Varyete", hint: "Akvaryumda seçilerek üretilmiş renk ya da yüzgeç hattı" },
@@ -49,6 +50,8 @@ export function mapSpeciesForm(row) {
     images: (row.images || []).filter(Boolean),
     sourceUrl: row.source_url || "",
     position: row.position || 0,
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
     status: row.status
   };
 }

@@ -10,6 +10,18 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
 });
 
+// Supabase'de hangi sosyal girişlerin açık olduğu ({ google: true, apple: false … })
+let providersPromise = null;
+export function enabledProviders() {
+  if (!providersPromise) {
+    providersPromise = fetch(SUPABASE_URL + "/auth/v1/settings", { headers: { apikey: SUPABASE_KEY } })
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((json) => json.external || {})
+      .catch(() => ({}));
+  }
+  return providersPromise;
+}
+
 // E-posta bağlantılarının döneceği adres (alan adı değişse de doğru çalışır)
 export function siteUrl() {
   return window.location.origin + "/";
@@ -31,6 +43,7 @@ const ERRORS = [
   [/same.?password|different from the old/i, "Yeni şifre eskisiyle aynı olamaz."],
   [/profiles_username_key|duplicate key.*username/i, "Bu kullanıcı adı alınmış."],
   [/username_check|profiles_username_check/i, "Kullanıcı adı 3-24 karakter olmalı; yalnızca küçük harf, rakam, nokta ve alt çizgi içerebilir."],
+  [/provider is not enabled|unsupported provider/i, "Bu giriş yöntemi henüz etkin değil."],
   [/failed to fetch|network/i, "Bağlantı kurulamadı. İnternet bağlantını kontrol et."],
   [/row-level security policy for table "messages"/i, "Bu kullanıcıyla mesajlaşamazsın (engellenmiş olabilirsin ya da hesabın kısıtlı)."],
   [/Mesaj kutun dolu/, null],

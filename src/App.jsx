@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useAuth, AuthModal, NewPasswordModal, AquagramMark } from "./auth";
+import { useAuth, AuthModal, NewPasswordModal, OAuthTermsModal, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, uploadListingImages, loadFeaturedPlans } from "./lib/listings";
 import { detectSpecies } from "./species";
@@ -637,8 +637,15 @@ export default function AquagramApp() {
 
   // Yeni üyeye ilk girişte profil kurulumu (açıldıktan sonra kapanana kadar açık kalır)
   useEffect(() => {
-    if (!onboardOpen && !onboardDismissed && !authOpen && shouldOnboard(auth)) setOnboardOpen(true);
-  }, [auth.user, auth.profile, authOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!onboardOpen && !onboardDismissed && !authOpen && !auth.needsTerms && shouldOnboard(auth)) setOnboardOpen(true);
+  }, [auth.user, auth.profile, authOpen, auth.needsTerms]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Google/Apple girişinden hata ile dönüldü
+  useEffect(() => {
+    if (!auth.oauthError) return;
+    setToast(/denied|cancel/i.test(auth.oauthError) ? "Giriş iptal edildi." : "Giriş yapılamadı: " + auth.oauthError);
+    auth.clearOauthError();
+  }, [auth.oauthError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // E-postadaki doğrulama bağlantısıyla gelen yeni üye
   useEffect(() => {
@@ -2143,6 +2150,9 @@ export default function AquagramApp() {
             }
           }}
         />
+      )}
+      {auth.needsTerms && auth.profile && !auth.recovery && (
+        <OAuthTermsModal auth={auth} onDone={() => setToast("Hoş geldin!")} />
       )}
       {auth.recovery && auth.session && (
         <NewPasswordModal onDone={() => { auth.clearRecovery(); clearViews(); leaveTo("/"); setMemberPage("account"); }} />

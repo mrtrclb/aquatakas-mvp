@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CheckCircle2, Eye, EyeOff, Loader2, Mail, X } from "lucide-react";
-import { supabase, siteUrl, trError } from "./lib/supabase";
+import { supabase, siteUrl, trError, enabledProviders } from "./lib/supabase";
 import { useCaptcha } from "./lib/captcha";
 import { LEGAL_VERSION, LegalModal } from "./legal.jsx";
 
@@ -14,12 +14,16 @@ export function useAuth() {
   const [ready, setReady] = useState(false);
   const [recovery, setRecovery] = useState(false);
   const [justConfirmed, setJustConfirmed] = useState(false);
+  const [oauthError, setOauthError] = useState("");
 
   useEffect(() => {
     // E-posta bağlantısıyla gelindiyse adres çubuğunda #access_token=…&type=signup|recovery olur
     const hash = window.location.hash;
     if (/type=recovery/.test(hash)) setRecovery(true);
     if (/type=email_change/.test(hash)) setJustConfirmed("email_change");
+    // Google/Apple dönüşünde hata olursa adres çubuğunda #error_description=… olur
+    const oauthErr = hash.match(/error_description=([^&]+)/) || window.location.search.match(/error_description=([^&]+)/);
+    if (oauthErr) setOauthError(decodeURIComponent(oauthErr[1].replace(/\+/g, " ")));
     else if (/type=signup|type=email/.test(hash)) setJustConfirmed("signup");
 
     supabase.auth.getSession().then(({ data }) => {
@@ -84,6 +88,10 @@ export function useAuth() {
     isStaff: Boolean(staff),
     recovery,
     clearRecovery: () => setRecovery(false),
+    oauthError,
+    clearOauthError: () => setOauthError(""),
+    // Google/Apple ile ilk kez gelen üye henüz koşulları kabul etmedi
+    needsTerms: Boolean(session?.user && session.user.app_metadata?.provider !== "email" && !session.user.user_metadata?.terms_version),
     justConfirmed,
     clearJustConfirmed: () => setJustConfirmed(false),
     reloadProfile,
@@ -348,16 +356,11 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
                   <>
                     <div className="my-6 flex items-center gap-3">
                       <div className="h-px flex-1 bg-slate-200" />
-                      <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">yakında</span>
+                      <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">ya da</span>
                       <div className="h-px flex-1 bg-slate-200" />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {["Google ile devam et", "Apple ile devam et"].map((label) => (
-                        <button key={label} type="button" disabled className="cursor-not-allowed rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-400" title="Yakında">
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                    <OAuthButtons onError={setError} />
+                    <p className="mt-3 text-center text-[11px] leading-snug text-slate-400">Google ya da Apple ile ilk girişte Kullanım Koşulları'nı onaylaman istenir.</p>
                   </>
                 )}
               </>
@@ -365,6 +368,154 @@ export function AuthModal({ mode, setMode, onClose, onSuccess, image }) {
           </div>
         </div>
       </div>
+      {legalOpen && (
+        <LegalModal
+          docKey={legalOpen}
+          mustRead
+          onClose={() => setLegalOpen(null)}
+          onAccept={() => {
+            const now = new Date().toISOString();
+            if (legalOpen === "terms") setTermsAt(now);
+            else setKvkkAt(now);
+            setLegalOpen(null);
+            setError("");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Google / Apple ile giriş (Supabase OAuth). Hesap yoksa otomatik açılır.
+// ---------------------------------------------------------------------------
+const GoogleIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
+    <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.63h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.56-5.17 3.56-8.8Z" />
+    <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.9l-3.88-3.01c-1.07.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.3v3.11A12 12 0 0 0 12 24Z" />
+    <path fill="#FBBC05" d="M5.29 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.3a12 12 0 0 0 0 10.8l3.99-3.11Z" />
+    <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44A11.97 11.97 0 0 0 1.3 6.6l3.99 3.11C6.23 6.88 8.88 4.77 12 4.77Z" />
+  </svg>
+);
+const AppleIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden="true">
+    <path d="M16.37 12.73c-.03-2.6 2.12-3.85 2.22-3.91a4.78 4.78 0 0 0-3.76-2.03c-1.6-.16-3.12.94-3.93.94-.82 0-2.06-.92-3.39-.9a5.03 5.03 0 0 0-4.25 2.58c-1.82 3.15-.47 7.81 1.3 10.37.87 1.25 1.9 2.65 3.25 2.6 1.31-.05 1.8-.84 3.38-.84 1.57 0 2.02.84 3.39.82 1.4-.03 2.29-1.27 3.15-2.53a11.1 11.1 0 0 0 1.42-2.93 4.53 4.53 0 0 1-2.78-4.17ZM13.78 5.1A4.55 4.55 0 0 0 14.85 1.8a4.63 4.63 0 0 0-3 1.55 4.33 4.33 0 0 0-1.1 3.15 3.83 3.83 0 0 0 3.03-1.4Z" />
+  </svg>
+);
+
+export function OAuthButtons({ onError }) {
+  const [busy, setBusy] = useState(null);
+  const [enabled, setEnabled] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    enabledProviders().then((list) => alive && setEnabled(list));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  async function go(provider) {
+    if (enabled && !enabled[provider]) return;
+    setBusy(provider);
+    onError && onError("");
+    const { error: err } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: siteUrl() } });
+    if (err) {
+      setBusy(null);
+      onError && onError(trError(err));
+    }
+    // Başarılıysa tarayıcı sağlayıcıya yönlenir; dönüşte oturum adres çubuğundan okunur
+  }
+  return (
+    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+      <button type="button" onClick={() => go("google")} disabled={Boolean(busy) || (enabled && !enabled.google)} title={enabled && !enabled.google ? "Yakında" : undefined} className="flex items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+        {busy === "google" ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />} Google ile devam et
+      </button>
+      <button type="button" onClick={() => go("apple")} disabled={Boolean(busy) || (enabled && !enabled.apple)} title={enabled && !enabled.apple ? "Yakında" : undefined} className="flex items-center justify-center gap-2.5 rounded-2xl bg-black px-3 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+        {busy === "apple" ? <Loader2 size={18} className="animate-spin" /> : <AppleIcon />} Apple ile devam et
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Google/Apple ile ilk kez gelen üye: kullanıcı adı + koşulların kabulü
+// ---------------------------------------------------------------------------
+export function OAuthTermsModal({ auth, onDone }) {
+  const [username, setUsername] = useState(auth.profile?.username || "");
+  const [termsAt, setTermsAt] = useState(null);
+  const [kvkkAt, setKvkkAt] = useState(null);
+  const [legalOpen, setLegalOpen] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!username && auth.profile?.username) setUsername(auth.profile.username);
+  }, [auth.profile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function submit(event) {
+    event.preventDefault();
+    setError("");
+    if (!termsAt || !kvkkAt) return setError(!termsAt ? "Devam etmek için Kullanım Koşulları'nı okuyup kabul etmelisin." : "Devam etmek için KVKK Aydınlatma Metni'ni okumalısın.");
+    const name = normalizeUsername(username);
+    if (name.length < 3) return setError(trError(new Error("username_check")));
+    setBusy(true);
+    try {
+      if (auth.profile && name !== auth.profile.username) {
+        const { data: taken } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
+        if (taken) throw new Error("profiles_username_key");
+        const { error: err } = await supabase.from("profiles").update({ username: name }).eq("id", auth.user.id);
+        if (err) throw err;
+      }
+      const { error: err } = await supabase.auth.updateUser({ data: { terms_version: LEGAL_VERSION, terms_accepted_at: termsAt, kvkk_read_at: kvkkAt } });
+      if (err) throw err;
+      await auth.reloadProfile();
+      onDone();
+    } catch (err) {
+      setError(trError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm">
+      <form onSubmit={submit} className="w-full max-w-md space-y-3 rounded-[28px] bg-white p-6 shadow-2xl sm:p-8">
+        <h3 className="text-2xl font-black tracking-tight">Aquagram'a hoş geldin</h3>
+        <p className="text-sm text-slate-500">Hesabın açıldı. Kullanıcı adını kontrol et ve koşulları onayla.</p>
+        <Field label="Kullanıcı adı" hint="Küçük harf, rakam, nokta ve alt çizgi; 3-24 karakter.">
+          <div className="relative">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">@</span>
+            <input value={username} onChange={(event) => setUsername(normalizeUsername(event.target.value))} className={inputClass + " pl-8"} required />
+          </div>
+        </Field>
+        <div className="grid gap-2 pt-1">
+          {[
+            ["terms", termsAt, "Kullanım Koşulları", "’nı (topluluk ve ilan kuralları dahil) okudum, anladım ve kabul ediyorum."],
+            ["kvkk", kvkkAt, "KVKK Aydınlatma Metni", "’ni okudum ve anladım."]
+          ].map(([key, done, label, rest]) => (
+            <div key={key} className="flex items-start gap-2 text-xs leading-relaxed text-slate-500">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={Boolean(done)}
+                aria-label={label}
+                onClick={() => (done ? (key === "terms" ? setTermsAt(null) : setKvkkAt(null)) : setLegalOpen(key))}
+                className={"mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border " + (done ? "border-cyan-950 bg-cyan-950 text-white" : "border-slate-300 bg-white")}
+              >
+                {done && <CheckCircle2 size={11} />}
+              </button>
+              <span>
+                <button type="button" onClick={() => setLegalOpen(key)} className="font-black text-cyan-800 underline decoration-cyan-800/30 underline-offset-2 hover:text-cyan-950">{label}</button>
+                {rest}
+              </span>
+            </div>
+          ))}
+        </div>
+        {error && <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
+        <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-5 py-3.5 text-sm font-black text-white disabled:opacity-60">
+          {busy && <Loader2 size={16} className="animate-spin" />} Kabul et ve devam et
+        </button>
+        <button type="button" onClick={() => auth.signOut()} className="w-full text-center text-sm font-black text-slate-500 hover:text-slate-800">Vazgeç ve çıkış yap</button>
+      </form>
       {legalOpen && (
         <LegalModal
           docKey={legalOpen}

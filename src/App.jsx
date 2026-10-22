@@ -4371,7 +4371,7 @@ function timeAgoTr(value) {
 }
 
 function NotificationsPage({ notifs, onOpen, onProfile }) {
-  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", review: "⭐", system: "🔔", content_removed: "🛡️", content_restored: "✅", ad_approved: "📣", ad_rejected: "⚠️", account_suspended: "⛔", account_restored: "✅", report_resolved: "🛡️", group_closed: "🔒", group_reopened: "🔓", verification_approved: "✔️", verification_rejected: "⚠️", suggestion_approved: "🐟", suggestion_rejected: "🐟" };
+  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", review: "⭐", system: "🔔", content_removed: "🛡️", content_restored: "✅", ad_approved: "📣", ad_rejected: "⚠️", account_suspended: "⛔", account_restored: "✅", report_resolved: "🛡️", group_closed: "🔒", group_reopened: "🔓", verification_approved: "✔️", verification_rejected: "⚠️", suggestion_approved: "🐟", suggestion_rejected: "🐟", form_suggestion_approved: "📍", form_suggestion_rejected: "📍" };
   return (
     <div className="mx-auto max-w-2xl p-5">
       <div className="mb-4 flex items-end justify-between gap-3 border-b border-slate-200 pb-4">

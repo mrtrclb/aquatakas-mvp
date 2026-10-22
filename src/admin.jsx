@@ -540,7 +540,7 @@ function DashboardSection() {
     ["İletişim mesajı", stats && stats.contact_open, "Yanıt bekliyor", "iletisim", "contact", true],
     ["Öne çıkarma başvurusu", stats && stats.features_pending, "Onay bekliyor", "one-cikarma", "ads", true],
     ["Reklam başvurusu", stats && stats.ads_pending, "Onay bekliyor", "reklamlar", "ads", true],
-    ["Tür önerisi", stats && stats.species_suggestions_pending, "Onay bekliyor", "turler", "species", true],
+    ["Tür / lokalite önerisi", stats && stats.species_suggestions_pending, "Onay bekliyor", "turler", "species", true],
     ["Mavi tik talebi", stats && stats.verifications_pending, "Onay bekliyor", "kullanicilar", "users", true],
     ["Askıdaki üye", stats && stats.suspended_users, "Şu an askıda", "kullanicilar", "users"],
     ["PRO üye", stats && stats.pro_active, "Son 30 gün alım: " + (stats ? stats.pro_30d || 0 : "…"), "pro", "users"]
@@ -2295,13 +2295,14 @@ function SpeciesSection() {
   const [tab, setTab] = useState("species");
   const [query, setQuery] = useState("");
   const state = useLoad(async () => {
-    const [suggestions, species, categories] = await Promise.all([
+    const [suggestions, formSuggestions, species, categories] = await Promise.all([
       must(supabase.from("species_suggestions").select("*").order("created_at", { ascending: false }).limit(200)),
+      must(supabase.from("species_form_suggestions").select("*").order("created_at", { ascending: false }).limit(200)),
       must(supabase.from("species").select("id, slug, name, latin, category_id, status, is_rare, keeper_count, comment_count, image_url").order("name")),
       must(supabase.from("kb_categories").select("id, section, name, emoji").order("position"))
     ]);
-    const profiles = await profilesByIds(suggestions.map((row) => row.user_id));
-    return { suggestions, species, categories, categoryNames: Object.fromEntries(categories.map((row) => [row.id, row.name])), profiles };
+    const profiles = await profilesByIds([...suggestions, ...formSuggestions].map((row) => row.user_id));
+    return { suggestions, formSuggestions, speciesById: Object.fromEntries(species.map((row) => [row.id, row])), species, categories, categoryNames: Object.fromEntries(categories.map((row) => [row.id, row.name])), profiles };
   }, []);
 
   if (param) return <SpeciesEditor param={param} />;
@@ -2315,6 +2316,13 @@ function SpeciesSection() {
       if (approve) window.location.hash = "#/yonetim/turler/oneri-" + row.id;
       else state.reload();
     }
+  }
+  async function reviewForm(row, approve) {
+    const reason = approve
+      ? await ask({ title: "Öneriyi onayla", text: "“" + row.name + "” tür sayfasındaki lokalite / varyete listesine eklenir ve öneren üyeye bildirim gider. Eklendikten sonra tür düzenleme ekranından değiştirebilirsin.", input: false, confirm: "Onayla ve ekle" })
+      : await ask({ title: "Öneriyi reddet", text: "Gerekçe üyeye bildirimle iletilir (isteğe bağlı).", presets: ["Zaten listede var", "Doğrulanamadı / kaynak yok", "Ayrı bir tür", "Melez hat"], confirm: "Reddet", danger: true });
+    if (reason === null) return;
+    if (await act(supabase.rpc("review_form_suggestion", { p_id: row.id, p_approve: approve, p_reason: approve ? null : reason || null }), approve ? "Lokalite eklendi" : "Öneri reddedildi")) state.reload();
   }
   async function toggleStatus(row) {
     const next = row.status === "published" ? "draft" : "published";
@@ -2333,14 +2341,57 @@ function SpeciesSection() {
       <LoadState state={state}>
         {(data) => {
           const pending = data.suggestions.filter((row) => row.status === "pending");
+          const pendingForms = data.formSuggestions.filter((row) => row.status === "pending");
           return (
             <>
               <Tabs
                 value={tab}
                 onChange={(key) => (key === "new" ? (window.location.hash = "#/yonetim/turler/yeni") : setTab(key))}
-                items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length], ["covers", "Kategori kapakları"], ["articles", "Makaleler"], ["new", "＋ Yeni tür ekle"]]}
+                items={[["species", "Türler (" + data.species.length + ")"], ["suggestions", "Tür önerileri", pending.length], ["forms", "Lokalite önerileri", pendingForms.length], ["covers", "Kategori kapakları"], ["articles", "Makaleler"], ["new", "＋ Yeni tür ekle"]]}
               />
-              {tab === "covers" ? <CategoryCovers categories={data.categories} /> : tab === "articles" ? <ArticlesAdmin speciesRows={data.species} /> : tab === "suggestions" ? (
+              {tab === "covers" ? <CategoryCovers categories={data.categories} /> : tab === "articles" ? <ArticlesAdmin speciesRows={data.species} /> : tab === "forms" ? (
+                !data.formSuggestions.length ? <Empty>Henüz lokalite / varyete önerisi yok.</Empty> : (
+                  <Card className="divide-y divide-slate-100 p-0">
+                    {data.formSuggestions.map((row) => {
+                      const sp = data.speciesById[row.species_id];
+                      return (
+                        <div key={row.id} className="flex flex-wrap items-start gap-3 px-4 py-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-black">{row.name}</span>
+                              <Badge>{FORM_KIND_LABELS[row.kind] || row.kind}</Badge>
+                              <StatusBadge status={row.status} />
+                            </div>
+                            {sp && <a href={"#/yonetim/turler/" + sp.id} className="text-sm font-bold text-cyan-800 hover:underline">{sp.name} <span className="font-normal italic text-slate-500">{sp.latin}</span></a>}
+                            {row.origin && <p className="mt-1 text-sm text-slate-600">📍 {row.origin}</p>}
+                            {row.aliases && row.aliases.length > 0 && <p className="text-sm text-slate-500">Diğer adlar: {row.aliases.join(", ")}</p>}
+                            {row.note && <p className="mt-1 whitespace-pre-line text-sm text-slate-600">{row.note}</p>}
+                            {row.source_url && <a href={row.source_url} target="_blank" rel="noreferrer noopener" className="mt-1 block truncate text-xs font-bold text-cyan-800 hover:underline">{row.source_url}</a>}
+                            {row.images && row.images.length > 0 && (
+                              <div className="mt-2 flex gap-2">
+                                {row.images.map((url) => (
+                                  <a key={url} href={url} target="_blank" rel="noreferrer"><img src={url} alt="" className="h-16 w-16 rounded-xl object-cover ring-1 ring-slate-200" /></a>
+                                ))}
+                              </div>
+                            )}
+                            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                              <Person profile={data.profiles[row.user_id]} />
+                              <span>{fmtDate(row.created_at)}</span>
+                              {row.reject_reason && <span>Gerekçe: {row.reject_reason}</span>}
+                            </div>
+                          </div>
+                          {row.status === "pending" && (
+                            <div className="flex gap-2">
+                              <Btn small tone="success" onClick={() => reviewForm(row, true)}><Check size={13} /> Onayla</Btn>
+                              <Btn small tone="ghostDanger" onClick={() => reviewForm(row, false)}><X size={13} /> Reddet</Btn>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </Card>
+                )
+              ) : tab === "suggestions" ? (
                 !data.suggestions.length ? <Empty>Henüz tür önerisi yok.</Empty> : (
                   <Card className="divide-y divide-slate-100 p-0">
                     {data.suggestions.map((row) => (

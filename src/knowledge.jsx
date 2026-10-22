@@ -782,13 +782,150 @@ function RelatedSection({ species, listings, posts, ctx }) {
 
 const FORM_ORDER = ["lokalite", "varyete", "ticari"];
 const FORM_TONE = { lokalite: "bg-emerald-50 text-emerald-800 ring-emerald-200", varyete: "bg-violet-50 text-violet-800 ring-violet-200", ticari: "bg-amber-50 text-amber-800 ring-amber-200" };
-const FORM_PREVIEW = 6;
+const FORM_PREVIEW = 3;
 
-function FormsSection({ species }) {
+function SuggestFormModal({ species, userId, onClose, onDone }) {
+  const [form, setForm] = useState({ name: "", kind: "lokalite", origin: "", aliases: "", note: "", source_url: "" });
+  const [images, setImages] = useState([]); // { url, file }
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef(null);
+  const set = (key) => (event) => setForm((prev) => ({ ...prev, [key]: event.target.value }));
+  const exists = (species.forms || []).some((item) => normalizeTr(item.name) === normalizeTr(form.name.trim()));
+  const ok = form.name.trim().length >= 2 && form.note.trim().length >= 10 && !exists;
+
+  useEffect(() => {
+    const onKey = (event) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  function pick(event) {
+    const files = Array.from(event.target.files || []).filter((file) => /^image\/(jpeg|png|webp)$/.test(file.type));
+    event.target.value = "";
+    setImages((prev) => [...prev, ...files.map((file) => ({ url: URL.createObjectURL(file), file }))].slice(0, SUGGEST_MAX_IMAGES));
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!ok || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const urls = [];
+      for (const image of images) {
+        const blob = await shrinkImage(image.file, 1600, 0.85);
+        const type = blob.type || "image/jpeg";
+        const path = userId + "/suggestions/form-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+        const { error: upErr } = await supabase.storage.from("community-media").upload(path, blob, { contentType: type });
+        if (upErr) throw upErr;
+        urls.push(supabase.storage.from("community-media").getPublicUrl(path).data.publicUrl);
+      }
+      let source = form.source_url.trim();
+      if (source && !/^https?:\/\//i.test(source)) source = "https://" + source;
+      const { error: err } = await supabase.from("species_form_suggestions").insert({
+        species_id: species.dbId,
+        user_id: userId,
+        name: form.name.trim(),
+        kind: form.kind,
+        origin: form.origin.trim(),
+        aliases: form.aliases.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 8),
+        note: form.note.trim(),
+        source_url: source || null,
+        images: urls
+      });
+      if (err) throw err;
+      onDone();
+    } catch (err) {
+      setError(trError(err));
+    }
+    setBusy(false);
+  }
+
+  const input = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-cyan-700";
+  return (
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/50 p-3 backdrop-blur-sm sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <form role="dialog" aria-label="Lokalite / varyete öner" onSubmit={submit} className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-[28px] bg-white p-5 shadow-2xl">
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-black">Lokalite / varyete öner</h2>
+            <p className="text-sm font-bold text-slate-500">{species.name} <span className="font-normal italic">{species.latin}</span></p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200" aria-label="Pencereyi kapat" title="Pencereyi kapat"><X size={18} /></button>
+        </div>
+        <p className="mb-4 mt-2 text-xs leading-relaxed text-slate-500">Bu türün listede olmayan bir lokalitesini, varyetesini ya da ticari adını öner. Ekip inceler; uygun bulursa tür sayfasına eklenir ve sana bildirim gelir.</p>
+        <div className="mb-3 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Tür">
+          {FORM_ORDER.map((kind) => (
+            <button key={kind} type="button" role="radio" aria-checked={form.kind === kind} onClick={() => setForm((prev) => ({ ...prev, kind }))}
+              className={"rounded-2xl px-2 py-2 ring-1 transition " + (form.kind === kind ? FORM_TONE[kind] + " ring-2" : "bg-white text-slate-600 ring-slate-200 hover:bg-slate-50")}>
+              <span className="block text-center text-sm font-black">{FORM_KINDS[kind].label}</span>
+            </button>
+          ))}
+        </div>
+        <p className="-mt-1.5 mb-3 text-[12px] text-slate-500">{FORM_KINDS[form.kind].hint}.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1 text-xs font-black text-slate-500">Adı
+            <input className={input} value={form.name} onChange={set("name")} maxLength={80} placeholder={form.kind === "lokalite" ? "Örn. Blue Flash" : form.kind === "varyete" ? "Örn. Albino" : "Örn. Red Dragon"} required />
+            {exists && <span className="font-bold text-amber-700">Bu ad listede zaten var.</span>}
+          </label>
+          <label className="grid gap-1 text-xs font-black text-slate-500">{form.kind === "lokalite" ? "Bulunduğu yer" : "Köken (biliyorsan)"}
+            <input className={input} value={form.origin} onChange={set("origin")} maxLength={200} placeholder={form.kind === "lokalite" ? "Örn. Malavi Gölü, Mbenji Adası" : "Örn. Asya çiftlik üretimi"} />
+          </label>
+          <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Diğer adları (virgülle ayır, isteğe bağlı)
+            <input className={input} value={form.aliases} onChange={set("aliases")} maxLength={300} placeholder="Örn. OB, Orange Blotch" />
+          </label>
+          <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Açıklama
+            <textarea className={input} rows={4} value={form.note} onChange={set("note")} maxLength={1000} placeholder="Ayırt edici özellikleri: renk, desen, boy farkı; hobide nasıl bilinir, nereden gelir..." required />
+            <span className="text-right font-normal text-slate-400">{form.note.length}/1000</span>
+          </label>
+          <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Kaynak bağlantısı (isteğe bağlı)
+            <input className={input} value={form.source_url} onChange={set("source_url")} maxLength={500} inputMode="url" placeholder="https://..." />
+          </label>
+        </div>
+        <div className="mt-1">
+          <div className="mb-1.5 text-xs font-black text-slate-500">Fotoğraflar (isteğe bağlı, en fazla {SUGGEST_MAX_IMAGES}) · kendi çektiğin ya da kullanım izni olan görseller</div>
+          <div className="flex flex-wrap gap-2">
+            {images.map((image, index) => (
+              <span key={image.url} className="relative h-16 w-16 overflow-hidden rounded-xl bg-slate-100">
+                <img src={image.url} alt="" className="h-full w-full object-cover" />
+                <button type="button" onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))} className="absolute right-0.5 top-0.5 rounded-full bg-white/90 p-0.5 text-slate-600" aria-label="Fotoğrafı kaldır" title="Fotoğrafı kaldır"><X size={12} /></button>
+              </span>
+            ))}
+            {images.length < SUGGEST_MAX_IMAGES && (
+              <button type="button" onClick={() => fileRef.current && fileRef.current.click()} className="grid h-16 w-16 place-items-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 hover:border-cyan-700 hover:text-cyan-800" aria-label="Fotoğraf ekle" title="Fotoğraf ekle"><Upload size={18} /></button>
+            )}
+          </div>
+          <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pick} />
+        </div>
+        {error && <div className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</div>}
+        <button type="submit" disabled={!ok || busy} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
+          {busy && <Loader2 size={16} className="animate-spin" />} Öneriyi gönder
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function FormsSection({ species, ctx }) {
   const forms = species.forms || [];
   const [open, setOpen] = useState(false);
   const [lightbox, setLightbox] = useState(null); // { images, index }
-  if (!forms.length) return null;
+  const [suggest, setSuggest] = useState(false);
+  const openSuggest = () => (ctx.isMember ? setSuggest(true) : ctx.onAuth());
+  const modal = suggest && (
+    <SuggestFormModal species={species} userId={ctx.currentUserId} onClose={() => setSuggest(false)}
+      onDone={() => { setSuggest(false); ctx.onToast && ctx.onToast("Önerin ekibe iletildi, teşekkürler! Sonucu bildirim olarak alacaksın."); }} />
+  );
+  if (!species.dbId) return null;
+  if (!forms.length) {
+    return (
+      <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-3xl border border-dashed border-slate-300 px-4 py-3">
+        <p className="text-sm text-slate-500">Bu türün bilinen bir lokalitesi ya da varyetesi mi var?</p>
+        <button type="button" onClick={openSuggest} className="flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[13px] font-black text-cyan-900 ring-1 ring-cyan-200 hover:bg-cyan-50"><Plus size={14} /> Öner</button>
+        {modal}
+      </div>
+    );
+  }
   const sorted = forms.slice().sort((a, b) => FORM_ORDER.indexOf(a.kind) - FORM_ORDER.indexOf(b.kind) || a.position - b.position || a.name.localeCompare(b.name, "tr"));
   const shown = open ? sorted : sorted.slice(0, FORM_PREVIEW);
   const kinds = FORM_ORDER.filter((kind) => sorted.some((form) => form.kind === kind));
@@ -796,7 +933,10 @@ function FormsSection({ species }) {
   return (
     <section id="lokaliteler" className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
       <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-        <h3 className="text-sm font-black text-slate-800">Lokaliteler ve varyeteler <span className="text-slate-400">({forms.length})</span></h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-black text-slate-800">Lokaliteler ve varyeteler <span className="text-slate-400">({forms.length})</span></h3>
+          <button type="button" onClick={openSuggest} className="flex shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[12px] font-black text-cyan-900 ring-1 ring-cyan-200 hover:bg-cyan-50" title="Lokalite / varyete öner"><Plus size={13} /> Öner</button>
+        </div>
         <p className="mt-0.5 text-[12px] leading-snug text-slate-500">
           {kinds.map((kind) => FORM_KINDS[kind].label + ": " + FORM_KINDS[kind].hint.toLocaleLowerCase("tr")).join(" · ")}
         </p>
@@ -829,6 +969,7 @@ function FormsSection({ species }) {
       )}
       <p className="border-t border-slate-100 px-4 py-2 text-[12px] text-slate-400">Farklı lokaliteleri aynı tankta melezlemeden tutmak, hattın saflığını korumanın temelidir.</p>
       {lightbox && <Lightbox images={lightbox.images} start={lightbox.index} onClose={() => setLightbox(null)} />}
+      {modal}
     </section>
   );
 }
@@ -920,7 +1061,7 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
         <p className="px-4 py-2 text-[12px] text-slate-400">Değerler hobide yaygın kabul gören aralıklardır; hat, lokasyon ve bireye göre değişebilir.</p>
       </section>
 
-      <FormsSection species={species} />
+      <FormsSection species={species} ctx={ctx} />
 
       <KeepersSection keepers={keepers} species={species} kb={kb} ctx={ctx} />
       <RelatedSection species={species} listings={linkedListings} posts={linkedPosts} ctx={ctx} />

@@ -7,38 +7,39 @@ import { useCaptcha } from "./lib/captcha";
 export function AccountSecurity({ auth, onToast }) {
   const [tab, setTab] = useState(null); // "email" | "password" | null
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-4">
-      <h3 className="mb-3 text-lg font-black">Hesap güvenliği</h3>
-      <div className="grid gap-2">
-        <Row icon={<Mail size={16} />} title="E-posta adresi" value={auth.email} open={tab === "email"} onToggle={() => setTab(tab === "email" ? null : "email")} action="Değiştir" />
-        {auth.user && auth.user.new_email && (
-          <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
-            <b>{auth.user.new_email}</b> adresine geçiş bekliyor. Onay bağlantılarına tıklayınca değişiklik tamamlanır.
-          </p>
-        )}
-        {tab === "email" && <EmailForm auth={auth} onDone={(message) => { setTab(null); onToast(message); }} />}
-        <Row icon={<KeyRound size={16} />} title="Şifre" value="••••••••" open={tab === "password"} onToggle={() => setTab(tab === "password" ? null : "password")} action="Değiştir" />
-        {tab === "password" && <PasswordForm auth={auth} onDone={(message) => { setTab(null); onToast(message); }} />}
+    <section className="rounded-[24px] border border-slate-200 bg-white p-4 sm:p-6">
+      <h3 className="text-lg font-black text-slate-950 sm:text-xl">Hesap güvenliği</h3>
+      <p className="mt-1 text-sm leading-relaxed text-slate-500">Giriş için kullandığın e-posta adresi ve şifre.</p>
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <Row icon={<Mail size={18} />} title="E-posta adresi" value={auth.email} open={tab === "email"} onToggle={() => setTab(tab === "email" ? null : "email")} action="Değiştir" />
+        <Row icon={<KeyRound size={18} />} title="Şifre" value="••••••••" open={tab === "password"} onToggle={() => setTab(tab === "password" ? null : "password")} action="Değiştir" />
       </div>
-    </div>
+      {auth.user && auth.user.new_email && (
+        <p className="mt-2.5 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+          <b>{auth.user.new_email}</b> adresine geçiş bekliyor. Onay bağlantılarına tıklayınca değişiklik tamamlanır.
+        </p>
+      )}
+      {tab === "email" && <div className="mt-3"><EmailForm auth={auth} onDone={(message) => { setTab(null); onToast(message); }} /></div>}
+      {tab === "password" && <div className="mt-3"><PasswordForm auth={auth} onDone={(message) => { setTab(null); onToast(message); }} /></div>}
+    </section>
   );
 }
 
 function Row({ icon, title, value, open, onToggle, action }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-50 p-3 text-sm">
-      <div className="flex min-w-0 flex-1 items-center gap-2 text-slate-700">
-        <span className="shrink-0">{icon}</span>
-        <div className="min-w-0"><div className="font-black">{title}</div><div className="break-all text-xs text-slate-500">{value}</div></div>
+    <div className={"flex items-center justify-between gap-3 rounded-2xl p-3.5 " + (open ? "bg-cyan-50 ring-1 ring-cyan-100" : "bg-slate-50")}>
+      <div className="flex min-w-0 flex-1 items-center gap-3 text-slate-700">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200">{icon}</span>
+        <div className="min-w-0"><div className="text-[15px] font-black text-slate-800">{title}</div><div className="break-all text-sm text-slate-500">{value}</div></div>
       </div>
-      <button type="button" onClick={onToggle} className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-100">
+      <button type="button" onClick={onToggle} className="shrink-0 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-black text-slate-700 hover:bg-slate-100">
         {open ? "Vazgeç" : action}
       </button>
     </div>
   );
 }
 
-const field = "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-700";
+const field = "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-normal text-slate-900 outline-none focus:border-cyan-700";
 
 // Mevcut şifreyi doğrular (oturumu değiştirmeden aynı kullanıcıyla yeniden giriş)
 async function checkPassword(email, password, captcha) {
@@ -74,17 +75,17 @@ function EmailForm({ auth, onDone }) {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-2 rounded-2xl border border-slate-200 p-3">
-      <label className="grid gap-1 text-xs font-black text-slate-500">Yeni e-posta adresi
+    <form onSubmit={submit} className="grid gap-3 rounded-2xl border border-slate-200 p-4">
+      <label className="grid gap-1.5 text-sm font-bold text-slate-600">Yeni e-posta adresi
         <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" className={field} placeholder="yeni@ornek.com" required />
       </label>
-      <label className="grid gap-1 text-xs font-black text-slate-500">Mevcut şifren
+      <label className="grid gap-1.5 text-sm font-bold text-slate-600">Mevcut şifren
         <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className={field} required />
       </label>
-      <p className="text-xs leading-relaxed text-slate-500">Güvenliğin için eski ve yeni adresine birer onay e-postası gider. İkisi de onaylanana kadar mevcut adresinle giriş yapmaya devam edersin.</p>
+      <p className="text-sm leading-relaxed text-slate-500">Güvenliğin için eski ve yeni adresine birer onay e-postası gider. İkisi de onaylanana kadar mevcut adresinle giriş yapmaya devam edersin.</p>
       <div ref={captcha.box} className="flex justify-center empty:hidden" />
       {error && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</div>}
-      <button type="submit" disabled={!valid || busy} className="flex items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-2.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
+      <button type="submit" disabled={!valid || busy} className="flex items-center justify-center gap-2 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40 sm:justify-self-end">
         {busy && <Loader2 size={15} className="animate-spin" />} Onay bağlantısı gönder
       </button>
     </form>
@@ -119,20 +120,20 @@ function PasswordForm({ auth, onDone }) {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-2 rounded-2xl border border-slate-200 p-3">
-      <label className="grid gap-1 text-xs font-black text-slate-500">Mevcut şifre
+    <form onSubmit={submit} className="grid gap-3 rounded-2xl border border-slate-200 p-4">
+      <label className="grid gap-1.5 text-sm font-bold text-slate-600">Mevcut şifre
         <input type="password" value={current} onChange={(event) => setCurrent(event.target.value)} autoComplete="current-password" className={field} required />
       </label>
-      <label className="grid gap-1 text-xs font-black text-slate-500">Yeni şifre (en az 8 karakter)
+      <label className="grid gap-1.5 text-sm font-bold text-slate-600">Yeni şifre (en az 8 karakter)
         <input type="password" value={next} onChange={(event) => setNext(event.target.value)} autoComplete="new-password" className={field} minLength={8} required />
       </label>
-      <label className="grid gap-1 text-xs font-black text-slate-500">Yeni şifre (tekrar)
+      <label className="grid gap-1.5 text-sm font-bold text-slate-600">Yeni şifre (tekrar)
         <input type="password" value={again} onChange={(event) => setAgain(event.target.value)} autoComplete="new-password" className={field} required />
       </label>
       {mismatch && <p className="text-xs font-bold text-red-600">Şifreler aynı değil.</p>}
       <div ref={captcha.box} className="flex justify-center empty:hidden" />
       {error && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</div>}
-      <button type="submit" disabled={!valid || busy} className="flex items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-2.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
+      <button type="submit" disabled={!valid || busy} className="flex items-center justify-center gap-2 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40 sm:justify-self-end">
         {busy && <Loader2 size={15} className="animate-spin" />} Şifreyi değiştir
       </button>
     </form>
@@ -176,10 +177,10 @@ export function DeleteAccountDialog({ auth, onClose, onDeleted }) {
           <li>• Paylaşım, yorum, tür deneyimi ve değerlendirmelerin sitede kalır ama kim olduğun görünmez; <b>“misafir_…”</b> şeklinde anonim bir kullanıcı adıyla gösterilir. Bunları tamamen kaldırmak istiyorsan önce kendin silebilirsin.</li>
           <li>• Bu işlem geri alınamaz.</li>
         </ul>
-        <label className="grid gap-1 text-xs font-black text-slate-500">Şifren
+        <label className="grid gap-1.5 text-sm font-bold text-slate-600">Şifren
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className={field} required />
         </label>
-        <label className="grid gap-1 text-xs font-black text-slate-500">Onaylamak için <span className="text-red-700">SİL</span> yaz
+        <label className="grid gap-1.5 text-sm font-bold text-slate-600">Onaylamak için <span className="text-red-700">SİL</span> yaz
           <input value={confirm} onChange={(event) => setConfirm(event.target.value)} className={field} autoComplete="off" required />
         </label>
         <div ref={captcha.box} className="flex justify-center empty:hidden" />

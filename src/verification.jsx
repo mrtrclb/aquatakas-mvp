@@ -24,7 +24,7 @@ export function VerificationCard({ auth, onToast }) {
 
   if (profile.phone_verified) {
     return (
-      <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-900">
+      <div className="mt-3 rounded-2xl bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-900">
         <div className="mb-1 flex items-center gap-2 font-black"><BadgeCheck size={17} /> Doğrulanmış üye</div>
         Kullanıcı adının yanında mavi tik görünüyor.
       </div>
@@ -55,19 +55,19 @@ export function VerificationCard({ auth, onToast }) {
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 p-3 text-sm leading-relaxed text-sky-950">
-      <div className="mb-1 flex items-center gap-2 font-black"><ShieldCheck size={17} /> Mavi tik (doğrulanmış üye)</div>
-      <p className="text-xs text-sky-900/80">Doğrulanmış üyeler ilan ve mesajlarda güven verir. Şartları tamamla, talepte bulun; ekibimiz telefon numaranı teyit etsin.</p>
-      <ul className="mt-2 grid gap-1">
+    <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-4 text-sm leading-relaxed text-sky-950">
+      <div className="mb-1 flex items-center gap-2 text-[15px] font-black"><ShieldCheck size={18} /> Mavi tik (doğrulanmış üye)</div>
+      <p className="text-sm text-sky-900/80">Doğrulanmış üyeler ilan ve mesajlarda güven verir. Şartları tamamla, talepte bulun; ekibimiz telefon numaranı teyit etsin.</p>
+      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
         {checks.map(([label, ok]) => (
-          <li key={label} className={"flex items-center gap-1.5 text-xs font-bold " + (ok ? "text-emerald-700" : "text-slate-500")}>
-            <span className={"grid h-4 w-4 place-items-center rounded-full " + (ok ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")}>{ok ? <Check size={10} /> : <X size={10} />}</span>
+          <li key={label} className={"flex items-center gap-2 text-sm font-bold " + (ok ? "text-emerald-700" : "text-slate-500")}>
+            <span className={"grid h-5 w-5 shrink-0 place-items-center rounded-full " + (ok ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")}>{ok ? <Check size={12} /> : <X size={12} />}</span>
             {label}
           </li>
         ))}
       </ul>
-      {!auth.emailConfirmed && <p className="mt-2 text-xs text-slate-500">E-postandaki doğrulama bağlantısına tıklaman gerekiyor.</p>}
-      {!profile.avatar_url && <p className="mt-2 text-xs text-slate-500">Yukarıdan bir profil resmi ekle.</p>}
+      {!auth.emailConfirmed && <p className="mt-2 text-sm text-slate-500">E-postandaki doğrulama bağlantısına tıklaman gerekiyor.</p>}
+      {!profile.avatar_url && <p className="mt-2 text-sm text-slate-500">Yukarıdaki fotoğraf simgesine dokunarak bir profil resmi ekle.</p>}
 
       {last === undefined ? (
         <div className="mt-3 flex items-center gap-2 text-xs text-slate-400"><Loader2 size={13} className="animate-spin" /> Yükleniyor…</div>
@@ -83,29 +83,30 @@ export function VerificationCard({ auth, onToast }) {
               Önceki talep onaylanmadı{last.reject_reason ? ": " + last.reject_reason : "."} {recentlyRejected && "24 saat sonra yeniden başvurabilirsin."}
             </div>
           )}
-          <form onSubmit={submit} className="mt-3 grid gap-2">
-            <label className="grid gap-1 text-xs font-black text-slate-600">Cep telefonu
-              <span className="flex items-center rounded-xl border border-slate-200 bg-white px-3">
-                <span className="text-sm font-bold text-slate-400">+90</span>
+          <form onSubmit={submit} className="mt-4 grid gap-2.5 sm:grid-cols-[1fr_auto] sm:items-end">
+            <label className="grid gap-1.5 text-sm font-bold text-slate-600">Cep telefonu
+              <span className="flex items-center rounded-2xl border border-slate-200 bg-white px-4">
+                <span className="text-base font-bold text-slate-400">+90</span>
                 <input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value.replace(/[^0-9 ]/g, "").slice(0, 14))}
                   inputMode="tel"
                   autoComplete="tel-national"
                   placeholder="5xx xxx xx xx"
-                  className="w-full bg-transparent px-2 py-2 text-sm font-normal text-slate-900 outline-none"
+                  className="w-full bg-transparent px-2 py-3 text-base font-normal text-slate-900 outline-none"
                 />
               </span>
-              <span className="font-normal text-slate-500">Numaran diğer üyelere gösterilmez; yalnızca doğrulama için kullanılır.</span>
+              <span className="text-xs font-normal text-slate-500 sm:hidden">Numaran diğer üyelere gösterilmez; yalnızca doğrulama için kullanılır.</span>
             </label>
-            {error && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</div>}
+            {error && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 sm:order-last sm:col-span-2">{error}</div>}
             <button
               type="submit"
               disabled={!ready || !/^5\d{9}$/.test(normalize(phone)) || busy || recentlyRejected}
-              className="flex items-center justify-center gap-2 rounded-full bg-sky-700 px-4 py-2.5 text-sm font-black text-white enabled:hover:bg-sky-800 disabled:opacity-40"
+              className="flex items-center justify-center gap-2 rounded-full bg-sky-700 px-5 py-3 text-sm sm:mb-[1px] font-black text-white enabled:hover:bg-sky-800 disabled:opacity-40"
             >
               {busy ? <Loader2 size={15} className="animate-spin" /> : <BadgeCheck size={15} />} Mavi tik talebinde bulun
             </button>
+            <span className="hidden text-xs text-slate-500 sm:col-span-2 sm:block">Numaran diğer üyelere gösterilmez; yalnızca doğrulama için kullanılır.</span>
           </form>
         </>
       )}

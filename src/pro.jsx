@@ -59,7 +59,7 @@ function monthly(plan) {
 }
 
 /* Hesabım → PRO kartı */
-export function ProCard({ auth, onToast, className = "mt-4 rounded-2xl" }) {
+export function ProCard({ auth, onToast, className = "mt-4 rounded-2xl", wide = false }) {
   const { status, reload } = useProStatus(Boolean(auth.profile));
   const plans = useProPlans();
   const [open, setOpen] = useState(false);
@@ -70,8 +70,8 @@ export function ProCard({ auth, onToast, className = "mt-4 rounded-2xl" }) {
 
   return (
     <div className={"overflow-hidden " + className + " " + (pro ? "bg-gradient-to-br from-amber-50 to-orange-50 ring-1 ring-amber-200" : "bg-gradient-to-br from-slate-900 to-cyan-950 text-white")}>
-      <div className="p-4">
-        <div className="flex items-center gap-2 text-lg font-black"><Crown size={18} className={pro ? "text-amber-600" : "text-amber-300"} /> Aquagram PRO {pro && <ProBadge />}</div>
+      <div className={wide ? "p-4 sm:p-6" : "p-4"}>
+        <div className={"flex items-center gap-2 font-black " + (wide ? "text-lg sm:text-xl" : "text-lg")}><Crown size={wide ? 20 : 18} className={pro ? "text-amber-600" : "text-amber-300"} /> Aquagram PRO {pro && <ProBadge />}</div>
         {pro ? (
           <>
             <div className="mt-2 flex items-end gap-1.5">
@@ -80,26 +80,28 @@ export function ProCard({ auth, onToast, className = "mt-4 rounded-2xl" }) {
             </div>
             <div className="text-xs text-amber-900/70">{fmtDay(until)} tarihine kadar</div>
             {status && (
-              <ul className="mt-3 grid gap-1 text-xs text-amber-950">
+              <ul className={"mt-3 grid text-amber-950 " + (wide ? "gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2" : "gap-1 text-xs")}>
                 <li className="flex justify-between gap-2"><span>Ücretsiz öne çıkarma hakkı</span><b>{status.features_balance ?? status.features_left} <span className="font-normal text-amber-900/60">(bu ay {status.features_left})</span></b></li>
                 <li className="flex justify-between gap-2"><span>Ücretsiz reklam hakkı</span><b>{status.ads_balance ?? status.ads_left} <span className="font-normal text-amber-900/60">(bu ay {status.ads_left})</span></b></li>
                 <li className="flex justify-between gap-2"><span>Bugün üste taşıma</span><b>{status.bumps_left} / {status.bump_limit}</b></li>
                 <li className="flex justify-between gap-2"><span>Mesaj kutusu</span><b>{status.conversation_count} / {status.conversation_limit} sohbet</b></li>
               </ul>
             )}
-            <button type="button" onClick={() => setOpen(true)} className="mt-3 w-full rounded-full bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600">Süreyi uzat</button>
+            <button type="button" onClick={() => setOpen(true)} className={"mt-3 w-full rounded-full bg-amber-500 px-4 py-2.5 text-sm font-black text-white hover:bg-amber-600 " + (wide ? "sm:w-auto sm:px-6" : "")}>Süreyi uzat</button>
           </>
         ) : (
-          <>
-            <p className="mt-1 text-xs leading-relaxed text-cyan-50/80">Ücretsiz öne çıkarma ve reklam, günde 3 kez üste taşıma, +100 sohbet hakkı ve PRO rozeti.</p>
+          <div className={wide ? "sm:flex sm:items-end sm:justify-between sm:gap-6" : ""}>
+            <div className="min-w-0">
+            <p className={"mt-1 leading-relaxed text-cyan-50/80 " + (wide ? "text-sm" : "text-xs")}>Ücretsiz öne çıkarma ve reklam, günde 3 kez üste taşıma, +100 sohbet hakkı ve PRO rozeti.</p>
             {status && (status.features_balance > 0 || status.ads_balance > 0) && (
               <p className="mt-2 rounded-xl bg-white/10 px-2.5 py-1.5 text-[12px] text-amber-200">Kullanılmamış hakların duruyor: {status.features_balance} öne çıkarma · {status.ads_balance} reklam (ayda en fazla 2 öne çıkarma ve 1 reklam).</p>
             )}
-            {status && <p className="mt-2 text-[12px] text-cyan-50/60">Mesaj kutun: {status.conversation_count} / {status.conversation_limit} sohbet · Bugün üste taşıma: {status.bumps_left} / {status.bump_limit}</p>}
-            <button type="button" onClick={() => setOpen(true)} className="mt-3 w-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2.5 text-sm font-black text-white shadow hover:brightness-105">
+            {status && <p className={"mt-2 text-cyan-50/60 " + (wide ? "text-[13px]" : "text-[12px]")}>Mesaj kutun: {status.conversation_count} / {status.conversation_limit} sohbet · Bugün üste taşıma: {status.bumps_left} / {status.bump_limit}</p>}
+            </div>
+            <button type="button" onClick={() => setOpen(true)} className={"mt-3 w-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-3 text-sm font-black text-white shadow hover:brightness-105 " + (wide ? "sm:w-auto sm:shrink-0 sm:px-6" : "")}>
               PRO'ya yükselt · aylık {tl(monthly(plans[plans.length - 1]))}'den
             </button>
-          </>
+          </div>
         )}
       </div>
       {open && (

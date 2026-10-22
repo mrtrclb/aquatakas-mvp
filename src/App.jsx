@@ -2719,56 +2719,124 @@ function AccountPage({ auth, onSaved }) {
   }
 
   const initials = (profile.username || "?").slice(0, 2).toUpperCase();
-  const field = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-800 focus:bg-white";
+  const field = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-cyan-800 focus:bg-white";
+  const label = "mb-1.5 block text-sm font-bold text-slate-600";
+  const isPro = Boolean(profile.pro_until && new Date(profile.pro_until) > new Date());
+  const place = [profile.district, profile.city].filter(Boolean).join(", ");
 
   return (
-    <div className="mx-auto max-w-5xl p-5">
-      <div className="mb-5 border-b border-slate-200 pb-4">
-        <h2 className="text-2xl font-black tracking-tight">Hesabım</h2>
-        <p className="mt-1 text-sm text-slate-500">Profil bilgilerini, doğrulama durumunu ve sosyal hesaplarını yönet.</p>
+    <div className="mx-auto max-w-3xl px-3 py-5 sm:px-6 sm:py-8">
+      <div className="mb-5 px-1">
+        <h2 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Hesabım</h2>
+        <p className="mt-1 text-[15px] text-slate-500">Profil bilgilerini, doğrulama durumunu ve hesap ayarlarını yönet.</p>
       </div>
       {auth.isStaff && (
-        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
           <ShieldCheck size={17} /> {auth.staff.role === "super_admin" ? "Süper yönetici" : "Moderatör"} hesabıyla giriş yaptın.
-          <a href="/#/yonetim" className="ml-auto rounded-full bg-amber-900 px-3 py-1 text-xs font-black text-white hover:bg-amber-800">Yönetim paneli</a>
+          <a href="/#/yonetim" className="ml-auto rounded-full bg-amber-900 px-3 py-1.5 text-xs font-black text-white hover:bg-amber-800">Yönetim paneli</a>
         </div>
       )}
       {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
-      <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-4">
-          <div className="grid place-items-center rounded-[24px] bg-slate-50 p-5 text-center">
+
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:gap-5">
+        {/* 1. Profil şeridi */}
+        <section className="flex items-center gap-4 rounded-[24px] border border-slate-200 bg-gradient-to-br from-white to-cyan-50/60 p-4 sm:gap-5 sm:p-6">
+          <button type="button" onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} className="group relative shrink-0" title="Profil resmini değiştir">
             {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="h-24 w-24 rounded-full object-cover" />
+              <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-full object-cover ring-4 ring-white sm:h-24 sm:w-24" />
             ) : (
-              <div className="grid h-24 w-24 place-items-center rounded-full bg-cyan-950 text-2xl font-black text-white">{initials}</div>
+              <div className="grid h-20 w-20 place-items-center rounded-full bg-cyan-950 text-2xl font-black text-white ring-4 ring-white sm:h-24 sm:w-24">{initials}</div>
             )}
-            <div className="mt-3 text-base font-black">@{profile.username}</div>
-            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadAvatar} />
-            <button onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} className="mt-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+            <span className="absolute bottom-0 right-0 grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 shadow ring-1 ring-slate-200 group-hover:bg-slate-50">
+              {uploading ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
+            </span>
+          </button>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadAvatar} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="truncate text-xl font-black text-slate-950 sm:text-2xl">@{profile.username}</span>
+              {profile.phone_verified && <CheckCircle2 size={20} className="shrink-0 text-sky-600" aria-label="Doğrulanmış üye" />}
+              {isPro && <ProBadge size="lg" />}
+            </div>
+            {place && <div className="mt-0.5 flex items-center gap-1 text-sm text-slate-500"><MapPin size={14} /> {place}</div>}
+            <button type="button" onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} className="mt-2.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-60">
               {uploading ? "Yükleniyor…" : profile.avatar_url ? "Profil resmini değiştir" : "Profil resmi ekle"}
             </button>
           </div>
+        </section>
+
+        {/* 2. Profil bilgileri */}
+        <AccountSection title="Profil bilgileri" desc="Profilinde ve ilanlarında görünen bilgiler.">
+          <form onSubmit={(event) => { event.preventDefault(); save(); }}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="sm:col-span-2"><span className={label}>Kullanıcı adı</span>
+                <div className="relative"><span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-slate-400">@</span>
+                  <input value={form.username} onChange={(event) => set("username", event.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 24))} className={field + " pl-9"} required minLength={3} />
+                </div>
+              </label>
+              <label><span className={label}>Şehir</span><input value={form.city} onChange={(event) => set("city", event.target.value)} maxLength={40} className={field} placeholder="İstanbul" /></label>
+              <label><span className={label}>İlçe</span><input value={form.district} onChange={(event) => set("district", event.target.value)} maxLength={40} className={field} placeholder="Kadıköy" /></label>
+              <label className="sm:col-span-2"><span className={label}>Hakkında</span><textarea rows={4} value={form.bio} onChange={(event) => set("bio", event.target.value)} maxLength={500} className={field + " resize-y leading-relaxed"} placeholder="Hangi türleri besliyorsun, kaç tankın var?" />
+                <span className="mt-1 block text-right text-xs text-slate-400">{form.bio.length} / 500</span>
+              </label>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button type="submit" disabled={busy} className="rounded-full bg-cyan-950 px-6 py-3 text-sm font-black text-white hover:bg-cyan-900 disabled:opacity-60">{busy ? "Kaydediliyor…" : "Bilgileri kaydet"}</button>
+            </div>
+          </form>
+        </AccountSection>
+
+        {/* 3. Doğrulama + mavi tik */}
+        <AccountSection title="Doğrulama" desc="Doğrulanmış üyeler ilan ve mesajlarda daha çok güven verir.">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <VerificationRow icon={<Mail size={18} />} title="E-posta adresi" value={auth.email} verified={auth.emailConfirmed} />
+            <VerificationRow icon={<Phone size={18} />} title="Telefon numarası" value={profile.phone_verified ? "Doğrulandı" : "Mavi tik talebiyle doğrulanır"} verified={profile.phone_verified} />
+          </div>
           <VerificationCard auth={auth} onToast={onSaved} />
-          <div className="mt-4 rounded-2xl border border-slate-200 p-3">
-            <div className="mb-2 text-sm font-black text-slate-800">Gizlilik</div>
-            <button type="button" role="switch" aria-checked={form.hide_from_search} onClick={toggleHidden} disabled={busy} className="flex w-full items-start justify-between gap-3 text-left">
-              <span className="flex gap-2">
-                <span className={"mt-0.5 shrink-0 " + (form.hide_from_search ? "text-cyan-800" : "text-slate-400")}>{form.hide_from_search ? <EyeOff size={17} /> : <Eye size={17} />}</span>
-                <span>
-                  <span className="block text-sm font-black text-slate-800">Profilimi arama motorlarından gizle</span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
-                    {form.hide_from_search
-                      ? "Profilin ve paylaşımların Google gibi arama motorlarında listelenmez. Site üyeleri seni görmeye devam eder."
-                      : "Profilin ve paylaşımların arama motorlarında görünebilir."}
-                  </span>
+        </AccountSection>
+
+        {/* 4. Hesap güvenliği */}
+        <AccountSecurity auth={auth} onToast={onSaved} />
+
+        {/* 5. Sosyal hesaplar */}
+        <AccountSection title="Sosyal hesaplar" desc="Profilinde görünür; hobiciler seni bu hesaplardan da takip edebilir. Hepsi isteğe bağlı.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[["instagram", "Instagram", "Kullanıcı adın (ör. @akvaryumcu)"], ["x", "X (Twitter)", "Kullanıcı adın (ör. @akvaryumcu)"], ["youtube", "YouTube", "Kanal adresin ya da @kanal adın"], ["facebook", "Facebook", "Profil bağlantın"], ["web", "Web sitesi", "https://…"]].map(([key, name, placeholder]) => (
+              <label key={key} className={key === "web" ? "sm:col-span-2" : ""}><span className={label}>{name}</span>
+                <input placeholder={placeholder} value={form.socials[key]} onChange={(event) => setSocial(key, event.target.value)} maxLength={120} className={field} />
+              </label>
+            ))}
+          </div>
+          <div className="mt-3 flex justify-end">
+            <button type="button" onClick={() => save({ socials: form.socials }, "Sosyal hesapların kaydedildi.")} disabled={busy} className="rounded-full bg-cyan-950 px-6 py-3 text-sm font-black text-white hover:bg-cyan-900 disabled:opacity-60">Kaydet</button>
+          </div>
+        </AccountSection>
+
+        {/* 6. PRO */}
+        <ProCard auth={auth} onToast={onSaved} className="rounded-[24px]" wide />
+
+        {/* 7. Gizlilik + hesap silme */}
+        <AccountSection title="Gizlilik ve hesap">
+          <button type="button" role="switch" aria-checked={form.hide_from_search} onClick={toggleHidden} disabled={busy} className="flex w-full items-start justify-between gap-4 rounded-2xl bg-slate-50 p-4 text-left">
+            <span className="flex gap-3">
+              <span className={"mt-0.5 shrink-0 " + (form.hide_from_search ? "text-cyan-800" : "text-slate-400")}>{form.hide_from_search ? <EyeOff size={19} /> : <Eye size={19} />}</span>
+              <span>
+                <span className="block text-[15px] font-black text-slate-800">Profilimi arama motorlarından gizle</span>
+                <span className="mt-0.5 block text-sm leading-relaxed text-slate-500">
+                  {form.hide_from_search
+                    ? "Profilin ve paylaşımların Google gibi arama motorlarında listelenmez. Site üyeleri seni görmeye devam eder."
+                    : "Profilin ve paylaşımların arama motorlarında görünebilir."}
                 </span>
               </span>
-              <span className={"relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition " + (form.hide_from_search ? "bg-cyan-950" : "bg-slate-300")}>
-                <span className={"absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all " + (form.hide_from_search ? "left-[22px]" : "left-0.5")} />
-              </span>
-            </button>
+            </span>
+            <span className={"relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition " + (form.hide_from_search ? "bg-cyan-950" : "bg-slate-300")}>
+              <span className={"absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all " + (form.hide_from_search ? "left-[22px]" : "left-0.5")} />
+            </span>
+          </button>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+            <p className="text-sm text-slate-500">Hesabını silersen profilin anonimleşir; bu işlem geri alınamaz.</p>
+            <button onClick={() => setDeleting(true)} className="flex items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-black text-red-700 hover:bg-red-50"><Trash2 size={16} /> Hesabımı sil</button>
           </div>
-          <button onClick={() => setDeleting(true)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100"><Trash2 size={16} /> Hesabımı sil</button>
           {deleting && (
             <DeleteAccountDialog
               auth={auth}
@@ -2780,59 +2848,31 @@ function AccountPage({ auth, onSaved }) {
               }}
             />
           )}
-        </div>
-        <div className="grid gap-4">
-          <form onSubmit={(event) => { event.preventDefault(); save(); }} className="rounded-[28px] border border-slate-200 bg-white p-4">
-            <h3 className="mb-3 text-lg font-black">Profil bilgileri</h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="sm:col-span-2"><span className="mb-1 block text-xs font-black text-slate-500">Kullanıcı adı</span>
-                <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">@</span>
-                  <input value={form.username} onChange={(event) => set("username", event.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 24))} className={field + " pl-7"} required minLength={3} />
-                </div>
-              </label>
-              <label><span className="mb-1 block text-xs font-black text-slate-500">Şehir</span><input value={form.city} onChange={(event) => set("city", event.target.value)} maxLength={40} className={field} /></label>
-              <label><span className="mb-1 block text-xs font-black text-slate-500">İlçe</span><input value={form.district} onChange={(event) => set("district", event.target.value)} maxLength={40} className={field} /></label>
-              <label className="sm:col-span-2"><span className="mb-1 block text-xs font-black text-slate-500">Hakkında</span><textarea rows={4} value={form.bio} onChange={(event) => set("bio", event.target.value)} maxLength={500} className={field} placeholder="Hangi türleri besliyorsun, kaç tankın var?" /></label>
-            </div>
-            <button type="submit" disabled={busy} className="mt-4 rounded-full bg-cyan-950 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{busy ? "Kaydediliyor…" : "Bilgileri kaydet"}</button>
-          </form>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[28px] border border-slate-200 bg-white p-4">
-              <h3 className="mb-3 text-lg font-black">Doğrulama</h3>
-              <VerificationRow icon={<Mail size={16} />} title="E-posta adresi" value={auth.email} verified={auth.emailConfirmed} />
-              <VerificationRow icon={<Phone size={16} />} title="Telefon numarası" value="SMS doğrulaması yakında" verified={profile.phone_verified} />
-            </div>
-            <AccountSecurity auth={auth} onToast={onSaved} />
-            <div className="rounded-[28px] border border-slate-200 bg-white p-4">
-              <h3 className="mb-3 text-lg font-black">Sosyal hesaplar</h3>
-              {[["instagram", "IG", "Instagram kullanıcı adı"], ["facebook", "FB", "Facebook profil linki"], ["x", "X", "Twitter / X kullanıcı adı"], ["web", "WEB", "Web sitesi"], ["youtube", "YT", "YouTube kanalı"]].map(([key, icon, placeholder]) => (
-                <SocialInput key={key} icon={icon} placeholder={placeholder} value={form.socials[key]} onChange={(value) => setSocial(key, value)} />
-              ))}
-              <button onClick={() => save({ socials: form.socials }, "Sosyal hesapların kaydedildi.")} disabled={busy} className="mt-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-60">Kaydet</button>
-            </div>
-            <ProCard auth={auth} onToast={onSaved} className="h-fit rounded-[28px]" />
-          </div>
-        </div>
+        </AccountSection>
       </div>
     </div>
   );
 }
 
-function VerificationRow({ icon, title, value, verified }) {
+function AccountSection({ title, desc, children }) {
   return (
-    <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-50 p-3 text-sm">
-      <div className="flex min-w-0 flex-1 items-center gap-2 text-slate-700"><span className="shrink-0">{icon}</span><div className="min-w-0"><div className="font-black">{title}</div><div className="break-all text-xs text-slate-500">{value}</div></div></div>
-      <span className={"shrink-0 rounded-full px-2.5 py-1 text-xs font-black " + (verified ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-500")}>{verified ? "Doğrulandı" : "Bekliyor"}</span>
-    </div>
+    <section className="rounded-[24px] border border-slate-200 bg-white p-4 sm:p-6">
+      <h3 className="text-lg font-black text-slate-950 sm:text-xl">{title}</h3>
+      {desc && <p className="mt-1 text-sm leading-relaxed text-slate-500">{desc}</p>}
+      <div className="mt-4">{children}</div>
+    </section>
   );
 }
 
-function SocialInput({ icon, placeholder, value, onChange }) {
+function VerificationRow({ icon, title, value, verified }) {
   return (
-    <label className="mb-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <span className="w-8 text-xs font-black text-slate-400">{icon}</span>
-      <input placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} maxLength={120} className="w-full bg-transparent text-sm outline-none" />
-    </label>
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3.5">
+      <div className="flex min-w-0 flex-1 items-center gap-3 text-slate-700">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200">{icon}</span>
+        <div className="min-w-0"><div className="text-[15px] font-black text-slate-800">{title}</div><div className="break-all text-sm text-slate-500">{value}</div></div>
+      </div>
+      <span className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (verified ? "bg-sky-100 text-sky-700" : "bg-slate-200/70 text-slate-500")}>{verified ? "Doğrulandı" : "Bekliyor"}</span>
+    </div>
   );
 }
 

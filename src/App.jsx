@@ -1402,6 +1402,11 @@ export default function AquagramApp() {
   const groupMode = Boolean(groupSlug) && !postMode;
   const kbMode = Boolean(kbRoute) && !postMode;
   const currentSpecies = kbMode && kbRoute.slug ? speciesBySlug(kbRoute.slug) : null;
+  // Ayrı sayfadan bir türün lokalitesine/varyetesine taşınan eski tür adresleri
+  const speciesRedirect = kbMode && kbRoute.slug && !currentSpecies ? kbDb.redirects[kbRoute.slug] : null;
+  useEffect(() => {
+    if (speciesRedirect) navigate("/tur/" + speciesRedirect.slug, { replace: true });
+  }, [speciesRedirect]); // eslint-disable-line react-hooks/exhaustive-deps
   const hashMode = postMode || groupMode || Boolean(communityPage) || kbMode;
   const effectiveMemberPage = isMember && !hashMode ? memberPage : null;
   const accountMode = Boolean(effectiveMemberPage) && effectiveMemberPage !== "posts";

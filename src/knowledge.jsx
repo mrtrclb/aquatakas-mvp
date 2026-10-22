@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostCard, RichText, VideoBlock, normalizeTr, timeAgo } from "./community.jsx";
 import { LinkPreviewCard, firstUrl } from "./link-preview.jsx";
+import { FORM_KINDS } from "./lib/knowledge";
 import { DIFFICULTY_COLORS, KB_CATEGORIES, KB_SECTIONS, categoryById, detectSpecies } from "./species.js";
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
@@ -40,7 +41,7 @@ export function searchSpecies(species, query) {
   const terms = normalizeTr(query).split(/\s+/).filter(Boolean);
   if (!terms.length) return [];
   return species.filter((item) => {
-    const hay = normalizeTr([item.name, item.latin, ...(item.keywords || []), categoryById(item.category).name].join(" "));
+    const hay = normalizeTr([item.name, item.latin, ...(item.keywords || []), ...(item.forms || []).flatMap((form) => [form.name, ...form.aliases]), categoryById(item.category).name].join(" "));
     return terms.every((term) => hay.includes(term));
   });
 }
@@ -775,6 +776,63 @@ function RelatedSection({ species, listings, posts, ctx }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Lokaliteler ve varyeteler                                           */
+/* ------------------------------------------------------------------ */
+
+const FORM_ORDER = ["lokalite", "varyete", "ticari"];
+const FORM_TONE = { lokalite: "bg-emerald-50 text-emerald-800 ring-emerald-200", varyete: "bg-violet-50 text-violet-800 ring-violet-200", ticari: "bg-amber-50 text-amber-800 ring-amber-200" };
+const FORM_PREVIEW = 6;
+
+function FormsSection({ species }) {
+  const forms = species.forms || [];
+  const [open, setOpen] = useState(false);
+  const [lightbox, setLightbox] = useState(null); // { images, index }
+  if (!forms.length) return null;
+  const sorted = forms.slice().sort((a, b) => FORM_ORDER.indexOf(a.kind) - FORM_ORDER.indexOf(b.kind) || a.position - b.position || a.name.localeCompare(b.name, "tr"));
+  const shown = open ? sorted : sorted.slice(0, FORM_PREVIEW);
+  const kinds = FORM_ORDER.filter((kind) => sorted.some((form) => form.kind === kind));
+  const latinBase = (species.latin || "").replace(/\s*'.*$/, "");
+  return (
+    <section id="lokaliteler" className="mx-4 mb-4 overflow-hidden rounded-3xl border border-slate-200">
+      <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+        <h3 className="text-sm font-black text-slate-800">Lokaliteler ve varyeteler <span className="text-slate-400">({forms.length})</span></h3>
+        <p className="mt-0.5 text-[12px] leading-snug text-slate-500">
+          {kinds.map((kind) => FORM_KINDS[kind].label + ": " + FORM_KINDS[kind].hint.toLocaleLowerCase("tr")).join(" · ")}
+        </p>
+      </div>
+      <ul className="divide-y divide-slate-100">
+        {shown.map((form) => (
+          <li key={form.dbId} id={"form-" + form.dbId} className="flex gap-3 px-4 py-3">
+            {form.images.length > 0 ? (
+              <button type="button" onClick={() => setLightbox({ images: form.images, index: 0 })} className="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100" title="Görseli büyüt">
+                <img src={form.images[0]} alt={species.name + " " + form.name} loading="lazy" className="h-full w-full object-cover" />
+              </button>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="font-black text-slate-900">{form.kind === "lokalite" ? "'" + form.name + "'" : form.name}</span>
+                <span className={"rounded-full px-2 py-0.5 text-[11px] font-black ring-1 " + FORM_TONE[form.kind]}>{FORM_KINDS[form.kind].label}</span>
+              </div>
+              {form.kind === "lokalite" && latinBase && <p className="text-[12px] italic text-slate-400">{latinBase} '{form.name}'</p>}
+              {form.origin && <p className="mt-0.5 flex items-start gap-1 text-sm text-slate-600"><MapPin size={14} className="mt-0.5 shrink-0 text-slate-400" /> {form.origin}</p>}
+              {form.aliases.length > 0 && <p className="mt-0.5 text-sm text-slate-500">Diğer adlar: {form.aliases.join(", ")}</p>}
+              {form.note && <p className="mt-1 text-sm leading-relaxed text-slate-700">{form.note}</p>}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {sorted.length > FORM_PREVIEW && (
+        <button type="button" onClick={() => setOpen((value) => !value)} className="w-full border-t border-slate-100 px-4 py-2.5 text-sm font-black text-cyan-800 hover:bg-cyan-50">
+          {open ? "Daha az göster" : "Tümünü göster (" + sorted.length + ")"}
+        </button>
+      )}
+      <p className="border-t border-slate-100 px-4 py-2 text-[12px] text-slate-400">Farklı lokaliteleri aynı tankta melezlemeden tutmak, hattın saflığını korumanın temelidir.</p>
+      {lightbox && <Lightbox images={lightbox.images} start={lightbox.index} onClose={() => setLightbox(null)} />}
+    </section>
+  );
+}
+
 export function SpeciesPage({ species, kb, ctx, listings, posts }) {
   const [sort, setSort] = useState("newest");
   const category = categoryById(species.category);
@@ -861,6 +919,8 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
         </dl>
         <p className="px-4 py-2 text-[12px] text-slate-400">Değerler hobide yaygın kabul gören aralıklardır; hat, lokasyon ve bireye göre değişebilir.</p>
       </section>
+
+      <FormsSection species={species} />
 
       <KeepersSection keepers={keepers} species={species} kb={kb} ctx={ctx} />
       <RelatedSection species={species} listings={linkedListings} posts={linkedPosts} ctx={ctx} />

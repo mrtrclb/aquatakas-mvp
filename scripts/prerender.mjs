@@ -42,17 +42,22 @@ async function loadData() {
   const categories = local.KB_CATEGORIES;
   const sections = local.KB_SECTIONS;
   try {
-    const [species, listings, groups, articles] = await Promise.all([
-      rest("species?select=slug,name,latin,category_id,kind,difficulty,temperament,description,facts,image_url,images,updated_at&status=eq.published&order=name"),
+    const [species, listings, groups, articles, forms, redirects] = await Promise.all([
+      rest("species?select=id,slug,name,latin,category_id,kind,difficulty,temperament,description,facts,image_url,images,updated_at&status=eq.published&order=name"),
       rest("listings?select=id,title,description,price,type,city,district,images,updated_at,user_id,owner:profiles!listings_user_id_fkey(username,hide_from_search)&status=eq.active&order=updated_at.desc&limit=2000"),
       rest("groups?select=slug,name,description,cover_url,member_count,created_at&is_closed=eq.false&order=member_count.desc"),
-      rest("articles?select=slug,title,excerpt,body,footnotes,sources,cover_url,species_slugs,published_at,updated_at&status=eq.published&order=published_at.desc").catch(() => [])
+      rest("articles?select=slug,title,excerpt,body,footnotes,sources,cover_url,species_slugs,published_at,updated_at&status=eq.published&order=published_at.desc").catch(() => []),
+      rest("species_forms?select=species_id,name,kind,origin,note,aliases&status=eq.published&order=position,name").catch(() => []),
+      rest("species_redirects?select=old_slug,new_slug").catch(() => [])
     ]);
+    const formsBySpecies = {};
+    forms.forEach((row) => (formsBySpecies[row.species_id] = formsBySpecies[row.species_id] || []).push(row));
     console.log("Prerender: veritabanından " + species.length + " tür, " + listings.length + " ilan, " + groups.length + " grup alındı.");
     return {
       categories,
       sections,
-      species: species.map((row) => ({ ...row, category: row.category_id, images: (row.images && row.images.length ? row.images : row.image_url ? [row.image_url] : []) })),
+      species: species.map((row) => ({ ...row, category: row.category_id, forms: formsBySpecies[row.id] || [], images: (row.images && row.images.length ? row.images : row.image_url ? [row.image_url] : []) })),
+      redirects,
       listings: listings.filter((row) => !(row.owner && row.owner.hide_from_search)),
       groups,
       articles
@@ -65,7 +70,8 @@ async function loadData() {
       species: local.SPECIES.map((sp) => ({ ...sp, description: sp.desc, images: [] })),
       listings: [],
       groups: [],
-      articles: []
+      articles: [],
+      redirects: []
     };
   }
 }
@@ -123,6 +129,7 @@ function breadcrumb(items) {
   };
 }
 
+const FORM_LABELS = { lokalite: "lokalite", varyete: "varyete", ticari: "ticari ad" };
 const TYPE_LABELS = { sale: "Satılık", trade: "Takas", free: "Ücretsiz / sahiplendirme", wanted: "Aranıyor" };
 const price = (row) => (row.type === "free" ? "Ücretsiz" : row.type === "wanted" ? "Aranıyor" : row.type === "trade" ? "Takas" : row.price ? Number(row.price).toLocaleString("tr-TR") + " TL" : "Teklif ver");
 
@@ -136,6 +143,15 @@ async function main() {
     urls.push({ path, lastmod, priority });
   };
   const catById = Object.fromEntries(data.categories.map((cat) => [cat.id, cat]));
+
+  // Lokalite/varyete olarak ana türe taşınan eski tür adresleri: kalıcı yönlendirme sayfası (site haritasına girmez)
+  for (const row of data.redirects || []) {
+    const target = SITE + "/tur/" + row.new_slug;
+    write(
+      "/tur/" + row.old_slug,
+      '<!doctype html><html lang="tr"><head><meta charset="utf-8" /><title>Yönlendiriliyor…</title><link rel="canonical" href="' + target + '" /><meta name="robots" content="noindex" /><meta http-equiv="refresh" content="0; url=' + target + '" /></head><body><a href="' + target + '">' + esc(target) + "</a></body></html>"
+    );
+  }
 
   // Ana bölümler
   add("/ilanlar", page({ path: "/ilanlar", title: "Akvaryum ilanları: canlı, bitki, ekipman — Aquagram", description: "Akvaryum balığı, karides, bitki, akvaryum ve ekipman ilanları. Hobicilerden satılık, takas ve sahiplendirme ilanları." }), today, "0.9");
@@ -175,6 +191,11 @@ async function main() {
       "<h1>" + esc(sp.name) + "</h1>" + (sp.latin ? "<p><i>" + esc(sp.latin) + "</i></p>" : "") +
       "<p>" + esc(sp.description) + "</p>" +
       (facts.length ? "<h2>Bakım künyesi</h2><dl>" + facts.map(([label, value]) => "<dt>" + esc(label) + "</dt><dd>" + esc(value) + "</dd>").join("") + "</dl>" : "") +
+      ((sp.forms || []).length
+        ? "<h2>Lokaliteler ve varyeteler</h2><ul>" +
+          sp.forms.map((f) => "<li><b>" + esc(f.name) + "</b> (" + esc(FORM_LABELS[f.kind] || f.kind) + ")" + (f.origin ? " — " + esc(f.origin) : "") + (f.aliases && f.aliases.length ? ". Diğer adlar: " + esc(f.aliases.join(", ")) : "") + (f.note ? ". " + esc(f.note) : "") + "</li>").join("") +
+          "</ul>"
+        : "") +
       '<p><a href="/bilgi/k/' + cat.id + '">' + esc(cat.name) + "</a></p>";
     add(
       "/tur/" + sp.slug,

@@ -30,6 +30,29 @@ export function mapSpeciesRow(row) {
   };
 }
 
+// Lokalite / varyete / ticari ad kaydı
+export const FORM_COLS = "id, species_id, name, kind, origin, note, aliases, images, source_url, position, status";
+export const FORM_KINDS = {
+  lokalite: { label: "Lokalite", hint: "Doğadaki belirli bir bölgenin popülasyonu" },
+  varyete: { label: "Varyete", hint: "Akvaryumda seçilerek üretilmiş renk ya da yüzgeç hattı" },
+  ticari: { label: "Ticari ad", hint: "Satıcıların kullandığı ad; tek bir lokaliteye denk gelmeyebilir" }
+};
+export function mapSpeciesForm(row) {
+  return {
+    dbId: row.id,
+    speciesId: row.species_id,
+    name: row.name,
+    kind: row.kind,
+    origin: row.origin || "",
+    note: row.note || "",
+    aliases: row.aliases || [],
+    images: (row.images || []).filter(Boolean),
+    sourceUrl: row.source_url || "",
+    position: row.position || 0,
+    status: row.status
+  };
+}
+
 export function mapSpeciesComment(row, slugById, likedSet) {
   return {
     id: "dsc" + row.id,
@@ -57,9 +80,10 @@ export function useDbKnowledge(myId) {
   const [likedComments, setLikedComments] = useState(new Set());
   const [profiles, setProfiles] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [redirects, setRedirects] = useState({}); // eski tür adresi → { slug, form }
 
   const reload = useCallback(async () => {
-    let [speciesRes, keepersRes, commentsRes] = await Promise.all([
+    let [speciesRes, keepersRes, commentsRes, formsRes, redirectRes] = await Promise.all([
       supabase.from("species").select(SPECIES_COLS).order("name"),
       supabase.from("species_keepers").select("species_id, user_id").limit(10000),
       supabase
@@ -67,7 +91,9 @@ export function useDbKnowledge(myId) {
         .select("id, species_id, user_id, text, images, video, like_count, edited_at, created_at, is_removed")
         .eq("is_removed", false)
         .order("created_at", { ascending: false })
-        .limit(1000)
+        .limit(1000),
+      supabase.from("species_forms").select(FORM_COLS).eq("status", "published").order("position").order("name"),
+      supabase.from("species_redirects").select("old_slug, new_slug, form_name")
     ]);
     // Tür görselleri sütunu henüz yoksa (0013 uygulanmadan önce) onsuz tekrar dene
     if (speciesRes.error) speciesRes = await supabase.from("species").select(SPECIES_COLS.replace(", images", "")).order("name");
@@ -96,7 +122,14 @@ export function useDbKnowledge(myId) {
       profileRows = data || [];
     }
     setIds({ bySlug, bySpeciesId });
-    const published = (speciesRes.data || []).filter((row) => row.status === "published").map(mapSpeciesRow);
+    const formsBySpecies = {};
+    (formsRes.data || []).forEach((row) => (formsBySpecies[row.species_id] = formsBySpecies[row.species_id] || []).push(mapSpeciesForm(row)));
+    const published = (speciesRes.data || [])
+      .filter((row) => row.status === "published")
+      .map((row) => ({ ...mapSpeciesRow(row), forms: formsBySpecies[row.id] || [] }));
+    const redirectMap = {};
+    (redirectRes.data || []).forEach((row) => (redirectMap[String(row.old_slug)] = { slug: String(row.new_slug), form: row.form_name || null }));
+    setRedirects(redirectMap);
     if (published.length) {
       setSpeciesCatalog(published);
       setSpeciesList(published);
@@ -126,6 +159,7 @@ export function useDbKnowledge(myId) {
     loaded,
     reload,
     speciesList,
+    redirects,
     profiles,
     speciesId: (slug) => ids.bySlug[slug],
     keeping,

@@ -1893,6 +1893,141 @@ function GroupsSection() {
 /* ------------------------------------------------------------------ */
 /* Türler                                                              */
 /* ------------------------------------------------------------------ */
+/* Tür lokaliteleri / varyeteleri                                      */
+/* ------------------------------------------------------------------ */
+
+const FORM_KIND_LABELS = { lokalite: "Lokalite", varyete: "Varyete", ticari: "Ticari ad" };
+const EMPTY_SPECIES_FORM = { id: null, name: "", kind: "lokalite", origin: "", note: "", aliases: "", images: [], source_url: "", position: 0, status: "published" };
+
+function SpeciesFormsEditor({ speciesId, latin, slug }) {
+  const { act, ask } = useAdmin();
+  const [edit, setEdit] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+  const state = useLoad(async () => must(supabase.from("species_forms").select("*").eq("species_id", speciesId).order("kind").order("position").order("name")), [speciesId]);
+  const input = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-700";
+  const set = (key, value) => setEdit((prev) => ({ ...prev, [key]: value }));
+
+  async function addImages(event) {
+    const files = Array.from(event.target.files || []).filter((file) => /^image\/(jpeg|png|webp)$/.test(file.type));
+    event.target.value = "";
+    if (!files.length) return;
+    setUploading(true);
+    const urls = [];
+    for (const file of files.slice(0, 4)) {
+      const blob = await shrinkImage(file, 1600, 0.86);
+      const type = blob.type || "image/jpeg";
+      const path = "species/" + slug + "/form-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+      const { error } = await supabase.storage.from("species-media").upload(path, blob, { contentType: type });
+      if (!error) urls.push(supabase.storage.from("species-media").getPublicUrl(path).data.publicUrl);
+    }
+    setEdit((prev) => ({ ...prev, images: [...prev.images, ...urls].slice(0, 6) }));
+    setUploading(false);
+  }
+
+  async function save() {
+    const row = {
+      species_id: speciesId,
+      name: edit.name.trim(),
+      kind: edit.kind,
+      origin: edit.origin.trim(),
+      note: edit.note.trim(),
+      aliases: Array.from(new Set(edit.aliases.split(",").map((word) => word.trim()).filter(Boolean))),
+      images: edit.images,
+      source_url: edit.source_url.trim() || null,
+      position: Number(edit.position) || 0,
+      status: edit.status
+    };
+    const request = edit.id ? supabase.from("species_forms").update(row).eq("id", edit.id) : supabase.from("species_forms").insert(row);
+    if (await act(request, edit.id ? "Kayıt güncellendi" : "Kayıt eklendi")) {
+      setEdit(null);
+      state.reload();
+    }
+  }
+
+  async function remove(row) {
+    if ((await ask({ title: "Kaydı sil", text: "'" + row.name + "' bu türden kaldırılacak.", confirm: "Sil", danger: true })) === null) return;
+    if (await act(supabase.from("species_forms").delete().eq("id", row.id), "Kayıt silindi")) state.reload();
+  }
+
+  return (
+    <Card className="mt-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="font-black">Lokaliteler ve varyeteler</h2>
+          <p className="text-xs text-slate-500">Lokalite: doğadaki bölge popülasyonu · Varyete: akvaryumda seçilmiş hat · Ticari ad: satıcıların kullandığı ad. Diğer adlar sitede aramada da bulunur.</p>
+        </div>
+        {!edit && <Btn small tone="primary" onClick={() => setEdit({ ...EMPTY_SPECIES_FORM })}><Plus size={13} /> Ekle</Btn>}
+      </div>
+
+      {edit && (
+        <div className="mb-4 grid gap-2 rounded-2xl bg-slate-50 p-3 sm:grid-cols-2">
+          <label className="text-xs font-black text-slate-500">Ad<input className={input} value={edit.name} onChange={(event) => set("name", event.target.value)} placeholder="Ilangi, Kitumba, Electric Blue…" /></label>
+          <label className="text-xs font-black text-slate-500">Tür
+            <select className={input} value={edit.kind} onChange={(event) => set("kind", event.target.value)}>
+              {Object.entries(FORM_KIND_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-black text-slate-500 sm:col-span-2">Köken / bölge<input className={input} value={edit.origin} onChange={(event) => set("origin", event.target.value)} placeholder="Tanzanya kıyısı, gölün orta-doğusu" /></label>
+          <label className="text-xs font-black text-slate-500 sm:col-span-2">Diğer adlar (virgülle)<input className={input} value={edit.aliases} onChange={(event) => set("aliases", event.target.value)} placeholder="Blue Flash, Kitumba Blue" /></label>
+          <label className="text-xs font-black text-slate-500 sm:col-span-2">Not<textarea rows={3} className={input} value={edit.note} onChange={(event) => set("note", event.target.value)} placeholder="Renk/desen farkı, hobideki yaygınlığı, karıştırılma riski…" /></label>
+          <label className="text-xs font-black text-slate-500">Kaynak bağlantısı<input className={input} value={edit.source_url} onChange={(event) => set("source_url", event.target.value)} placeholder="https://…" /></label>
+          <label className="text-xs font-black text-slate-500">Sıra<input type="number" className={input} value={edit.position} onChange={(event) => set("position", event.target.value)} /></label>
+          <div className="sm:col-span-2">
+            <div className="flex flex-wrap gap-2">
+              {edit.images.map((url) => (
+                <div key={url} className="relative h-16 w-20 overflow-hidden rounded-xl bg-slate-100">
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <button onClick={() => set("images", edit.images.filter((item) => item !== url))} className="absolute right-1 top-1 rounded-full bg-slate-950/70 p-0.5 text-white"><X size={11} /></button>
+                </div>
+              ))}
+              <button onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} className="grid h-16 w-20 place-items-center rounded-xl border border-dashed border-slate-300 text-[12px] font-black text-slate-500 hover:bg-white">
+                {uploading ? <Loader2 className="animate-spin" size={16} /> : <span className="grid place-items-center"><Upload size={15} /> Görsel</span>}
+              </button>
+              <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={addImages} />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm font-bold sm:col-span-2">
+            <input type="checkbox" className="h-4 w-4 accent-cyan-900" checked={edit.status === "published"} onChange={(event) => set("status", event.target.checked ? "published" : "draft")} /> Sitede göster
+          </label>
+          <div className="flex gap-2 sm:col-span-2">
+            <Btn small tone="primary" disabled={!edit.name.trim() || uploading} onClick={save}><Check size={13} /> Kaydet</Btn>
+            <Btn small onClick={() => setEdit(null)}>Vazgeç</Btn>
+          </div>
+        </div>
+      )}
+
+      <LoadState state={state}>
+        {(rows) =>
+          rows.length === 0 ? (
+            <p className="text-sm text-slate-400">Henüz kayıt yok.</p>
+          ) : (
+            <div className="grid gap-1.5">
+              {rows.map((row) => (
+                <div key={row.id} className="flex items-start gap-3 rounded-2xl border border-slate-100 px-3 py-2">
+                  {row.images && row.images[0] && <img src={row.images[0]} alt="" className="h-10 w-12 shrink-0 rounded-lg object-cover" />}
+                  <div className="min-w-0 flex-1 text-sm">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-black">{row.kind === "lokalite" ? (latin || "").replace(/\s*'.*$/, "") + " '" + row.name + "'" : row.name}</span>
+                      <Badge tone={row.kind === "lokalite" ? "emerald" : row.kind === "varyete" ? "violet" : "amber"}>{FORM_KIND_LABELS[row.kind]}</Badge>
+                      {row.status !== "published" && <Badge>Gizli</Badge>}
+                    </div>
+                    {row.origin && <div className="text-xs text-slate-500">{row.origin}</div>}
+                    {row.aliases && row.aliases.length > 0 && <div className="text-xs text-slate-500">Diğer adlar: {row.aliases.join(", ")}</div>}
+                  </div>
+                  <Btn small onClick={() => setEdit({ ...row, aliases: (row.aliases || []).join(", "), images: row.images || [], source_url: row.source_url || "", origin: row.origin || "", note: row.note || "" })}>Düzenle</Btn>
+                  <Btn small tone="ghostDanger" onClick={() => remove(row)}><Trash2 size={13} /></Btn>
+                </div>
+              ))}
+            </div>
+          )
+        }
+      </LoadState>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 
 // Bilgi Bankası kategori başlık bandı kapakları (site_settings.category_covers)
 /* Bilgi Bankası makaleleri ---------------------------------------------------- */
@@ -2543,6 +2678,7 @@ function SpeciesEditor({ param }) {
             </Card>
           </div>
         </div>
+        {!isNew && <SpeciesFormsEditor speciesId={Number(param)} latin={form.latin} slug={form.slug} />}
       </Section>
     </div>
   );

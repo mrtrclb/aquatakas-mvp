@@ -34,6 +34,7 @@ def main():
     nums = json.loads((ROOT / "scripts/gorsel-numaralari.json").read_text())
     found = {"tur": {}, "makale": {}}
     skipped = []
+    key_of = {}
     for file in sorted(p for p in src.rglob("*") if p.is_file()):
         m = NAME.match(file.name)
         if not m:
@@ -46,6 +47,7 @@ def main():
             skipped.append((file.name, "numara listede yok"))
             continue
         found[kind].setdefault(slug, []).append((int(m.group(3)), file))
+        key_of[(kind, slug)] = key
 
     sql = []
     for kind, items in found.items():
@@ -63,7 +65,10 @@ def main():
                     im.save(target, "WEBP", quality=QUALITY, method=6)
                 urls.append(f"{SITE}/media/{kind}/{slug}-{order}.webp")
             arr = "array[" + ",".join("'" + u + "'" for u in urls) + "]::text[]"
-            if kind == "tur":
+            moved = nums.get("formlar", {}).get(key_of[(kind, slug)]) if kind == "tur" else None
+            if moved:
+                sql.append(f"update public.species_forms set images = {arr} where name = '{moved[1]}' and species_id = (select id from public.species where slug = '{moved[0]}');")
+            elif kind == "tur":
                 sql.append(f"update public.species set images = {arr} where slug = '{slug}';")
             else:
                 sql.append(f"update public.articles set cover_url = '{urls[0]}', images = {arr} where slug = '{slug}';")

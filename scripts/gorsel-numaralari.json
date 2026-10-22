@@ -1,5 +1,5 @@
 {
- "_aciklama": "Görsel yükleme numaraları (aquagram_gorsel_listesi.xlsx ile aynı). Değiştirmeyin; yeni türler sona eklenir.",
+ "_aciklama": "Görsel yükleme numaraları (aquagram_gorsel_listesi.xlsx ile aynı). Değiştirmeyin; yeni türler sona eklenir. 'formlar': ayrı tür sayfasıyken ana türün lokalite/varyetesine taşınan numaralar; görselleri o kaydın galerisine gider.",
  "tur": {
   "1": "aristochromis-christyi",
   "2": "aulonocara-baenschi",
@@ -861,5 +861,19 @@
   "M78": "silver-mono-tatli-su-baligi-diye-alinip-denize-dogru-buyuyen-tur",
   "M79": "true-percula-clownfish-palyaco-baligi-anemon-ortakligi-gercekte-nasil-calisiyor",
   "M80": "banggai-cardinalfish-babasinin-agzinda-buyuyen-denize-larva-sacmayan-deniz-baligi"
+ },
+ "formlar": {
+  "38": [
+   "altolamprologus-compressiceps",
+   "Sumbu Shell"
+  ],
+  "160": [
+   "rocio-octofasciata",
+   "Electric Blue"
+  ],
+  "327": [
+   "tanichthys-albonubes",
+   "Gold"
+  ]
  }
 }

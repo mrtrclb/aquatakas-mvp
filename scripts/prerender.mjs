@@ -314,6 +314,19 @@ async function main() {
     );
   }
 
+  // Yasal sayfalar: /kullanim-kosullari, /gizlilik, /kvkk (JavaScript olmadan da tam metin okunur)
+  const legal = await import(join(ROOT, "src/lib/legal-docs.js"));
+  const updated = new Date(legal.LEGAL_VERSION).toLocaleDateString("tr-TR");
+  for (const [path, key] of Object.entries(legal.LEGAL_PATHS)) {
+    const doc = legal.LEGAL_DOCS[key];
+    const text = doc.sections.flatMap(([, paragraphs]) => paragraphs).join(" ");
+    const body =
+      "<h1>" + esc(doc.title) + "</h1><p><small>Son güncelleme: " + esc(updated) + "</small></p>" +
+      doc.sections.map(([heading, paragraphs]) => "<h2>" + esc(heading) + "</h2>" + paragraphs.map((t) => "<p>" + esc(t) + "</p>").join("")).join("") +
+      '<p><small>İletişim: <a href="mailto:' + esc(legal.CONTACT_EMAIL) + '">' + esc(legal.CONTACT_EMAIL) + "</a></small></p>";
+    add(path, page({ path, title: doc.title + " — Aquagram", description: clip(text, 158), body }), legal.LEGAL_VERSION, "0.3");
+  }
+
   // Site haritası
   const all = [{ path: "/", lastmod: today, priority: "1.0" }, ...urls];
   const xml =

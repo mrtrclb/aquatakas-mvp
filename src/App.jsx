@@ -11,6 +11,7 @@ import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
 import { SeenMarker, markSeen, pickLeastSeen, rotate } from "./lib/rotation";
 import AdsManagerPage from "./ads-manager.jsx";
 import { SiteInfoModal, SiteLinks, BLOG_URL } from "./site-info.jsx";
+import { LEGAL_PATHS } from "./lib/legal-docs.js";
 import { OnboardingModal, shouldOnboard } from "./onboarding.jsx";
 import { BumpButton, ProBadge, ProCard, useProStatus } from "./pro.jsx";
 import { VerificationCard } from "./verification.jsx";
@@ -528,6 +529,9 @@ export default function AquagramApp() {
     return true;
   }
 
+  // Yasal sayfa adresleri (/kullanim-kosullari, /gizlilik, /kvkk) site bilgileri penceresini açar
+  const [legalTab, setLegalTab] = useState(null);
+
   // Adresler: /paylasim/<sayı>-<kelimeler>, /gruplar, /grup/<ad>, /etiketler, /bilgi..., /tur/<ad>, /ilan/<no>, /ilanlar, /topluluk
   useEffect(() => {
     upgradeLegacyHash();
@@ -535,6 +539,7 @@ export default function AquagramApp() {
       const path = routePath();
       const post = path.match(/^\/paylasim\/(.+)$/);
       const group = path.match(/^\/grup\/([^/]+)$/);
+      setLegalTab(LEGAL_PATHS[path] || null);
       setPostSlug(post ? post[1] : null);
       setGroupSlug(group ? group[1] : null);
       setCommunityPage(path === "/gruplar" ? "groups" : path === "/etiketler" ? "tags" : null);
@@ -2139,6 +2144,7 @@ export default function AquagramApp() {
       {toast && (
         <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 z-[80] max-w-[92vw] -translate-x-1/2 rounded-full bg-slate-950 px-5 py-2.5 text-center text-sm font-black text-white shadow-xl lg:bottom-6">{toast}</div>
       )}
+      {legalTab && <SiteInfoModal activeTab={legalTab} setActiveTab={setLegalTab} onClose={() => { setLegalTab(null); leaveTo("/"); }} />}
       {onboardOpen && !onboardDismissed && !auth.recovery && auth.profile && (
         <OnboardingModal
           auth={auth}

@@ -13,11 +13,11 @@ import { KB_CATEGORIES, KB_SECTIONS } from "./species.js";
 const fold = (text) => (text || "").toLocaleLowerCase("tr").replace(/[çğıöşü]/g, (ch) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[ch]);
 const TANKS = ["1", "2", "3", "4", "5+"];
 const SOCIALS = [
-  ["instagram", "Instagram", "@kullaniciadi"],
-  ["x", "X (Twitter)", "@kullaniciadi"],
-  ["youtube", "YouTube", "Kanal bağlantısı ya da @kanal"],
-  ["facebook", "Facebook", "Profil bağlantısı"],
-  ["web", "Web sitesi", "https://"]
+  ["instagram", "Instagram", "Instagram kullanıcı adın (ör. @akvaryumcu)"],
+  ["x", "X (Twitter)", "X kullanıcı adın (ör. @akvaryumcu)"],
+  ["youtube", "YouTube", "Kanal adresin ya da @kanal adın"],
+  ["facebook", "Facebook", "Facebook profil bağlantın"],
+  ["web", "Web sitesi", "Web sitenin adresi (ör. https://…)"]
 ];
 const BASE_STEPS = ["species", "groups", "about", "socials", "done"];
 
@@ -344,6 +344,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
             <>
               <h2 className="text-2xl font-black tracking-tight text-slate-950">Bağlantılarını genişlet 🔗</h2>
               <p className="mt-1 text-sm text-slate-500">İstersen sosyal medya hesaplarını ekle; profilinde görünür, hobiciler seni oradan da takip edebilir. Kullanıcı adı ya da bağlantı yazabilirsin.</p>
+              <p className="mt-2 rounded-2xl bg-cyan-50 px-3 py-2 text-xs font-bold text-cyan-900">Burası Aquagram kullanıcı adın değil; diğer sitelerdeki hesapların. Hepsi isteğe bağlı.</p>
               <div className="mt-3 grid gap-2">
                 {SOCIALS.map(([key, label, placeholder]) => (
                   <label key={key} className="grid gap-1 text-xs font-black text-slate-500">{label}

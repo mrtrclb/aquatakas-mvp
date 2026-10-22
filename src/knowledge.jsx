@@ -955,7 +955,7 @@ function DistributionSection({ species, focus }) {
       <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
         <h3 className="text-sm font-black text-slate-800">Doğadaki dağılımı</h3>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-slate-500">
-          {areas.length > 0 && <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full border border-dashed border-cyan-700 bg-cyan-400/30" /> Yaygın görüldüğü bölge</span>}
+          {areas.length > 0 && <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-cyan-600/30" /> Yaygın görüldüğü bölge</span>}
           {points.length > 0 && <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600 ring-2 ring-white" /> Lokalite ({points.length})</span>}
         </p>
       </div>

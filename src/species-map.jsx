@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıcıları';
 const POINT_STYLE = { radius: 7, color: "#ffffff", weight: 2, fillColor: "#059669", fillOpacity: 0.95 };
-const AREA_STYLE = { color: "#0e7490", weight: 1, fillColor: "#06b6d4", fillOpacity: 0.16, dashArray: "4 4" };
+const AREA_STYLE = { stroke: false, fillColor: "#0891b2", fillOpacity: 0.2 };
 
 const esc = (text) => String(text || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 

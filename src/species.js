@@ -13,6 +13,7 @@ export const KB_CATEGORIES = [
   { id: "tanganyika", section: "tatlisu", name: "Tanganyika Cichlidleri", emoji: "🪨", tone: "from-stone-300 to-amber-600" },
   { id: "guney-amerika", section: "tatlisu", name: "Güney Amerika Cichlidleri", emoji: "🍂", tone: "from-orange-300 to-red-600" },
   { id: "orta-amerika", section: "tatlisu", name: "Orta Amerika Cichlidleri", emoji: "🌋", tone: "from-yellow-300 to-rose-600" },
+  { id: "afrika-nehir", section: "tatlisu", name: "Afrika Nehir Cichlidleri", emoji: "🌴", tone: "from-lime-300 to-orange-600" },
   { id: "canli-doguranlar", section: "tatlisu", name: "Canlı Doğuranlar", emoji: "🐡", tone: "from-rose-300 to-red-500" },
   { id: "labirentliler", section: "tatlisu", name: "Labirentliler", emoji: "🫧", tone: "from-red-400 to-fuchsia-700" },
   { id: "characiformlar", section: "tatlisu", name: "Characiformlar (Tetralar)", emoji: "✨", tone: "from-cyan-300 to-blue-700" },

@@ -57,6 +57,9 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
 
   // Tür rehberindeki kategoriler; her açılışta her kategoriden rastgele 3 tür (sıra pencere açıkken sabit)
   const [expanded, setExpanded] = useState({});
+  const [allCategories, setAllCategories] = useState(false); // ilk açılışta yalnız ilk 3 kategori
+  const [allGroups, setAllGroups] = useState(false); // ilk açılışta yalnız 6 grup
+  const [brokenCovers, setBrokenCovers] = useState([]); // yüklenemeyen kapak → emoji
   const groupsByCategory = useMemo(() => {
     const order = Object.fromEntries(KB_SECTIONS.map((section, index) => [section.id, index]));
     return KB_CATEGORIES.slice()
@@ -69,7 +72,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
       .filter((group) => group.items.length > 0);
   }, [species]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const groupList = useMemo(() => groups.filter((group) => group.dbId && !group.memberIds.includes(profile.id)).slice(0, 12), [groups, profile.id]);
+  const groupList = useMemo(() => groups.filter((group) => group.dbId && !group.memberIds.includes(profile.id)), [groups, profile.id]);
   const selected = mode === "keep" ? keep : fav;
   const toggle = (list, setList, value) => setList(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
 
@@ -255,7 +258,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
                 </>
               ) : (
                 <div className="mt-3 grid gap-4">
-                  {groupsByCategory.map(({ category, items }) => {
+                  {(allCategories ? groupsByCategory : groupsByCategory.slice(0, 3)).map(({ category, items }) => {
                     const open = expanded[category.id];
                     const picked = items.filter((item) => keep.includes(item.slug) || fav.includes(item.slug)).length;
                     return (
@@ -275,6 +278,11 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
                       </section>
                     );
                   })}
+                  {!allCategories && groupsByCategory.length > 3 && (
+                    <button type="button" onClick={() => setAllCategories(true)} className="rounded-2xl border border-slate-200 py-2.5 text-sm font-black text-cyan-800 hover:bg-slate-50">
+                      Daha fazla tür gör ({groupsByCategory.length - 3} kategori daha)
+                    </button>
+                  )}
                 </div>
               )}
             </>
@@ -285,12 +293,12 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
               <h2 className="text-2xl font-black tracking-tight text-slate-950">İlgi alanların neler? ✨</h2>
               <p className="mt-1 text-sm text-slate-500">Gruplara katıl; akışında sevdiğin konulardan paylaşımlar görürsün.</p>
               <div className="mt-3 grid gap-2">
-                {groupList.map((group) => {
+                {(allGroups ? groupList : groupList.slice(0, 6)).map((group) => {
                   const on = joined.includes(group.dbId);
                   return (
                     <button key={group.dbId} type="button" onClick={() => toggle(joined, setJoined, group.dbId)} aria-pressed={on} className={"flex items-center gap-3 rounded-2xl border p-2.5 text-left transition " + (on ? "border-cyan-700 bg-cyan-50/60" : "border-slate-200 hover:bg-slate-50")}>
                       <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-slate-100 text-xl">
-                        {group.cover ? <img src={group.cover} alt="" className="h-full w-full object-cover" /> : group.emoji || "💧"}
+                        {group.cover && !brokenCovers.includes(group.dbId) ? <img src={group.cover} alt="" onError={() => setBrokenCovers((prev) => [...prev, group.dbId])} className="h-full w-full object-cover" /> : group.emoji || "💧"}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-black text-slate-900">{group.name}</span>
@@ -300,6 +308,11 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
                     </button>
                   );
                 })}
+                {!allGroups && groupList.length > 6 && (
+                  <button type="button" onClick={() => setAllGroups(true)} className="rounded-2xl border border-slate-200 py-2.5 text-sm font-black text-cyan-800 hover:bg-slate-50">
+                    Daha fazla grup gör ({groupList.length - 6})
+                  </button>
+                )}
                 {groupList.length === 0 && <p className="py-6 text-center text-sm text-slate-400">Şu an önerecek grup yok.</p>}
               </div>
             </>

@@ -244,6 +244,8 @@ export function notificationText(item) {
       return "Lokalite / varyete önerin onaylandı: " + (item.body || "") + " · Teşekkürler!";
     case "form_suggestion_rejected":
       return "Lokalite / varyete önerin bu kez eklenmedi: " + (item.body || "");
+    case "team_message":
+      return item.body || "Aquagram Ekibi'nden mesajın var";
     case "group_join":
       return actor + (item.grp ? " " + item.grp.name + " grubuna" : " grubuna") + " katıldı";
     default:

@@ -23,6 +23,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Send,
   Settings,
   HardDrive,
   ShieldCheck,
@@ -52,7 +53,8 @@ export const PERMISSIONS = [
   ["species", "Türler"],
   ["ads", "Öne çıkarma ve reklam"],
   ["settings", "Ayarlar"],
-  ["contact", "İletişim mesajları"]
+  ["contact", "İletişim mesajları"],
+  ["messages", "Ekip mesajları"]
 ];
 
 // Her yetkinin tam olarak neye izin verdiği (Ekip ve yetkiler sayfasında gösterilir)
@@ -65,7 +67,8 @@ export const PERMISSION_HELP = {
   species: "Bilgi Bankası'na tür ekler, türleri düzenler, yayından kaldırır; üyelerin tür önerilerini onaylar ya da reddeder.",
   ads: "İlan öne çıkarma ve reklam başvurularını görür, onaylar ya da gerekçeyle reddeder.",
   settings: "Duyuru bandını, topluluk kurallarını, yasaklı kelimeleri ve öne çıkarma/reklam fiyatlarını değiştirir; disk ve e-posta kullanımını görür.",
-  contact: "Bize ulaşın formundan gelen mesajları (gönderenin adı ve e-posta adresi dahil) okur, yanıtlandı ya da kapatıldı olarak işaretler."
+  contact: "Bize ulaşın formundan gelen mesajları (gönderenin adı ve e-posta adresi dahil) okur, yanıtlandı ya da kapatıldı olarak işaretler.",
+  messages: "\"Aquagram Ekibi\" adıyla üyelere mesaj gönderir: tüm PRO üyelere ya da seçtiği üyelere. İletişim mesajları yetkisiyle birlikte verilirse formdan yazan üyelere site içinden yanıt da verebilir."
 };
 
 const SECTIONS = [
@@ -73,6 +76,7 @@ const SECTIONS = [
   { id: "istatistik", label: "İstatistikler", icon: BarChart3, perm: null },
   { id: "sikayetler", label: "Şikâyetler", icon: Flag, perm: "reports", stat: "reports_open" },
   { id: "iletisim", label: "İletişim", icon: Mail, perm: "contact", stat: "contact_open" },
+  { id: "mesajlar", label: "Ekip mesajları", icon: Send, perm: "messages" },
   { id: "one-cikarma", label: "Öne çıkarma", icon: Pin, perm: "ads", stat: "features_pending" },
   { id: "reklamlar", label: "Reklamlar", icon: Megaphone, perm: "ads", stat: "ads_pending" },
   { id: "kullanicilar", label: "Kullanıcılar", icon: Users, perm: "users", stat: "verifications_pending" },
@@ -326,8 +330,8 @@ function ReasonDialog({ dialog, onClose }) {
               autoFocus
               value={value}
               onChange={(event) => setValue(event.target.value)}
-              rows={3}
-              maxLength={300}
+              rows={dialog.rows || 3}
+              maxLength={dialog.maxLength || 300}
               placeholder={dialog.placeholder || (dialog.required ? "Gerekçe yaz (zorunlu)" : "Not ekle (isteğe bağlı)")}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-cyan-700"
             />
@@ -464,6 +468,7 @@ export default function AdminApp() {
     istatistik: StatsSection,
     sikayetler: ReportsSection,
     iletisim: ContactSection,
+    mesajlar: TeamMessagesSection,
     "one-cikarma": FeaturesSection,
     reklamlar: AdsSection,
     kullanicilar: UsersSection,
@@ -1896,7 +1901,7 @@ const CONTACT_TOPIC_LABELS = { destek: "Destek / hesap", oneri: "Öneri", hata: 
 const CONTACT_STATUS = { open: ["Yanıt bekliyor", "rose"], answered: ["Yanıtlandı", "emerald"], closed: ["Kapatıldı", "slate"] };
 
 function ContactSection() {
-  const { act, ask } = useAdmin();
+  const { act, ask, can } = useAdmin();
   const [tab, setTab] = useState("open");
   const [topic, setTopic] = useState("");
   const [openId, setOpenId] = useState(null);
@@ -1913,6 +1918,21 @@ function ContactSection() {
     const note = status === "open" ? "" : await ask({ title: status === "answered" ? "Yanıtlandı olarak işaretle" : "Mesajı kapat", text: "İsteğe bağlı olarak ekip için kısa bir not bırakabilirsin.", confirm: status === "answered" ? "Yanıtlandı" : "Kapat" });
     if (note === null) return;
     if (await act(supabase.rpc("admin_update_contact", { p_id: row.id, p_status: status, p_note: note || null }), status === "open" ? "Mesaj yeniden açıldı" : status === "answered" ? "Yanıtlandı olarak işaretlendi" : "Mesaj kapatıldı")) state.reload();
+  }
+
+  async function replyAsTeam(row, member) {
+    const body = await ask({
+      title: "@" + member.username + " kullanıcısına yanıt",
+      text: "Yanıt üyeye \"Aquagram Ekibi\" adıyla bildirim olarak gider ve mesaj \"Yanıtlandı\" olarak işaretlenir.",
+      placeholder: "Merhaba " + row.name + ", …",
+      initial: "Merhaba " + row.name + ",\n\n",
+      required: true,
+      rows: 7,
+      maxLength: 2000,
+      confirm: "Gönder"
+    });
+    if (!body) return;
+    if (await act(supabase.rpc("admin_team_message", { p_target: "contact", p_body: body, p_contact: row.id }), "Yanıt @" + member.username + " kullanıcısına gönderildi")) state.reload();
   }
 
   const replyLink = (row) =>
@@ -1958,7 +1978,8 @@ function ContactSection() {
                         </div>
                         {row.note && <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">Ekip notu: {row.note}</p>}
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <a href={replyLink(row)} className="inline-flex items-center gap-1.5 rounded-full bg-cyan-950 px-3 py-1.5 text-xs font-black text-white hover:bg-cyan-900"><Mail size={13} /> E-postayla yanıtla</a>
+                          {member && can("messages") && <Btn small tone="primary" onClick={() => replyAsTeam(row, member)}><Send size={13} /> Aquagram Ekibi olarak yanıtla</Btn>}
+                          <a href={replyLink(row)} className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black " + (member && can("messages") ? "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50" : "bg-cyan-950 text-white hover:bg-cyan-900")}><Mail size={13} /> E-postayla yanıtla</a>
                           {row.status !== "answered" && <Btn small tone="success" onClick={() => setStatus(row, "answered")}><Check size={13} /> Yanıtlandı</Btn>}
                           {row.status !== "closed" && <Btn small onClick={() => setStatus(row, "closed")}><X size={13} /> Kapat</Btn>}
                           {row.status !== "open" && <Btn small onClick={() => setStatus(row, "open")}><RotateCcw size={13} /> Yeniden aç</Btn>}
@@ -1968,6 +1989,142 @@ function ContactSection() {
                   </Card>
                 );
               })}
+            </div>
+          )
+        }
+      </LoadState>
+    </Section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Ekip mesajları                                                      */
+/* ------------------------------------------------------------------ */
+
+const TEAM_TARGET_LABELS = { pro: "Tüm PRO üyeler", users: "Seçilen üyeler", contact: "İletişim yanıtı" };
+
+function TeamMessagesSection() {
+  const { act, ask, notify } = useAdmin();
+  const [target, setTarget] = useState("users");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [picked, setPicked] = useState([]);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const state = useLoad(async () => {
+    const [proCount, history] = await Promise.all([
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gt("pro_until", new Date().toISOString()),
+      must(supabase.from("team_messages").select("*").order("created_at", { ascending: false }).limit(30))
+    ]);
+    const people = await profilesByIds(history.map((row) => row.sender_id));
+    return { proCount: proCount.count || 0, history, people };
+  }, []);
+
+  useEffect(() => {
+    const q = query.trim().replace(/^@/, "").replace(/[%_\\]/g, "").toLowerCase();
+    if (q.length < 2) { setResults([]); return undefined; }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select(PROFILE_COLS).ilike("username", "%" + q + "%").order("username").limit(20);
+      const rows = (data || []).sort((a, b) => Number(!a.username.toLowerCase().startsWith(q)) - Number(!b.username.toLowerCase().startsWith(q)));
+      if (!cancelled) setResults(rows.slice(0, 8));
+    }, 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query]);
+
+  const pickedIds = new Set(picked.map((row) => row.id));
+  const count = target === "pro" ? (state.data ? state.data.proCount : 0) : picked.length;
+
+  async function send() {
+    if (body.trim().length < 2 || !count) return;
+    const sure = await ask({
+      title: "Mesajı gönder",
+      text: (target === "pro" ? "Tüm PRO üyelere (" + count + " üye)" : count + " üyeye") + " \"Aquagram Ekibi\" adıyla bildirim olarak gidecek. Gönderilen mesaj geri alınamaz.",
+      input: false,
+      confirm: "Gönder"
+    });
+    if (sure === null) return;
+    setSending(true);
+    const ok = await act(supabase.rpc("admin_team_message", { p_target: target, p_body: body, p_users: target === "users" ? picked.map((row) => row.id) : null }), "Mesaj " + count + " üyeye gönderildi");
+    setSending(false);
+    if (ok) {
+      setBody("");
+      setPicked([]);
+      state.reload();
+    }
+  }
+
+  return (
+    <Section title="Ekip mesajları" subtitle={"Üyelere \"Aquagram Ekibi\" adıyla mesaj gönder. Mesaj, üyenin bildirimlerine düşer; üye bu mesaja yanıt veremez."}>
+      <Card className="p-4">
+        <div className="text-xs font-black text-slate-500">Kime?</div>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          <button type="button" onClick={() => setTarget("users")} className={"rounded-full px-3.5 py-2 text-sm font-black ring-1 " + (target === "users" ? "bg-cyan-950 text-white ring-cyan-950" : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50")}>Üye seç</button>
+          <button type="button" onClick={() => setTarget("pro")} className={"inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-black ring-1 " + (target === "pro" ? "bg-cyan-950 text-white ring-cyan-950" : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50")}><Crown size={14} /> Tüm PRO üyeler{state.data ? " (" + state.data.proCount + ")" : ""}</button>
+        </div>
+
+        {target === "users" && (
+          <div className="mt-3">
+            <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 focus-within:border-cyan-700">
+              <Search size={16} className="text-slate-400" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Kullanıcı adı yaz, listeden seç (birden çok seçebilirsin)" className="w-full bg-transparent text-base outline-none sm:text-sm" />
+            </label>
+            {results.length > 0 && (
+              <div className="mt-1.5 grid gap-1 rounded-2xl border border-slate-200 bg-white p-1.5">
+                {results.map((row) => {
+                  const on = pickedIds.has(row.id);
+                  return (
+                    <button key={row.id} type="button" onClick={() => setPicked((prev) => (on ? prev.filter((item) => item.id !== row.id) : [...prev, row]))} className={"flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-left " + (on ? "bg-cyan-50" : "hover:bg-slate-50")}>
+                      <span className={"grid h-5 w-5 shrink-0 place-items-center rounded-md ring-1 " + (on ? "bg-cyan-700 text-white ring-cyan-700" : "bg-white ring-slate-300")}>{on && <Check size={13} />}</span>
+                      <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-cyan-950 text-[12px] font-black text-white">{row.avatar_url ? <img src={row.avatar_url} alt="" className="h-full w-full object-cover" /> : row.username.slice(0, 1).toUpperCase()}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-black text-slate-800">@{row.username}</span>
+                      {row.city && <span className="hidden truncate text-xs text-slate-400 sm:block">{row.city}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {query.trim().replace(/^@/, "").length >= 2 && !results.length && <p className="mt-1.5 text-xs text-slate-400">Bu adla üye bulunamadı.</p>}
+            {picked.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-black text-slate-500">Seçilen {picked.length} üye:</span>
+                {picked.map((row) => (
+                  <span key={row.id} className="inline-flex items-center gap-1 rounded-full bg-cyan-50 py-1 pl-3 pr-1 text-xs font-black text-cyan-900">
+                    @{row.username}
+                    <button type="button" onClick={() => setPicked((prev) => prev.filter((item) => item.id !== row.id))} className="rounded-full p-0.5 hover:bg-cyan-100" title="Çıkar"><X size={12} /></button>
+                  </span>
+                ))}
+                <button type="button" onClick={() => setPicked([])} className="text-xs font-black text-slate-400 hover:text-rose-600">Tümünü temizle</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <label className="mt-4 block">
+          <span className="mb-1 flex justify-between text-xs font-black text-slate-500">Mesaj <span className="text-slate-400">{body.length}/2000</span></span>
+          <textarea value={body} onChange={(event) => setBody(event.target.value.slice(0, 2000))} rows={6} placeholder="Merhaba, …" className="w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base outline-none focus:border-cyan-700 sm:text-sm" />
+        </label>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-slate-400">Üyenin bildirimlerinde <strong className="text-slate-600">Aquagram Ekibi</strong> adıyla görünür; dokununca tam metin açılır.</p>
+          <Btn tone="primary" disabled={sending || body.trim().length < 2 || !count} onClick={send}>{sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} {count ? count + " üyeye gönder" : "Gönder"}</Btn>
+        </div>
+      </Card>
+
+      <h3 className="mb-2 mt-6 text-sm font-black text-slate-700">Gönderilenler</h3>
+      <LoadState state={state}>
+        {(data) =>
+          !data.history.length ? <Empty>Henüz ekip mesajı gönderilmedi.</Empty> : (
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+              {data.history.map((row) => (
+                <Card key={row.id} className="p-3.5">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge tone={row.target === "pro" ? "amber" : row.target === "contact" ? "cyan" : "slate"}>{TEAM_TARGET_LABELS[row.target]}</Badge>
+                    <span className="font-black text-slate-700">{row.recipient_count} üye</span>
+                    <span className="text-slate-400">· {data.people[row.sender_id] ? "@" + data.people[row.sender_id].username : "Ekip"} · {fmtDate(row.created_at)}</span>
+                  </div>
+                  <p className="mt-2 line-clamp-3 whitespace-pre-wrap break-words text-sm text-slate-700">{row.body}</p>
+                </Card>
+              ))}
             </div>
           )
         }

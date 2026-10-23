@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth, AuthModal, NewPasswordModal, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, uploadListingImages, loadFeaturedPlans } from "./lib/listings";
@@ -40,6 +41,7 @@ import {
   Bookmark,
   Pin,
   X,
+  BadgeCheck,
   Star,
   Camera,
   Play,
@@ -4450,10 +4452,45 @@ function timeAgoTr(value) {
   return new Date(value).toLocaleDateString("tr-TR");
 }
 
+// "Aquagram Ekibi" mesajının tam metni (bildirimde yalnızca ilk 280 karakter durur)
+function TeamMessageModal({ item, onClose }) {
+  const [body, setBody] = useState(item.body || "");
+  useEffect(() => {
+    let cancelled = false;
+    if (item.team_message_id) {
+      supabase.from("team_messages").select("body").eq("id", item.team_message_id).maybeSingle().then(({ data }) => {
+        if (!cancelled && data && data.body) setBody(data.body);
+      });
+    }
+    const onKey = (event) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => { cancelled = true; window.removeEventListener("keydown", onKey); };
+  }, [item, onClose]);
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 pt-[10vh] backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div role="dialog" aria-label="Aquagram Ekibi mesajı" className="w-full max-w-lg rounded-[28px] bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-center gap-3">
+          <AquagramMark className="h-11 w-11" />
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 font-black text-slate-900">Aquagram Ekibi <BadgeCheck size={16} className="text-cyan-600" /></p>
+            <p className="text-xs font-bold text-slate-400">{new Date(item.created_at).toLocaleString("tr-TR", { dateStyle: "long", timeStyle: "short" })}</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Kapat"><X size={19} /></button>
+        </div>
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-slate-800">{body}</p>
+        <p className="mt-5 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-500">Bu mesaja buradan yanıt verilemez. Bize yazmak için sayfanın altındaki <strong>Bize ulaşın</strong> formunu kullanabilirsin.</p>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function NotificationsPage({ notifs, onOpen, onProfile }) {
-  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", review: "⭐", system: "🔔", content_removed: "🛡️", content_restored: "✅", ad_approved: "📣", ad_rejected: "⚠️", account_suspended: "⛔", account_restored: "✅", report_resolved: "🛡️", group_closed: "🔒", group_reopened: "🔓", verification_approved: "✔️", verification_rejected: "⚠️", suggestion_approved: "🐟", suggestion_rejected: "🐟", form_suggestion_approved: "📍", form_suggestion_rejected: "📍" };
+  const [teamMessage, setTeamMessage] = useState(null);
+  const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", review: "⭐", system: "🔔", content_removed: "🛡️", content_restored: "✅", ad_approved: "📣", ad_rejected: "⚠️", account_suspended: "⛔", account_restored: "✅", report_resolved: "🛡️", group_closed: "🔒", group_reopened: "🔓", verification_approved: "✔️", verification_rejected: "⚠️", suggestion_approved: "🐟", suggestion_rejected: "🐟", form_suggestion_approved: "📍", form_suggestion_rejected: "📍", team_message: "📨" };
   return (
     <div className="mx-auto max-w-2xl p-5">
+      {teamMessage && <TeamMessageModal item={teamMessage} onClose={() => setTeamMessage(null)} />}
       <div className="mb-4 flex items-end justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
           <h2 className="text-2xl font-black tracking-tight">Bildirimler</h2>
@@ -4472,16 +4509,17 @@ function NotificationsPage({ notifs, onOpen, onProfile }) {
       ) : (
         <div className="divide-y divide-slate-100 overflow-hidden rounded-[24px] border border-slate-200 bg-white">
           {notifs.items.map((item) => (
-            <button key={item.id} onClick={() => onOpen(item)} className={"flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50 " + (item.read_at ? "" : "bg-cyan-50/60")}>
+            <button key={item.id} onClick={() => (item.type === "team_message" ? setTeamMessage(item) : onOpen(item))} className={"flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50 " + (item.read_at ? "" : "bg-cyan-50/60")}>
               <span
                 onClick={(event) => { if (item.actor) { event.stopPropagation(); onProfile(item.actor); } }}
                 className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-cyan-950 text-sm font-black text-white"
               >
-                {item.actor && item.actor.avatar_url ? <img src={item.actor.avatar_url} alt="" className="h-full w-full object-cover" /> : (item.actor ? item.actor.username.slice(0, 1).toUpperCase() : "A")}
+                {item.type === "team_message" ? <AquagramMark className="h-10 w-10 rounded-full" /> : item.actor && item.actor.avatar_url ? <img src={item.actor.avatar_url} alt="" className="h-full w-full object-cover" /> : (item.actor ? item.actor.username.slice(0, 1).toUpperCase() : "A")}
                 <span className="absolute -bottom-0.5 -right-0.5 text-sm">{icons[item.type] || "🔔"}</span>
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm leading-snug text-slate-800">{notificationText(item)}</span>
+                {item.type === "team_message" && <span className="mb-0.5 flex items-center gap-1 text-sm font-black text-slate-900">Aquagram Ekibi <BadgeCheck size={14} className="text-cyan-600" /></span>}
+                <span className={"block text-sm leading-snug text-slate-800 " + (item.type === "team_message" ? "line-clamp-2" : "")}>{notificationText(item)}</span>
                 {item.post && item.post.text && item.type !== "post_comment" && <span className="mt-0.5 line-clamp-1 block text-xs text-slate-500">“{item.post.text}”</span>}
                 <span className="mt-1 block text-xs font-bold text-slate-400">{timeAgoTr(item.created_at)}</span>
               </span>

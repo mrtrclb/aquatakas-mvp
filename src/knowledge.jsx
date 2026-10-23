@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 const SpeciesMap = lazy(() => import("./species-map.jsx"));
 const MapPicker = lazy(() => import("./species-map.jsx").then((mod) => ({ default: mod.MapPicker })));
 import {
@@ -1106,7 +1107,8 @@ function SpeciesShareButton({ species, ctx }) {
           <a role="menuitem" href={"https://wa.me/?text=" + encodeURIComponent(species.name + " (" + species.latin + ") — Aquagram: " + url)} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={item}><MessageCircle size={16} className="text-emerald-600" /> WhatsApp'ta paylaş</a>
         </div>
       )}
-      {sending && <SendSpeciesModal species={species} url={url} ctx={ctx} onClose={() => setSending(false)} />}
+      {/* Başlık çubuğu backdrop-blur kullandığı için pencere body'ye taşınır; yoksa çubuğun içine sıkışır */}
+      {sending && createPortal(<SendSpeciesModal species={species} url={url} ctx={ctx} onClose={() => setSending(false)} />, document.body)}
     </div>
   );
 }

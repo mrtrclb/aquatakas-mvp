@@ -1080,7 +1080,7 @@ function FormsSection({ species, ctx, onLocate }) {
   );
 }
 
-// Bilimsel ad değişikliği notu: masaüstünde üzerine gelince, telefonda dokununca açılır
+// Bilimsel ad notu: masaüstünde üzerine gelince, telefonda dokununca açılır
 function NameNoteInfo({ note }) {
   const [pos, setPos] = useState(null); // açıkken pencerenin ekrandaki yeri
   const ref = useRef(null);
@@ -1105,12 +1105,12 @@ function NameNoteInfo({ note }) {
   }, [pos]);
   return (
     <span ref={ref} className="ml-1.5 inline-block align-[0.15em]" onPointerEnter={(event) => event.pointerType === "mouse" && show()} onPointerLeave={(event) => event.pointerType === "mouse" && hide()}>
-      <button type="button" onClick={() => (pos ? hide() : show())} className="grid h-6 w-6 place-items-center rounded-full bg-sky-100 text-sky-800 ring-1 ring-sky-200 transition hover:bg-sky-200" aria-label="Bilimsel ad değişikliği" aria-expanded={Boolean(pos)}>
+      <button type="button" onClick={() => (pos ? hide() : show())} className="grid h-6 w-6 place-items-center rounded-full bg-sky-100 text-sky-800 ring-1 ring-sky-200 transition hover:bg-sky-200" aria-label="Bilimsel ad notu" aria-expanded={Boolean(pos)}>
         <Info size={14} strokeWidth={2.6} />
       </button>
       {pos && createPortal(
         <span role="tooltip" style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width }} className="z-50 block rounded-2xl bg-slate-900 p-3 text-left text-[13px] font-medium leading-relaxed tracking-normal text-white shadow-xl">
-          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-sky-300">Bilimsel ad değişikliği</span>
+          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-sky-300">Bilimsel ad notu</span>
           {note}
         </span>,
         document.body

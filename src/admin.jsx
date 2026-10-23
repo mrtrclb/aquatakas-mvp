@@ -3191,7 +3191,7 @@ function SpeciesEditor({ param }) {
                 <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Uyarı notu (isteğe bağlı)
                   <textarea className={input} rows={2} value={form.care_notice || ""} maxLength={500} onChange={(event) => set("care_notice", event.target.value)} placeholder="Tür sayfasında sarı uyarı kutusu olarak görünür (ör. mevzuat, acı su ihtiyacı). Boşsa kategorinin varsayılan uyarısı gösterilir." />
                 </label>
-                <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Ad değişikliği notu (isteğe bağlı)
+                <label className="grid gap-1 text-xs font-black text-slate-500 sm:col-span-2">Bilimsel ad notu (isteğe bağlı)
                   <textarea className={input} rows={2} value={form.name_note || ""} maxLength={500} onChange={(event) => set("name_note", event.target.value)} placeholder="Bilimsel ad değiştiyse yaz (ör. 2016'da Chindongo cinsine taşındı; güncel adı Chindongo socolofi). Tür adının yanında ⓘ simgesiyle görünür. Yeni adı arama kelimelerine de ekle." />
                 </label>
               </div>

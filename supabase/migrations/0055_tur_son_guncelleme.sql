@@ -18,8 +18,8 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists species_content_touch on public.species;
-create trigger species_content_touch before update on public.species
+
+create or replace trigger species_content_touch before update on public.species
   for each row execute function private.species_content_touch();
 
 create or replace function private.species_form_touch()
@@ -30,6 +30,6 @@ begin
   end if;
   return null;
 end $$;
-drop trigger if exists species_form_touch on public.species_forms;
-create trigger species_form_touch after insert or update on public.species_forms
+
+create or replace trigger species_form_touch after insert or update on public.species_forms
   for each row execute function private.species_form_touch();

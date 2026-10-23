@@ -33,7 +33,7 @@ import {
 import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostCard, RichText, VideoBlock, normalizeTr, timeAgo } from "./community.jsx";
 import { LinkPreviewCard, firstUrl } from "./link-preview.jsx";
 import { FORM_KINDS } from "./lib/knowledge";
-import { DIFFICULTY_COLORS, KB_CATEGORIES, KB_SECTIONS, categoryById, detectSpecies } from "./species.js";
+import { DIFFICULTY_COLORS, IUCN, IUCN_ORDER, KB_CATEGORIES, KB_SECTIONS, TR_STATUS, categoryById, detectSpecies } from "./species.js";
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
 import { useCategoryCovers } from "./lib/settings";
@@ -119,6 +119,7 @@ function SpeciesCard({ species, kb }) {
   const keepers = keepersOf(kb, species.slug).length;
   const comments = kb.comments.filter((comment) => comment.slug === species.slug).length;
   const me = kb.currentUserId;
+  const isTr = categoryById(species.category).protected;
   const myKeep = Boolean(me) && (kb.keeping[me] || []).includes(species.slug);
   const myFav = Boolean(me) && (kb.favorites[me] || []).includes(species.slug);
   const act = (event, fn) => {
@@ -136,18 +137,23 @@ function SpeciesCard({ species, kb }) {
     >
       <div className="relative">
         <SpeciesImage species={species} className="h-28 text-base sm:h-32" />
-        <span className="absolute left-2 top-2 shadow-sm [&>span]:ring-1 [&>span]:ring-white/70"><DifficultyChip value={species.difficulty} /></span>
+        {isTr ? (
+          species.iucn && <span className="absolute left-2 top-2 shadow-sm"><IucnChip code={species.iucn} short /></span>
+        ) : (
+          <span className="absolute left-2 top-2 shadow-sm [&>span]:ring-1 [&>span]:ring-white/70"><DifficultyChip value={species.difficulty} /></span>
+        )}
         {species.rare && <span className="absolute right-2 top-2 rounded-full bg-white/90 px-1.5 py-0.5 text-[11px] font-black text-violet-700 shadow-sm" title="Nadir tür">💎 Nadir</span>}
       </div>
       <div className="flex min-w-0 flex-1 flex-col p-3">
         <h3 className="line-clamp-2 break-words text-sm font-black leading-snug text-slate-900 group-hover:underline">{species.name}</h3>
         <p className="mt-0.5 truncate text-xs italic text-slate-500" title={species.latin}>{species.latin}</p>
+        {isTr && species.trStatus && <p className="mt-1 text-[12px] font-bold text-slate-500">{species.trStatus === "endemik" ? "🇹🇷 " : ""}{TR_STATUS[species.trStatus]}{species.basins.length ? " · " + species.basins.slice(0, 2).join(", ") + (species.basins.length > 2 ? "…" : "") : ""}</p>}
         <div className="mt-auto flex min-h-[18px] items-center gap-3 whitespace-nowrap pt-2 text-[12px] font-bold text-slate-400">
           {keepers > 0 && <span className="flex items-center gap-1" title={keepers + " üye besliyor"}><Fish size={12} /> {keepers} besleyen</span>}
           {comments > 0 && <span className="flex items-center gap-1" title={comments + " deneyim"}><MessageCircle size={12} /> {comments}</span>}
         </div>
         <div className="mt-2 flex gap-1.5">
-          <button
+          {!isTr && <button
             type="button"
             onClick={(event) => act(event, kb.onToggleKeep)}
             aria-pressed={myKeep}
@@ -155,16 +161,16 @@ function SpeciesCard({ species, kb }) {
             className={"flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[12px] font-black transition " + (myKeep ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-cyan-50 text-cyan-900 hover:bg-cyan-100")}
           >
             {myKeep ? <Check size={12} /> : <Fish size={12} />} Besliyorum
-          </button>
+          </button>}
           <button
             type="button"
             onClick={(event) => act(event, kb.onToggleFav)}
             aria-pressed={myFav}
             aria-label={myFav ? "Favorilerimden çıkar" : "Favori türlerime ekle"}
             title={myFav ? "Favorilerimden çıkar" : "Favori türlerime ekle"}
-            className={"grid w-9 shrink-0 place-items-center rounded-full transition " + (myFav ? "bg-amber-400 text-white hover:bg-amber-500" : "bg-amber-50 text-amber-600 hover:bg-amber-100")}
+            className={(isTr ? "flex flex-1 items-center justify-center gap-1 py-1.5 text-[12px] font-black " : "grid w-9 shrink-0 place-items-center ") + "rounded-full transition " + (myFav ? "bg-amber-400 text-white hover:bg-amber-500" : "bg-amber-50 text-amber-700 hover:bg-amber-100")}
           >
-            <Star size={13} fill={myFav ? "currentColor" : "none"} />
+            <Star size={13} fill={myFav ? "currentColor" : "none"} />{isTr && (myFav ? " Favorimde" : " Favorilere ekle")}
           </button>
         </div>
       </div>
@@ -451,6 +457,11 @@ function CategoryBand({ category, section, onBack }) {
 }
 
 export function KbCategoryPage({ kb, categoryId }) {
+  if (categoryById(categoryId).protected) return <TrCategoryPage kb={kb} categoryId={categoryId} />;
+  return <RegularCategoryPage kb={kb} categoryId={categoryId} />;
+}
+
+function RegularCategoryPage({ kb, categoryId }) {
   const category = categoryById(categoryId);
   const [difficulty, setDifficulty] = useState("Tümü");
   const [sort, setSort] = useState("az");
@@ -1261,7 +1272,12 @@ function SendSpeciesModal({ species, url, ctx, onClose }) {
   );
 }
 
-export function SpeciesPage({ species, kb, ctx, listings, posts }) {
+export function SpeciesPage(props) {
+  if (categoryById(props.species.category).protected) return <TrSpeciesPage {...props} />;
+  return <RegularSpeciesPage {...props} />;
+}
+
+function RegularSpeciesPage({ species, kb, ctx, listings, posts }) {
   const [sort, setSort] = useState("newest");
   const [mapFocus, setMapFocus] = useState(null);
   const category = categoryById(species.category);
@@ -1387,6 +1403,319 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
           <p className="p-8 text-center text-sm font-semibold text-slate-400">Henüz deneyim paylaşılmamış. İlk yorumu sen yaz!</p>
         )}
       </section>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Türkiye'nin Tatlı Su Balıkları (korunan kategori)                   */
+/* ------------------------------------------------------------------ */
+
+const TR_SOURCE = { text: "Kaya vd. (2026)", url: "https://doi.org/10.4194/TRJFAS29729" };
+
+function IucnChip({ code, short = false }) {
+  const meta = IUCN[code];
+  if (!meta) return null;
+  return (
+    <span className={"rounded-full px-2 py-0.5 text-[12px] font-black ring-1 " + meta.tone} title={"IUCN Kırmızı Liste: " + meta.label}>
+      {short ? code : "IUCN: " + code + " · " + meta.label}
+    </span>
+  );
+}
+
+// Metindeki [1] gibi atıfları kaynakçaya bağlar
+function Cited({ text }) {
+  return String(text || "").split(/(\[\d+\])/).map((part, i) => {
+    const m = part.match(/^\[(\d+)\]$/);
+    if (!m) return <React.Fragment key={i}>{part}</React.Fragment>;
+    return (
+      <button key={i} type="button" onClick={() => { const el = document.getElementById("kaynak-" + m[1]); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }}
+        className="align-super text-[11px] font-black text-cyan-700 hover:underline" aria-label={"Kaynak " + m[1]}>[{m[1]}]</button>
+    );
+  });
+}
+
+function TrCategoryPage({ kb, categoryId }) {
+  const category = categoryById(categoryId);
+  const section = KB_SECTIONS.find((item) => item.id === category.section);
+  const [status, setStatus] = useState("");
+  const [iucn, setIucn] = useState("");
+  const [basin, setBasin] = useState("");
+  const [sort, setSort] = useState("az");
+  const all = kb.species.filter((item) => item.category === category.id);
+  const basins = Array.from(new Set(all.flatMap((item) => item.basins || []))).sort((a, b) => a.localeCompare(b, "tr"));
+  const codes = IUCN_ORDER.filter((code) => all.some((item) => item.iucn === code));
+  const statuses = Object.keys(TR_STATUS).filter((key) => all.some((item) => item.trStatus === key));
+  const list = all
+    .filter((item) => (!status || item.trStatus === status) && (!iucn || item.iucn === iucn) && (!basin || (item.basins || []).includes(basin)))
+    .sort((a, b) => (sort === "risk" ? IUCN_ORDER.indexOf(a.iucn) - IUCN_ORDER.indexOf(b.iucn) : 0) || a.name.localeCompare(b.name, "tr"));
+  const chip = (active) => "shrink-0 rounded-full px-3 py-1 text-xs font-black " + (active ? "bg-cyan-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200");
+  return (
+    <div>
+      <CategoryBand category={category} section={section} onBack={() => kb.openSection(category.section)} />
+      <div className="border-b border-slate-100 px-4 py-4">
+        <p className="text-[15px] leading-relaxed text-slate-700">
+          Türkiye'de 390 tatlı su balığı türü bilinir: 367'si yerli, 23'ü sonradan gelip yerleşmiş yabancı türdür. Yerli türlerin 202'si yalnızca Türkiye'de yaşar{" "}
+          <a href={TR_SOURCE.url} target="_blank" rel="noopener" className="font-bold text-cyan-800 underline decoration-cyan-800/30 underline-offset-2">({TR_SOURCE.text})</a>.
+        </p>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          {[["390", "tür"], ["367", "yerli"], ["202", "endemik"]].map(([value, label]) => (
+            <div key={label} className="rounded-2xl bg-slate-50 px-2 py-2.5 ring-1 ring-slate-100">
+              <div className="text-xl font-black text-slate-900">{value}</div>
+              <div className="text-[12px] font-bold text-slate-500">{label}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[13px] leading-relaxed text-slate-500">
+          Bu bölüm tanıtım ve biyotop bilgisi içindir; buradaki türler doğadan toplanmamalı, alınıp satılmamalıdır. Bilgiler kaynaklıdır; bir hata görürsen tür sayfasından düzeltme önerebilirsin. Şimdiye kadar {all.length} tür eklendi.
+        </p>
+      </div>
+      <div className="grid gap-2 border-b border-slate-100 px-4 py-2.5">
+        <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]">
+          <button onClick={() => setStatus("")} className={chip(!status)}>Tümü</button>
+          {statuses.map((key) => <button key={key} onClick={() => setStatus(key)} className={chip(status === key)}>{TR_STATUS[key]}</button>)}
+          <span className="mx-1 w-px shrink-0 bg-slate-200" />
+          {codes.map((code) => <button key={code} onClick={() => setIucn(iucn === code ? "" : code)} className={chip(iucn === code)} title={IUCN[code].label}>{code}</button>)}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <select value={basin} onChange={(event) => setBasin(event.target.value)} className="min-w-0 max-w-[60%] rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Havza">
+            <option value="">Tüm havzalar</option>
+            {basins.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+          <div className="flex gap-1 rounded-full bg-slate-100 p-0.5">
+            {[["az", "A-Z"], ["risk", "Koruma durumu"]].map(([key, label]) => (
+              <button key={key} onClick={() => setSort(key)} className={"rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {list.length ? (
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">{list.map((item) => <SpeciesCard key={item.slug} species={item} kb={kb} />)}</div>
+      ) : (
+        <p className="p-10 text-center text-sm font-semibold text-slate-400">Bu filtreye uyan tür yok.</p>
+      )}
+    </div>
+  );
+}
+
+function TrDistribution({ species }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  const areas = species.ranges || [];
+  useEffect(() => {
+    if (!areas.length || !ref.current || visible) return undefined;
+    if (!("IntersectionObserver" in window)) { setVisible(true); return undefined; }
+    const io = new IntersectionObserver((entries) => entries.some((entry) => entry.isIntersecting) && setVisible(true), { rootMargin: "300px" });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [visible, areas.length]);
+  if (!areas.length) return null;
+  return (
+    <section id="dagilim" ref={ref} className="mx-4 mb-6 overflow-hidden rounded-3xl border border-slate-200">
+      <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+        <h3 className="text-sm font-black text-slate-800">Türkiye'deki dağılımı</h3>
+        <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-slate-500"><span className="inline-block h-3 w-3 rounded-full bg-cyan-600/30" /> Bilinen yayılış alanları (yaklaşık)</p>
+      </div>
+      {visible ? (
+        <Suspense fallback={<div className="h-[280px] animate-pulse bg-slate-100" />}>
+          <SpeciesMap areas={areas} height={280} />
+        </Suspense>
+      ) : <div className="h-[280px] bg-slate-100" />}
+      <p className="px-4 py-2 text-[12px] text-slate-400">Yalnızca havza düzeyinde gösterilir; kesin konum paylaşılmaz.</p>
+    </section>
+  );
+}
+
+function TrCorrectionModal({ species, ctx, onClose, onDone }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const me = ctx.users[ctx.currentUserId];
+  async function send(event) {
+    event.preventDefault();
+    if (text.trim().length < 10 || busy) return;
+    setBusy(true);
+    setError("");
+    const { data } = await supabase.auth.getUser();
+    const email = data && data.user && data.user.email;
+    const body = "[Tür düzeltmesi] " + species.name + " (" + species.latin + ")\nhttps://aquagram.com.tr/tur/" + species.slug + "\n\n" + text.trim();
+    const { error: err } = await supabase.rpc("submit_contact", { p_name: me ? "@" + me.username : "Üye", p_email: email || "", p_topic: "oneri", p_body: body.slice(0, 4000) });
+    setBusy(false);
+    if (err) return setError(trError(err));
+    return onDone();
+  }
+  return createPortal(
+    <div className="fixed inset-0 z-50 grid place-items-end bg-slate-950/40 sm:place-items-center" onClick={onClose}>
+      <form onSubmit={send} onClick={(event) => event.stopPropagation()} className="w-full max-w-md rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-black text-slate-900">Düzeltme öner</h3>
+            <p className="text-sm text-slate-500">{species.name} · <i>{species.latin}</i></p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100" aria-label="Kapat"><X size={18} /></button>
+        </div>
+        <textarea value={text} onChange={(event) => setText(event.target.value.slice(0, 2000))} rows={6} autoFocus
+          className="mt-3 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-800 focus:bg-white"
+          placeholder="Hangi bilgi hatalı ya da eksik? Varsa kaynağını (makale, kitap, bağlantı) da yaz." />
+        {error && <p className="mt-2 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</p>}
+        <button type="submit" disabled={text.trim().length < 10 || busy} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-cyan-950 px-4 py-2.5 text-sm font-black text-white enabled:hover:bg-cyan-900 disabled:opacity-40">
+          {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Gönder
+        </button>
+      </form>
+    </div>,
+    document.body
+  );
+}
+
+function TrSpeciesPage({ species, kb, ctx }) {
+  const [sort, setSort] = useState("newest");
+  const [correct, setCorrect] = useState(false);
+  const category = categoryById(species.category);
+  const myFav = ctx.isMember && (kb.favorites[ctx.currentUserId] || []).includes(species.slug);
+  const comments = kb.comments
+    .filter((comment) => comment.slug === species.slug)
+    .sort((a, b) => (sort === "top" ? b.likes - a.likes : b.createdAt - a.createdAt));
+  const me = ctx.isMember ? ctx.users[ctx.currentUserId] : null;
+  const sections = species.sections || [];
+  const refs = species.refs || [];
+  const fbRef = refs.findIndex((ref) => /^FishBase/.test(ref.text)) + 1;
+  const images = species.images || [];
+  const btn = "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-black ring-1 transition ";
+  return (
+    <div>
+      <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
+        <button onClick={() => kb.openCategory(category.id)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Geri"><ArrowLeft size={19} /></button>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">{category.emoji} {category.name}</p>
+          <h2 className="truncate text-lg font-black leading-tight">{species.name}</h2>
+        </div>
+        <SpeciesShareButton species={species} ctx={ctx} />
+      </div>
+
+      {ctx.adsFor && ctx.adsFor("species").length > 0 && (
+        <div className="px-4 pt-4 [&>div]:mb-0">
+          {ctx.RotatingDetailAd ? <ctx.RotatingDetailAd placement="species" pageKey={species.slug} /> : <ctx.DetailBannerAd ad={ctx.adsFor("species")[0]} />}
+        </div>
+      )}
+
+      <header className={"border-b border-slate-100 px-4 pb-4 pt-5 " + (images.length ? "grid gap-4 sm:grid-cols-[1fr_180px]" : "")}>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {species.trStatus && <span className={"rounded-full px-2 py-0.5 text-[12px] font-black ring-1 " + (species.trStatus === "endemik" ? "bg-red-50 text-red-800 ring-red-200" : "bg-slate-100 text-slate-700 ring-slate-200")}>{species.trStatus === "endemik" ? "🇹🇷 " : ""}{TR_STATUS[species.trStatus]}</span>}
+            {species.iucn && <IucnChip code={species.iucn} />}
+          </div>
+          <h1 className="mt-3 text-[26px] font-black leading-tight tracking-tight text-slate-950 sm:text-[28px]">
+            {species.name}
+            {species.nameNote && <NameNoteInfo note={species.nameNote} />}
+          </h1>
+          <p className="text-[15px] text-slate-500"><i>{species.latin}</i>{species.authority ? " " + species.authority : ""}</p>
+          {species.basins.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {species.basins.map((name) => <span key={name} className="rounded-full bg-cyan-50 px-2.5 py-1 text-[12px] font-bold text-cyan-900 ring-1 ring-cyan-100">{name}</span>)}
+            </div>
+          )}
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            <button onClick={() => (ctx.isMember ? kb.onToggleFav(species.slug) : ctx.onAuth())} className={btn + (myFav ? "bg-amber-50 text-amber-800 ring-amber-300" : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50")}>
+              <Star size={15} fill={myFav ? "currentColor" : "none"} /> {myFav ? "Favorilerimde" : "Favorilere ekle"}
+            </button>
+            <button onClick={() => (ctx.isMember ? setCorrect(true) : ctx.onAuth())} className={btn + "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50"}><Pencil size={14} /> Düzeltme öner</button>
+            <SpeciesArticlesButton kb={kb} slug={species.slug} />
+          </div>
+        </div>
+        {images.length > 0 && <div className="sm:order-last"><SpeciesGallery species={species} /></div>}
+      </header>
+
+      <article className="px-4 py-5 text-[16px] leading-[1.75] text-slate-800">
+        {species.desc && <p><Cited text={species.desc} /></p>}
+        {sections.slice(0, 1).map((item) => (
+          <section key={item.title} className="mt-6">
+            <h3 className="text-lg font-black text-slate-900">{item.title}</h3>
+            <p className="mt-2"><Cited text={item.body} /></p>
+          </section>
+        ))}
+      </article>
+
+      <TrDistribution species={species} />
+
+      {sections.length > 1 && (
+        <article className="px-4 pb-1 text-[16px] leading-[1.75] text-slate-800">
+          {sections.slice(1).map((item) => (
+            <section key={item.title} className="mb-6">
+              <h3 className="text-lg font-black text-slate-900">{item.title}</h3>
+              <p className="mt-2"><Cited text={item.body} /></p>
+            </section>
+          ))}
+        </article>
+      )}
+
+      <section className="mx-4 mb-6 overflow-hidden rounded-3xl border border-slate-200">
+        <h3 className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-800">Biyotop künyesi</h3>
+        {species.facts.length > 0 && (
+          <dl className="grid sm:grid-cols-2">
+            {species.facts.map(([label, value], index) => (
+              <div key={label} className={"flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-2.5 text-sm " + (index % 2 === 0 ? "sm:border-r" : "")}>
+                <dt className="shrink-0 font-bold text-slate-500">{label}</dt>
+                <dd className="text-right font-black text-slate-800">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        <div className="px-4 py-2.5 text-[13px] leading-relaxed text-slate-500">
+          {species.facts.length > 0 && fbRef > 0 && <p className="mb-1 text-[12px] text-slate-400">Boy ve ortam bilgisi: FishBase <Cited text={"[" + fbRef + "]"} /></p>}
+          {!species.facts.length && <p className="mb-1 text-[12px] text-slate-400">Bu tür için kaynaklı biyotop verisi henüz eklenmedi.</p>}
+          <p>{species.iucn === "EX"
+            ? "Bu türün nesli tükenmiş kabul edilir; bilgiler tarihî kayıtlara dayanır."
+            : "Doğal popülasyonlarını korumak için doğadan toplanmamalı, alınıp satılmamalıdır. Bilgiler tanıtım ve biyotop amaçlıdır."}</p>
+        </div>
+      </section>
+
+      {refs.length > 0 && (
+        <section className="mx-4 mb-6 rounded-3xl border border-slate-200 px-4 py-3">
+          <h3 className="text-sm font-black text-slate-800">Kaynakça</h3>
+          <ol className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-slate-600">
+            {refs.map((ref, i) => (
+              <li key={i} id={"kaynak-" + (i + 1)} className="flex gap-2 scroll-mt-28">
+                <span className="font-black text-cyan-700">[{i + 1}]</span>
+                <span className="min-w-0 break-words">{ref.text}{ref.url && <> <a href={ref.url} target="_blank" rel="noopener" className="font-bold text-cyan-800 underline decoration-cyan-800/30 underline-offset-2">Bağlantı</a></>}</span>
+              </li>
+            ))}
+          </ol>
+          {species.updatedAt && <p className="mt-3 border-t border-slate-100 pt-2 text-[12px] text-slate-400">Son içerik güncellemesi: {new Date(species.updatedAt).toLocaleDateString("tr-TR", { month: "long", year: "numeric" })}</p>}
+        </section>
+      )}
+
+      <section className="border-t border-slate-200">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <h3 className="text-base font-black text-slate-900">Gözlemler ve katkılar <span className="text-slate-400">({comments.length})</span></h3>
+          <div className="flex gap-1 rounded-full bg-slate-100 p-0.5">
+            {[["newest", "En yeni"], ["top", "En faydalı"]].map(([key, label]) => (
+              <button key={key} onClick={() => setSort(key)} className={"rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
+            ))}
+          </div>
+        </div>
+        {me ? (
+          <MediaComposer
+            me={me}
+            maxLength={600}
+            submitLabel="Paylaş"
+            className="border-y border-slate-100 bg-slate-50/50"
+            placeholder="Doğada gözlemin, fotoğrafın ya da bir kaynakla ilgili notun mu var? Paylaş. Kesin konum (kaynak adı, köy, koordinat) yazma."
+            onSubmit={(data) => kb.onComment(species.slug, data)}
+          />
+        ) : (
+          <div className="flex items-center justify-between gap-3 border-y border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="text-sm font-semibold text-slate-600">Katkıda bulunmak için giriş yap.</p>
+            <button onClick={ctx.onAuth} className="rounded-full bg-cyan-950 px-4 py-2 text-xs font-black text-white hover:bg-cyan-900">Giriş yap</button>
+          </div>
+        )}
+        {comments.length ? comments.map((comment) => <SpeciesComment key={comment.id} comment={comment} kb={kb} ctx={ctx} />) : (
+          <p className="p-8 text-center text-sm font-semibold text-slate-400">Henüz katkı yok.</p>
+        )}
+      </section>
+      {correct && (
+        <TrCorrectionModal species={species} ctx={ctx} onClose={() => setCorrect(false)}
+          onDone={() => { setCorrect(false); ctx.onToast && ctx.onToast("Önerin ekibe iletildi, teşekkürler!"); }} />
+      )}
     </div>
   );
 }

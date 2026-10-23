@@ -6,18 +6,27 @@ const ts = (value) => (value ? new Date(value).getTime() : Date.now());
 const PROFILE_COLS = "id, username, city, bio, avatar_url, phone_verified, socials, created_at, pro_until";
 
 // Veritabanı tür satırını arayüzdeki tür nesnesine çevirir (koddaki örnek veriyle aynı biçim)
-export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at, content_updated_at, care_notice, name_note, range_areas";
+export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at, content_updated_at, care_notice, name_note, range_areas, authority, tr_status, iucn, basins, sections, refs";
 // Açılışta yalnızca hafif sütunlar yüklenir; açıklama, bilgi tablosu, bakım notu ve yayılım alanları
 // sayfa açıldıktan sonra ayrıca gelir (ilk yüklemede ~190 KB yerine ~40 KB). Tür sayfalarında hemen yüklenir.
-export const SPECIES_LIGHT_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, keywords, is_rare, image_url, images, status, created_at, content_updated_at";
-const SPECIES_DETAIL_COLS = "id, description, facts, care_notice, name_note, range_areas";
+export const SPECIES_LIGHT_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, keywords, is_rare, image_url, images, status, created_at, content_updated_at, tr_status, iucn, basins";
+const SPECIES_DETAIL_COLS = "id, description, facts, care_notice, name_note, range_areas, authority, sections, refs";
 export function mapSpeciesDetails(row) {
   return {
     desc: row.description || "",
     facts: Array.isArray(row.facts) ? row.facts.filter((pair) => Array.isArray(pair) && pair[0]) : [],
     notice: row.care_notice || "",
     nameNote: row.name_note || "",
-    ranges: Array.isArray(row.range_areas) ? row.range_areas.filter((area) => area && Number.isFinite(area.lat) && Number.isFinite(area.lng)) : []
+    ranges: Array.isArray(row.range_areas) ? row.range_areas.filter((area) => area && Number.isFinite(area.lat) && Number.isFinite(area.lng)) : [],
+    ...mapProtectedDetails(row)
+  };
+}
+// Türkiye türlerinin içerik alanları (bölümler, kaynakça, yazar adı)
+function mapProtectedDetails(row) {
+  return {
+    authority: row.authority || "",
+    sections: Array.isArray(row.sections) ? row.sections.filter((item) => item && item.title && item.body) : [],
+    refs: Array.isArray(row.refs) ? row.refs.filter((item) => item && item.text) : []
   };
 }
 const needsDetailsNow = () => typeof window !== "undefined" && /^\/(tur|bilgi|makale|ilan)(\/|$)/.test(window.location.pathname);
@@ -42,6 +51,10 @@ export function mapSpeciesRow(row) {
     rare: Boolean(row.is_rare),
     ranges: Array.isArray(row.range_areas) ? row.range_areas.filter((area) => area && Number.isFinite(area.lat) && Number.isFinite(area.lng)) : [],
     images,
+    trStatus: row.tr_status || "",
+    iucn: row.iucn || "",
+    basins: row.basins || [],
+    ...mapProtectedDetails(row),
     status: row.status,
     addedAt: ts(row.created_at) + (row.id || 0), // aynı anda eklenenler için kararlı sıra
     updatedAt: row.content_updated_at ? ts(row.content_updated_at) : ts(row.created_at)

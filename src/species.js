@@ -9,6 +9,8 @@ export const KB_SECTIONS = [
 ];
 
 export const KB_CATEGORIES = [
+  // Korunan kategori: içerik öncelikli sayfa; beslenen/ilan bağlantısı yok, yalnızca favori
+  { id: "turkiye", section: "tatlisu", name: "Türkiye'nin Tatlı Su Balıkları", emoji: "🇹🇷", tone: "from-red-300 to-cyan-800", protected: true },
   { id: "malawi", section: "tatlisu", name: "Malawi Cichlidleri", emoji: "🐟", tone: "from-amber-300 to-orange-500" },
   { id: "tanganyika", section: "tatlisu", name: "Tanganyika Cichlidleri", emoji: "🪨", tone: "from-stone-300 to-amber-600" },
   { id: "guney-amerika", section: "tatlisu", name: "Güney Amerika Cichlidleri", emoji: "🍂", tone: "from-orange-300 to-red-600" },
@@ -40,6 +42,21 @@ export const KB_CATEGORIES = [
   { id: "yuzen", section: "bitki", name: "Yüzen Bitkiler", emoji: "🍃", tone: "from-teal-200 to-green-600" },
   { id: "yosunlar", section: "bitki", name: "Yosunlar (Moss)", emoji: "🌾", tone: "from-green-200 to-green-800" }
 ];
+
+// IUCN Kırmızı Liste kategorileri
+export const IUCN = {
+  EX: { label: "Nesli tükenmiş", tone: "bg-slate-800 text-white ring-slate-800" },
+  EW: { label: "Doğada tükenmiş", tone: "bg-slate-700 text-white ring-slate-700" },
+  CR: { label: "Kritik tehlikede", tone: "bg-red-50 text-red-800 ring-red-200" },
+  EN: { label: "Tehlikede", tone: "bg-orange-50 text-orange-800 ring-orange-200" },
+  VU: { label: "Hassas", tone: "bg-amber-50 text-amber-800 ring-amber-200" },
+  NT: { label: "Tehdite yakın", tone: "bg-lime-50 text-lime-800 ring-lime-200" },
+  LC: { label: "Düşük riskli", tone: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
+  DD: { label: "Veri yetersiz", tone: "bg-slate-100 text-slate-600 ring-slate-200" },
+  NE: { label: "Değerlendirilmemiş", tone: "bg-slate-100 text-slate-600 ring-slate-200" }
+};
+export const IUCN_ORDER = ["EX", "EW", "CR", "EN", "VU", "NT", "LC", "DD", "NE"];
+export const TR_STATUS = { endemik: "Endemik", yerli: "Yerli", yabanci: "Yabancı (yerleşik)" };
 
 export const DIFFICULTY_COLORS = { Kolay: "bg-emerald-50 text-emerald-700", Orta: "bg-amber-50 text-amber-800", Zor: "bg-red-50 text-red-700" };
 
@@ -211,6 +228,13 @@ const FALLBACK_CATEGORY = { id: "diger", section: "tatlisu", name: "Diğer", emo
 export function categoryById(id) {
   return KB_CATEGORIES.find((item) => item.id === id) || FALLBACK_CATEGORY;
 }
+
+// Korunan (Türkiye) kategorisindeki türler: beslenen listesine ve ilanlara bağlanmaz
+export function isProtectedSpecies(slugOrSpecies) {
+  const sp = typeof slugOrSpecies === "string" ? speciesBySlug(slugOrSpecies) : slugOrSpecies;
+  return Boolean(sp && categoryById(sp.category).protected);
+}
+export const withoutProtected = (slugs) => (slugs || []).filter((slug) => !isProtectedSpecies(slug));
 
 // Örnek: üyelerin beslediği türler (kullanıcı no → tür slug'ları)
 export const SEED_KEEPING = {

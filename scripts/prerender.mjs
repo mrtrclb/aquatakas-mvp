@@ -43,7 +43,7 @@ async function loadData() {
   const sections = local.KB_SECTIONS;
   try {
     const [species, listings, groups, articles, forms, redirects] = await Promise.all([
-      rest("species?select=id,slug,name,latin,category_id,kind,difficulty,temperament,description,facts,image_url,images,updated_at&status=eq.published&order=name"),
+      rest("species?select=id,slug,name,latin,authority,category_id,kind,difficulty,temperament,description,facts,image_url,images,updated_at,tr_status,iucn,basins,sections,refs&status=eq.published&order=name"),
       rest("listings?select=id,title,description,price,type,city,district,images,updated_at,user_id,owner:profiles!listings_user_id_fkey(username,hide_from_search)&status=eq.active&order=updated_at.desc&limit=2000"),
       rest("groups?select=slug,name,description,cover_url,member_count,created_at&is_closed=eq.false&order=member_count.desc"),
       rest("articles?select=slug,title,excerpt,body,footnotes,sources,cover_url,species_slugs,published_at,updated_at&status=eq.published&order=published_at.desc").catch(() => []),
@@ -173,7 +173,9 @@ async function main() {
       page({
         path: "/bilgi/k/" + cat.id,
         title: cat.name + ": türler ve bakım bilgileri — Aquagram Bilgi Bankası",
-        description: cat.name + " kategorisindeki " + list.length + " türün bakım künyesi: " + clip(list.map((sp) => sp.name).join(", "), 120),
+        description: cat.protected
+          ? "Türkiye'nin tatlı su balıkları: " + list.length + " türün dağılımı, koruma durumu ve kaynakları. " + clip(list.map((sp) => sp.name).join(", "), 90)
+          : cat.name + " kategorisindeki " + list.length + " türün bakım künyesi: " + clip(list.map((sp) => sp.name).join(", "), 120),
         body,
         jsonld: [breadcrumb([["Bilgi Bankası", "/bilgi"], [cat.name, "/bilgi/k/" + cat.id]])]
       }),
@@ -182,8 +184,36 @@ async function main() {
     );
   }
 
+  const noCite = (text) => String(text || "").replace(/\s*\[\d+\]/g, "");
   for (const sp of data.species) {
     const cat = catById[sp.category] || { name: "Bilgi Bankası", id: "" };
+    if (cat.protected) {
+      // Türkiye türleri: içerik öncelikli sayfa (bölümler, biyotop künyesi, kaynakça)
+      const facts = (sp.facts || []).filter((pair) => Array.isArray(pair) && pair[0] && pair[1]);
+      const sections = (sp.sections || []).filter((s) => s && s.title && s.body);
+      const title = sp.name + (sp.latin ? " (" + sp.latin + ")" : "") + " — Türkiye'nin Tatlı Su Balıkları — Aquagram";
+      const description = clip(noCite(sp.description) + " " + noCite(sections[0] ? sections[0].body : ""), 158);
+      const body =
+        "<h1>" + esc(sp.name) + "</h1>" + (sp.latin ? "<p><i>" + esc(sp.latin) + "</i> " + esc(sp.authority || "") + "</p>" : "") +
+        "<p>" + esc(noCite(sp.description)) + "</p>" +
+        sections.map((s) => "<h2>" + esc(s.title) + "</h2><p>" + esc(noCite(s.body)) + "</p>").join("") +
+        (facts.length ? "<h2>Biyotop künyesi</h2><dl>" + facts.map(([label, value]) => "<dt>" + esc(label) + "</dt><dd>" + esc(value) + "</dd>").join("") + "</dl>" : "") +
+        ((sp.refs || []).length ? "<h2>Kaynakça</h2><ol>" + sp.refs.map((r) => "<li>" + esc(r.text) + "</li>").join("") + "</ol>" : "") +
+        '<p><a href="/bilgi/k/' + cat.id + '">' + esc(cat.name) + "</a></p>";
+      add("/tur/" + sp.slug, page({
+        path: "/tur/" + sp.slug, title, description, type: "article",
+        image: sp.images && sp.images[0] ? sp.images[0] : OG_DEFAULT, body,
+        jsonld: [
+          { "@context": "https://schema.org", "@type": "Article", headline: sp.name, description, inLanguage: "tr-TR",
+            image: sp.images && sp.images.length ? sp.images : [OG_DEFAULT],
+            about: { "@type": "Taxon", name: sp.latin || sp.name, alternateName: sp.name },
+            publisher: { "@type": "Organization", name: "Aquagram", logo: { "@type": "ImageObject", url: SITE + "/icon-512.png" } },
+            mainEntityOfPage: SITE + "/tur/" + sp.slug, ...(sp.updated_at ? { dateModified: sp.updated_at } : {}) },
+          breadcrumb([["Bilgi Bankası", "/bilgi"], [cat.name, "/bilgi/k/" + cat.id], [sp.name, "/tur/" + sp.slug]])
+        ]
+      }), (sp.updated_at || today).slice(0, 10), "0.8");
+      continue;
+    }
     const facts = (sp.facts || []).filter((pair) => Array.isArray(pair) && pair[0] && pair[1]);
     const title = sp.name + (sp.latin ? " (" + sp.latin + ")" : "") + " bakımı ve künyesi — Aquagram";
     const description = clip((sp.description || "") + " " + facts.slice(0, 4).map(([label, value]) => label + ": " + value).join(", "), 158);

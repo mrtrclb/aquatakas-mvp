@@ -97,7 +97,7 @@ import { useArticles } from "./lib/articles";
 // Seyrek kullanılan bölümler ayrı parçalar halinde, açıldıklarında indirilir
 const AdsManagerPage = lazy(() => import("./ads-manager.jsx"));
 const OnboardingModal = lazy(() => import("./onboarding.jsx").then((mod) => ({ default: mod.OnboardingModal })));
-import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, speciesBySlug } from "./species.js";
+import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, isProtectedSpecies, speciesBySlug, withoutProtected } from "./species.js";
 import { GroupIcon } from "./lib/group-icon.jsx";
 
 const locations = {
@@ -899,7 +899,9 @@ export default function AquagramApp() {
     currentUserId: isMember ? currentUserId : null,
     onAuth: requireLogin,
     onToggleKeep: (slug) =>
-      myId
+      isProtectedSpecies(slug)
+        ? setToast("Bu tür yalnızca favorilere eklenebilir.")
+        : myId
         ? toggleSpecies("species_keepers", slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı")
         : toggleInMap(setKbKeeping, slug, "Beslediğin türlere eklendi · profilinde görünür", "Beslediğin türlerden çıkarıldı"),
     onToggleFav: (slug) =>
@@ -1003,7 +1005,7 @@ export default function AquagramApp() {
 
   function openAddListing(species = null) {
     if (!isMember) return requireLogin();
-    setAddSpecies(species && species.slug ? species : null);
+    setAddSpecies(species && species.slug && !isProtectedSpecies(species) ? species : null);
     setAddOpen(true);
   }
 
@@ -4345,7 +4347,7 @@ function AddListingModal({ auth, listing = null, republish = false, species = nu
           allow_offer: type === "Satıyorum" ? allowOffer : false,
           youtube_url: youtube.trim() || null,
           images,
-          species_slugs: Array.from(new Set([...detectSpecies(title + " " + description), ...(species ? [species.slug] : [])]))
+          species_slugs: withoutProtected(Array.from(new Set([...detectSpecies(title + " " + description), ...(species ? [species.slug] : [])])))
       };
       if (republish) {
         fields.status = "active";

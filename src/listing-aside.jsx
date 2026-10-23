@@ -1,6 +1,6 @@
 import React from "react";
 import { BookOpen, ChevronRight, ShieldCheck, Tag } from "lucide-react";
-import { categoryById, detectSpecies, speciesBySlug } from "./species.js";
+import { categoryById, detectSpecies, speciesBySlug, withoutProtected } from "./species.js";
 
 const FACT_KEYS = { fish: ["Sıcaklık", "pH", "Min. akvaryum", "Huy", "Yetişkin boy"], plant: ["Işık", "CO2", "Sıcaklık", "Büyüme hızı"], coral: ["Işık", "Akıntı", "Sıcaklık", "Tuzluluk (SG)"] };
 
@@ -14,7 +14,7 @@ const SAFETY_TIPS = [
 ];
 
 export function ListingDetailAside({ item, listings, users, priceLabel, onOpenListing, onOpenSpecies, onViewUser }) {
-  const slugs = (item.speciesSlugs && item.speciesSlugs.length ? item.speciesSlugs : detectSpecies(item.title + " " + (item.description || ""))).slice(0, 2);
+  const slugs = withoutProtected(item.speciesSlugs && item.speciesSlugs.length ? item.speciesSlugs : detectSpecies(item.title + " " + (item.description || ""))).slice(0, 2);
   const species = slugs.map(speciesBySlug).filter(Boolean);
   const others = listings.filter((row) => row.userId === item.userId && row.id !== item.id).slice(0, 4);
   const seller = users[item.userId];

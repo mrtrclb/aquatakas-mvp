@@ -105,7 +105,7 @@ export function SpeciesImage({ species, className = "", round = false, label = t
   }
   return (
     <div className={"relative grid place-items-center overflow-hidden bg-gradient-to-br text-white " + category.tone + " " + (round ? "rounded-full " : "") + className}>
-      <span className="select-none text-[2.4em] drop-shadow-sm">{category.emoji}</span>
+      {!category.protected && <span className="select-none text-[2.4em] drop-shadow-sm">{category.emoji}</span>}
       {label && !round && <span className="absolute bottom-1.5 right-2 rounded-full bg-black/25 px-1.5 py-0.5 text-[12px] font-black uppercase tracking-wide">Görsel yakında</span>}
     </div>
   );
@@ -138,7 +138,7 @@ function SpeciesCard({ species, kb }) {
       <div className="relative">
         <SpeciesImage species={species} className="h-28 text-base sm:h-32" />
         {isTr ? (
-          species.iucn && <span className="absolute left-2 top-2 shadow-sm"><IucnChip code={species.iucn} short /></span>
+          species.iucn && <span className="absolute left-2 top-2 shadow-sm"><IucnChip code={species.iucn} short tap={false} /></span>
         ) : (
           <span className="absolute left-2 top-2 shadow-sm [&>span]:ring-1 [&>span]:ring-white/70"><DifficultyChip value={species.difficulty} /></span>
         )}
@@ -1413,13 +1413,79 @@ function RegularSpeciesPage({ species, kb, ctx, listings, posts }) {
 
 const TR_SOURCE = { text: "Kaya vd. (2026)", url: "https://doi.org/10.4194/TRJFAS29729" };
 
-function IucnChip({ code, short = false }) {
+// Küçük açıklama balonu: masaüstünde üzerine gelince, telefonda dokununca (tap=false ise yalnızca üzerine gelince)
+function HoverInfo({ content, children, tap = true, className = "" }) {
+  const [pos, setPos] = useState(null);
+  const ref = useRef(null);
+  const show = () => {
+    const rect = ref.current.getBoundingClientRect();
+    const width = Math.min(260, window.innerWidth - 32);
+    const left = Math.max(16, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 16));
+    setPos({ top: rect.bottom + 8, left, width });
+  };
+  const hide = () => setPos(null);
+  useEffect(() => {
+    if (!pos) return undefined;
+    const close = (event) => { if (ref.current && !ref.current.contains(event.target)) hide(); };
+    document.addEventListener("pointerdown", close);
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
+    };
+  }, [pos]);
+  return (
+    <span ref={ref} className={"inline-flex " + className}
+      onPointerEnter={(event) => event.pointerType === "mouse" && show()}
+      onPointerLeave={(event) => event.pointerType === "mouse" && hide()}
+      onClick={tap ? (event) => { event.stopPropagation(); pos ? hide() : show(); } : undefined}>
+      {children}
+      {pos && createPortal(
+        <span role="tooltip" style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width }} className="pointer-events-none z-50 block rounded-2xl bg-slate-900 p-3 text-left text-[13px] font-medium normal-case leading-relaxed tracking-normal text-white shadow-xl">
+          {content}
+        </span>,
+        document.body
+      )}
+    </span>
+  );
+}
+
+function iucnHint(code) {
+  const meta = IUCN[code];
+  return (
+    <>
+      <span className="mb-0.5 block text-[11px] font-black uppercase tracking-wide text-sky-300">IUCN Kırmızı Liste</span>
+      <span className="block font-black">{code} · {meta.en}</span>
+      <span className="block">{meta.label}: {meta.hint}</span>
+    </>
+  );
+}
+
+function IucnChip({ code, short = false, tap = true }) {
   const meta = IUCN[code];
   if (!meta) return null;
   return (
-    <span className={"rounded-full px-2 py-0.5 text-[12px] font-black ring-1 " + meta.tone} title={"IUCN Kırmızı Liste: " + meta.label}>
-      {short ? code : "IUCN: " + code + " · " + meta.label}
-    </span>
+    <HoverInfo content={iucnHint(code)} tap={tap}>
+      <span className={"cursor-help rounded-full px-2 py-0.5 text-[12px] font-black ring-1 " + meta.tone}>
+        {short ? code : "IUCN: " + code + " · " + meta.label}
+      </span>
+    </HoverInfo>
+  );
+}
+
+// IUCN kategorilerinin tamamını anlatan küçük ⓘ düğmesi (filtre satırı için)
+function IucnLegend({ codes }) {
+  return (
+    <HoverInfo content={
+      <>
+        <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-sky-300">IUCN Kırmızı Liste kategorileri</span>
+        {codes.map((code) => <span key={code} className="block"><b>{code}</b> · {IUCN[code].en} — {IUCN[code].label}</span>)}
+      </>
+    }>
+      <button type="button" className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-800 ring-1 ring-sky-200 hover:bg-sky-200" aria-label="IUCN kategorileri ne anlama geliyor?"><Info size={14} strokeWidth={2.6} /></button>
+    </HoverInfo>
   );
 }
 
@@ -1448,7 +1514,7 @@ function TrCategoryPage({ kb, categoryId }) {
   const statuses = Object.keys(TR_STATUS).filter((key) => all.some((item) => item.trStatus === key));
   const list = all
     .filter((item) => (!status || item.trStatus === status) && (!iucn || item.iucn === iucn) && (!basin || (item.basins || []).includes(basin)))
-    .sort((a, b) => (sort === "risk" ? IUCN_ORDER.indexOf(a.iucn) - IUCN_ORDER.indexOf(b.iucn) : 0) || a.name.localeCompare(b.name, "tr"));
+    .sort((a, b) => (sort === "risk" ? IUCN_ORDER.indexOf(a.iucn) - IUCN_ORDER.indexOf(b.iucn) : sort === "favorite" ? fansOf(kb, b.slug) - fansOf(kb, a.slug) : 0) || a.name.localeCompare(b.name, "tr"));
   const chip = (active) => "shrink-0 rounded-full px-3 py-1 text-xs font-black " + (active ? "bg-cyan-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200");
   return (
     <div>
@@ -1475,15 +1541,20 @@ function TrCategoryPage({ kb, categoryId }) {
           <button onClick={() => setStatus("")} className={chip(!status)}>Tümü</button>
           {statuses.map((key) => <button key={key} onClick={() => setStatus(key)} className={chip(status === key)}>{TR_STATUS[key]}</button>)}
           <span className="mx-1 w-px shrink-0 bg-slate-200" />
-          {codes.map((code) => <button key={code} onClick={() => setIucn(iucn === code ? "" : code)} className={chip(iucn === code)} title={IUCN[code].label}>{code}</button>)}
+          {codes.map((code) => (
+            <HoverInfo key={code} content={iucnHint(code)} tap={false}>
+              <button onClick={() => setIucn(iucn === code ? "" : code)} className={chip(iucn === code)}>{code}</button>
+            </HoverInfo>
+          ))}
+          <IucnLegend codes={codes} />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <select value={basin} onChange={(event) => setBasin(event.target.value)} className="min-w-0 max-w-[60%] rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Havza">
+          <select value={basin} onChange={(event) => setBasin(event.target.value)} className="min-w-0 max-w-full rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Havza">
             <option value="">Tüm havzalar</option>
             {basins.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
           <div className="flex gap-1 rounded-full bg-slate-100 p-0.5">
-            {[["az", "A-Z"], ["risk", "Koruma durumu"]].map(([key, label]) => (
+            {[["az", "A-Z"], ["risk", "Koruma durumu"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
               <button key={key} onClick={() => setSort(key)} className={"rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
             ))}
           </div>
@@ -1686,8 +1757,11 @@ function TrSpeciesPage({ species, kb, ctx }) {
 
       <section className="border-t border-slate-200">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <h3 className="text-base font-black text-slate-900">Gözlemler ve katkılar <span className="text-slate-400">({comments.length})</span></h3>
-          <div className="flex gap-1 rounded-full bg-slate-100 p-0.5">
+          <div className="min-w-0">
+            <h3 className="text-base font-black text-slate-900">Gözlemler ve katkılar <span className="text-slate-400">({comments.length})</span></h3>
+            <p className="text-[12px] text-slate-500">Katkın akışta paylaşım olarak da görünür.</p>
+          </div>
+          <div className="flex shrink-0 gap-1 whitespace-nowrap rounded-full bg-slate-100 p-0.5">
             {[["newest", "En yeni"], ["top", "En faydalı"]].map(([key, label]) => (
               <button key={key} onClick={() => setSort(key)} className={"rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
             ))}
@@ -1700,7 +1774,7 @@ function TrSpeciesPage({ species, kb, ctx }) {
             submitLabel="Paylaş"
             className="border-y border-slate-100 bg-slate-50/50"
             placeholder="Doğada gözlemin, fotoğrafın ya da bir kaynakla ilgili notun mu var? Paylaş. Kesin konum (kaynak adı, köy, koordinat) yazma."
-            onSubmit={(data) => kb.onComment(species.slug, data)}
+            onSubmit={(data) => kb.onComment(species.slug, data, { alsoPost: true })}
           />
         ) : (
           <div className="flex items-center justify-between gap-3 border-y border-slate-100 bg-slate-50 px-4 py-3">

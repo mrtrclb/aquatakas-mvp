@@ -45,15 +45,15 @@ export const KB_CATEGORIES = [
 
 // IUCN Kırmızı Liste kategorileri
 export const IUCN = {
-  EX: { label: "Nesli tükenmiş", tone: "bg-slate-800 text-white ring-slate-800" },
-  EW: { label: "Doğada tükenmiş", tone: "bg-slate-700 text-white ring-slate-700" },
-  CR: { label: "Kritik tehlikede", tone: "bg-red-50 text-red-800 ring-red-200" },
-  EN: { label: "Tehlikede", tone: "bg-orange-50 text-orange-800 ring-orange-200" },
-  VU: { label: "Hassas", tone: "bg-amber-50 text-amber-800 ring-amber-200" },
-  NT: { label: "Tehdite yakın", tone: "bg-lime-50 text-lime-800 ring-lime-200" },
-  LC: { label: "Düşük riskli", tone: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
-  DD: { label: "Veri yetersiz", tone: "bg-slate-100 text-slate-600 ring-slate-200" },
-  NE: { label: "Değerlendirilmemiş", tone: "bg-slate-100 text-slate-600 ring-slate-200" }
+  EX: { label: "Nesli tükenmiş", en: "Extinct", hint: "Son bireyin de öldüğünden şüphe kalmamıştır.", tone: "bg-slate-800 text-white ring-slate-800" },
+  EW: { label: "Doğada tükenmiş", en: "Extinct in the Wild", hint: "Yalnızca insan bakımında ya da doğal yayılışı dışında yaşar.", tone: "bg-slate-700 text-white ring-slate-700" },
+  CR: { label: "Kritik tehlikede", en: "Critically Endangered", hint: "Doğada yok olma riski son derece yüksektir.", tone: "bg-red-50 text-red-800 ring-red-200" },
+  EN: { label: "Tehlikede", en: "Endangered", hint: "Doğada yok olma riski çok yüksektir.", tone: "bg-orange-50 text-orange-800 ring-orange-200" },
+  VU: { label: "Hassas", en: "Vulnerable", hint: "Doğada yok olma riski yüksektir.", tone: "bg-amber-50 text-amber-800 ring-amber-200" },
+  NT: { label: "Tehdite yakın", en: "Near Threatened", hint: "Şimdilik tehdit altında sayılmaz ama yakın gelecekte sayılabilir.", tone: "bg-lime-50 text-lime-800 ring-lime-200" },
+  LC: { label: "Düşük riskli", en: "Least Concern", hint: "Yaygındır; tehdit altında sayılmaz.", tone: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
+  DD: { label: "Veri yetersiz", en: "Data Deficient", hint: "Riski değerlendirmeye yetecek bilgi yoktur.", tone: "bg-slate-100 text-slate-600 ring-slate-200" },
+  NE: { label: "Değerlendirilmemiş", en: "Not Evaluated", hint: "Henüz değerlendirilmemiştir.", tone: "bg-slate-100 text-slate-600 ring-slate-200" }
 };
 export const IUCN_ORDER = ["EX", "EW", "CR", "EN", "VU", "NT", "LC", "DD", "NE"];
 export const TR_STATUS = { endemik: "Endemik", yerli: "Yerli", yabanci: "Yabancı (yerleşik)" };

@@ -908,7 +908,7 @@ export default function AquagramApp() {
       myId
         ? toggleSpecies("species_favorites", slug, "Favori türlerine eklendi ⭐", "Favorilerden çıkarıldı")
         : toggleInMap(setKbFavorites, slug, "Favori türlerine eklendi ⭐", "Favorilerden çıkarıldı"),
-    onComment: async (slug, { text, images = [], video = null }) => {
+    onComment: async (slug, { text, images = [], video = null }, { alsoPost = false } = {}) => {
       if (myId) {
         const speciesId = kbDb.speciesId(slug);
         if (!speciesId) return setToast("Tür bulunamadı, sayfayı yenileyip tekrar dene.");
@@ -917,8 +917,14 @@ export default function AquagramApp() {
           const media = await uploadMedia(myId, "species", images, video);
           const { error } = await supabase.from("species_comments").insert({ species_id: speciesId, user_id: myId, text: text || "", images: media.images, video: media.video });
           if (error) throw error;
+          // Türkiye türlerinde gözlem akışta tür etiketli bir paylaşım olarak da yayımlanır
+          if (alsoPost) {
+            const posted = await supabase.from("posts").insert({ text: text || "", images: media.images, video: media.video, kind: "post", species_slugs: [slug] });
+            if (posted.error) throw posted.error;
+            community.reload();
+          }
           await kbDb.reload();
-          setToast("Deneyimin paylaşıldı, teşekkürler!");
+          setToast(alsoPost ? "Katkın paylaşıldı; akışta da görünüyor. Teşekkürler!" : "Deneyimin paylaşıldı, teşekkürler!");
         } catch (error) {
           setToast(trError(error));
         }

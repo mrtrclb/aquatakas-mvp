@@ -6,16 +6,69 @@ const ddmmyyyy = (value) => new Date(value).toLocaleDateString("tr-TR");
 
 // Bir tablo değişince yeniden yükleyen canlı abonelik (RLS geçerli: yalnızca görmeye yetkili olunan satırlar gelir).
 // filter verilirse sunucu yalnızca eşleşen satırları gönderir (ör. "user_id=eq.<id>").
-// Kota tasarrufu: sekme 90 sn'den uzun arka planda kalırsa canlı bağlantı kapatılır; sekmeye dönülünce
-// yeniden açılır ve arada kaçanlar tek seferde yüklenir. Kullanıcı farkı görmez.
-const IDLE_CLOSE_MS = 90 * 1000;
+// Kota tasarrufu: sayfa "boşta" sayılınca canlı bağlantı tamamen kapatılır (soket dahil); kullanıcı geri
+// gelince yeniden açılır ve arada kaçanlar tek seferde yüklenir. Boşta sayılma:
+//  - sekme 90 sn'den uzun arka planda (gizli) kalırsa, ya da
+//  - sayfa görünür olsa bile (yan pencere, ikinci ekran, başından kalkılmış bilgisayar) 10 dk hiç etkileşim olmazsa.
+const HIDDEN_CLOSE_MS = 90 * 1000;
+const INACTIVE_CLOSE_MS = 10 * 60 * 1000;
+
+// Tüm canlı aboneliklerin ortak "boşta mı" durumu
+const liveIdle = (() => {
+  const subs = new Set();
+  let idle = false;
+  let lastActive = Date.now();
+  let hiddenAt = null;
+  let started = false;
+  const set = (next) => {
+    if (next === idle) return;
+    idle = next;
+    if (idle) supabase.removeAllChannels().catch(() => {}); // soket de kapanır
+    subs.forEach((fn) => fn(idle));
+  };
+  const activity = () => {
+    lastActive = Date.now();
+    if (idle && document.visibilityState !== "hidden") set(false);
+  };
+  const check = () => {
+    const now = Date.now();
+    if (document.visibilityState === "hidden") {
+      if (hiddenAt == null) hiddenAt = now;
+      if (now - hiddenAt >= HIDDEN_CLOSE_MS) set(true);
+    } else {
+      hiddenAt = null;
+      if (now - lastActive >= INACTIVE_CLOSE_MS) set(true);
+    }
+  };
+  const start = () => {
+    if (started || typeof document === "undefined") return;
+    started = true;
+    ["pointerdown", "keydown", "wheel", "touchstart", "scroll", "focus"].forEach((name) => window.addEventListener(name, activity, { passive: true, capture: true }));
+    let lastMove = 0;
+    window.addEventListener("pointermove", () => { const now = Date.now(); if (now - lastMove > 5000) { lastMove = now; activity(); } }, { passive: true });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else { hiddenAt = null; activity(); }
+    });
+    // Arka planda zamanlayıcılar kısılsa bile bir sonraki tetiklemede süre gerçek saatten hesaplanır
+    setInterval(check, 15 * 1000);
+  };
+  return {
+    isIdle: () => idle,
+    subscribe(fn) {
+      start();
+      subs.add(fn);
+      return () => subs.delete(fn);
+    }
+  };
+})();
+
 function useLiveReload(channelName, table, myId, reload, filter) {
   const reloadRef = useRef(reload);
   reloadRef.current = reload;
   useEffect(() => {
     if (!myId) return undefined;
     let channel = null;
-    let idleTimer = null;
     const open = () => {
       if (channel) return;
       const opts = { event: "INSERT", schema: "public", table };
@@ -30,23 +83,17 @@ function useLiveReload(channelName, table, myId, reload, filter) {
       supabase.removeChannel(channel);
       channel = null;
     };
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") {
-        clearTimeout(idleTimer);
-        idleTimer = setTimeout(close, IDLE_CLOSE_MS);
+    const unsubscribe = liveIdle.subscribe((idle) => {
+      if (idle) {
+        channel = null; // removeAllChannels kapattı
       } else {
-        clearTimeout(idleTimer);
-        if (!channel) {
-          open();
-          reloadRef.current();
-        }
+        open();
+        reloadRef.current();
       }
-    };
-    if (document.visibilityState !== "hidden") open();
-    document.addEventListener("visibilitychange", onVisibility);
+    });
+    if (!liveIdle.isIdle()) open();
     return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      clearTimeout(idleTimer);
+      unsubscribe();
       close();
     };
   }, [channelName, table, myId, filter]);

@@ -3,6 +3,7 @@ import React, { useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, Flame, Hash, Info, MapPin, MessageCircle, Pin, Play, Sparkles, Users, X } from "lucide-react";
 import { Avatar, PostCard, extractTags, mediaLabel, normalizeTr, timeAgo } from "./community.jsx";
 import { SeenMarker, rotate } from "./lib/rotation";
+import { GroupIcon } from "./lib/group-icon.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Ayarlar                                                             */
@@ -166,7 +167,7 @@ function InterestChip({ group, active, onClick, large = false }) {
         (active ? "bg-cyan-950 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50")
       }
     >
-      <span>{group.emoji}</span> {group.name}
+      <GroupIcon group={group} inline /> {group.name}
       {active && <span className="text-xs">✓</span>}
     </button>
   );
@@ -223,7 +224,7 @@ function OnboardingCard({ groups, ctx, onDone }) {
                     onClick={() => toggle(group.id)}
                     className={"flex items-start gap-3 rounded-2xl p-3 text-left ring-1 transition " + (active ? "bg-cyan-50 ring-cyan-700" : "ring-slate-200 hover:bg-slate-50")}
                   >
-                    <span className={"grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl " + group.color}>{group.emoji}</span>
+                    <span className={"grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl text-xl " + group.color}><GroupIcon group={group} /></span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
                         <span className="text-sm font-black text-slate-900">{group.name}</span>
@@ -403,7 +404,7 @@ export function HomeAside({ ctx, groups, posts }) {
             return (
               <div key={group.id} className="flex items-center gap-2 rounded-xl px-1 py-1.5">
                 <button onClick={() => ctx.onOpenGroup(group)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-                  <span className={"grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg " + group.color}>{group.emoji}</span>
+                  <span className={"grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl text-lg " + group.color}><GroupIcon group={group} /></span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-black text-slate-900 hover:underline">{group.name}</span>
                     <span className="block text-[12px] font-semibold text-slate-400">{group.memberIds.length} üye</span>

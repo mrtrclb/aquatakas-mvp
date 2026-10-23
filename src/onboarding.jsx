@@ -9,6 +9,7 @@ import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES } from "./lib/listings";
 import { SpeciesImage } from "./knowledge.jsx";
 import { KB_CATEGORIES, KB_SECTIONS } from "./species.js";
+import { GroupIcon } from "./lib/group-icon.jsx";
 
 // Yeni üyeye ilk girişte adım adım profil kurulumu: (Google/Apple ile gelene önce kullanıcı adı + koşullar) → türler → gruplar → hakkında + şehir → sosyal hesaplar → bitti
 
@@ -298,7 +299,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
                   return (
                     <button key={group.dbId} type="button" onClick={() => toggle(joined, setJoined, group.dbId)} aria-pressed={on} className={"flex items-center gap-3 rounded-2xl border p-2.5 text-left transition " + (on ? "border-cyan-700 bg-cyan-50/60" : "border-slate-200 hover:bg-slate-50")}>
                       <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-slate-100 text-xl">
-                        {group.cover && !brokenCovers.includes(group.dbId) ? <img src={group.cover} alt="" onError={() => setBrokenCovers((prev) => [...prev, group.dbId])} className="h-full w-full object-cover" /> : group.emoji || "💧"}
+                        {group.icon ? <GroupIcon group={group} /> : group.cover && !brokenCovers.includes(group.dbId) ? <img src={group.cover} alt="" onError={() => setBrokenCovers((prev) => [...prev, group.dbId])} className="h-full w-full object-cover" /> : group.emoji || "💧"}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-black text-slate-900">{group.name}</span>

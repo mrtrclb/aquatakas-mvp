@@ -93,6 +93,7 @@ import { useArticles } from "./lib/articles";
 const AdsManagerPage = lazy(() => import("./ads-manager.jsx"));
 const OnboardingModal = lazy(() => import("./onboarding.jsx").then((mod) => ({ default: mod.OnboardingModal })));
 import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, speciesBySlug } from "./species.js";
+import { GroupIcon } from "./lib/group-icon.jsx";
 
 const locations = {
   Gaziantep: { Şehitkamil: ["Batıkent", "Emek", "Merveşehir"], Şahinbey: ["Karataş", "Güneykent", "Binevler"] },
@@ -474,6 +475,7 @@ export default function AquagramApp() {
         rules: db.rules && db.rules.length ? db.rules : group.rules,
         emoji: db.emoji || group.emoji,
         cover: db.cover_url || group.cover,
+        icon: db.icon_url || group.icon || null,
         dbId: db.id,
         memberIds: Array.from(new Set([...group.memberIds, ...rows.map((row) => row.user_id)])),
         moderatorIds: Array.from(new Set([...group.moderatorIds, ...rows.filter((row) => row.role !== "member").map((row) => row.user_id)]))
@@ -491,6 +493,7 @@ export default function AquagramApp() {
           emoji: row.emoji,
           color: row.color,
           cover: row.cover_url || null,
+          icon: row.icon_url || null,
           description: row.description,
           rules: row.rules || [],
           ownerId: row.owner_id,
@@ -1111,7 +1114,9 @@ export default function AquagramApp() {
       try {
         let cover = group.cover || null;
         if (cover && cover.startsWith("blob:")) cover = await uploadBlobUrl(myId, "groups", cover);
-        const fields = { slug: group.slug, name: group.name, emoji: group.emoji, color: group.color, cover_url: cover, description: group.description, rules: group.rules };
+        let icon = group.icon || null;
+        if (icon && icon.startsWith("blob:")) icon = await uploadBlobUrl(myId, "groups", icon);
+        const fields = { slug: group.slug, name: group.name, emoji: group.emoji, icon_url: icon, color: group.color, cover_url: cover, description: group.description, rules: group.rules };
         const res = isNewDb
           ? await supabase.from("groups").insert({ ...fields, owner_id: myId }).select().single()
           : await supabase.from("groups").update(fields).eq("id", group.dbId).select().single();
@@ -3919,7 +3924,7 @@ function ProfileModal({ user, userPosts = [], allPosts = [], groups = [], keptSp
             <div className="flex flex-wrap gap-1.5">
               {userGroups.map((group) => (
                 <button key={group.id} type="button" onClick={() => onOpenGroup(group)} className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-cyan-50">
-                  <span>{group.emoji}</span> {group.name}
+                  <GroupIcon group={group} inline /> {group.name}
                   {group.ownerId === profileUserId && <span className="text-amber-700">· kurucu</span>}
                   {group.ownerId !== profileUserId && group.moderatorIds.includes(profileUserId) && <span className="text-cyan-700">· mod</span>}
                 </button>

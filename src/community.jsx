@@ -28,6 +28,7 @@ import {
 import { categoryById, detectSpecies, speciesBySlug, speciesTag } from "./species.js";
 import { LinkPreviewCard, URL_RE, firstUrl } from "./link-preview.jsx";
 import { ProBadge } from "./pro.jsx";
+import { GroupIcon } from "./lib/group-icon.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -732,7 +733,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false, eager =
                 onClick={(event) => { event.stopPropagation(); ctx.onOpenGroup(group); }}
                 className="inline-flex items-center gap-1.5 rounded-full text-xs font-black text-cyan-800 hover:underline"
               >
-                <span className="text-sm leading-none">{group.emoji}</span> {group.name}
+                <span className="text-sm leading-none"><GroupIcon group={group} inline /></span> {group.name}
               </button>
             )}
             {post.kind === "question" && (
@@ -986,7 +987,7 @@ export function CommunityAside({ ctx, view = "feed", group = null, search = "", 
 
       {group && (
         <div className="mt-6 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-3">
-          <div className="mb-2 flex items-center gap-2 text-sm font-black text-cyan-950"><span>{group.emoji}</span> Grup kuralları</div>
+          <div className="mb-2 flex items-center gap-2 text-sm font-black text-cyan-950"><GroupIcon group={group} inline /> Grup kuralları</div>
           {group.rules.length ? (
             <ol className="grid gap-1.5 text-xs leading-relaxed text-slate-700">
               {group.rules.map((rule, index) => (

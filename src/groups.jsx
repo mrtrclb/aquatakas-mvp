@@ -6,6 +6,7 @@ import {
   Crown,
   Hash,
   Link2,
+  MoreHorizontal,
   Pencil,
   Plus,
   Search,
@@ -13,6 +14,7 @@ import {
   Users,
   X
 } from "lucide-react";
+import { GroupIcon } from "./lib/group-icon.jsx";
 import { Avatar, ComposerPrompt, PageHeader, PostCard, TagFollowButton, extractTags, normalizeTr, searchPosts, slugifyWords } from "./community.jsx";
 
 /* ------------------------------------------------------------------ */
@@ -29,8 +31,16 @@ const COVER = {
   monster: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1400&q=80"
 };
 
-export const COVER_PRESETS = [COVER.bitkili, COVER.deniz, COVER.tanganyika, COVER.monster];
+// Bitkili görseli Unsplash'ten kaldırıldığı için hazır kapaklardan çıkarıldı
+export const COVER_PRESETS = [COVER.deniz, COVER.tanganyika, COVER.monster];
 export const GROUP_EMOJIS = ["🐠", "🪨", "🌿", "🦐", "🪸", "🦈", "🐡", "🍂", "💧", "🐢", "🔬", "🏠"];
+// "⋯" ile açılan geniş simge seçimi
+export const GROUP_EMOJI_SETS = [
+  ["Balıklar ve canlılar", ["🐟", "🐠", "🐡", "🦈", "🐋", "🐬", "🐙", "🦑", "🦀", "🦞", "🦐", "🐌", "🐚", "🐸", "🦎", "🐢", "🐍", "🦦", "🐊", "🪼"]],
+  ["Bitki ve doğa", ["🌿", "🌱", "🍀", "☘️", "🪴", "🍃", "🍂", "🌾", "🌵", "🎋", "🪷", "🌸", "🪨", "🪵", "🍄", "🌊", "💧", "🫧", "☀️", "🌙"]],
+  ["Deniz ve resif", ["🪸", "⭐", "🏝️", "🧜", "⚓", "🛟", "🐳", "🌅"]],
+  ["Konular ve ekipman", ["🔬", "🧪", "🧫", "🌡️", "💡", "🔧", "🛠️", "🧰", "🛒", "🏷️", "📷", "🎥", "🏆", "🥇", "❤️", "🏠", "📚", "🎓", "💬", "📍", "🗺️", "🇹🇷", "🍽️", "🩺"]]
+];
 const GROUP_COLORS = ["bg-cyan-100", "bg-emerald-100", "bg-amber-100", "bg-sky-100", "bg-rose-100", "bg-indigo-100", "bg-orange-100", "bg-slate-200"];
 
 export const MAX_GROUP_RULES = 10;
@@ -138,7 +148,7 @@ export function uniqueGroupSlug(name, groups, ignoreId) {
 
 function GroupTile({ group, size = "md" }) {
   const cls = size === "lg" ? "h-20 w-20 rounded-3xl text-4xl ring-4" : size === "sm" ? "h-9 w-9 rounded-xl text-lg ring-2" : "h-14 w-14 rounded-2xl text-2xl ring-4";
-  return <span className={"grid shrink-0 place-items-center ring-white " + cls + " " + group.color}>{group.emoji}</span>;
+  return <span className={"grid shrink-0 place-items-center overflow-hidden ring-white " + cls + " " + group.color}><GroupIcon group={group} /></span>;
 }
 
 function Cover({ group, className }) {
@@ -535,6 +545,9 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
   const [name, setName] = useState(group ? group.name : "");
   const [description, setDescription] = useState(group ? group.description : "");
   const [emoji, setEmoji] = useState(group ? group.emoji : GROUP_EMOJIS[0]);
+  const [icon, setIcon] = useState(group ? group.icon || null : null); // yüklenen simge görseli
+  const [emojiPicker, setEmojiPicker] = useState(false);
+  const iconInput = useRef(null);
   const [cover, setCover] = useState(group ? group.cover : COVER_PRESETS[0]);
   const [rules, setRules] = useState(group && group.rules.length ? group.rules : [""]);
   const ownerId = group ? group.ownerId : currentUserId;
@@ -561,6 +574,19 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
     setCover(URL.createObjectURL(file));
   }
 
+  function uploadIcon(event) {
+    const file = (event.target.files || [])[0];
+    event.target.value = "";
+    if (!file || !file.type.startsWith("image/")) return;
+    setIcon(URL.createObjectURL(file));
+  }
+
+  function pickEmoji(item) {
+    setEmoji(item);
+    setIcon(null); // emoji seçilince yüklenen görsel bırakılır
+    setEmojiPicker(false);
+  }
+
   function save() {
     const cleanName = name.trim();
     if (cleanName.length < 3) return setError("Grup adı en az 3 karakter olmalı.");
@@ -576,6 +602,7 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
       name: cleanName,
       description: description.trim(),
       emoji,
+      icon,
       color: group ? group.color : GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)],
       cover,
       rules: cleanRules,
@@ -608,7 +635,13 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
             <Camera size={14} /> Kapak yükle
           </button>
           <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={uploadCover} />
-          <div className="absolute -bottom-7 left-5 z-10"><GroupTile group={{ emoji, color: group ? group.color : "bg-cyan-100" }} /></div>
+          <div className="absolute -bottom-7 left-5 z-10">
+            <button type="button" onClick={() => iconInput.current && iconInput.current.click()} className="group relative block rounded-2xl" title="Simge görseli yükle">
+              <GroupTile group={{ emoji, icon, color: group ? group.color : "bg-cyan-100" }} />
+              <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-slate-950/75 text-white ring-2 ring-white group-hover:bg-slate-950"><Camera size={12} /></span>
+            </button>
+            <input ref={iconInput} type="file" accept="image/*" className="hidden" onChange={uploadIcon} />
+          </div>
         </div>
 
         <div className="grid gap-4 px-5 pb-5 pt-10">
@@ -624,12 +657,43 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
           </div>
 
           <div>
-            <div className="mb-1 text-xs font-black text-slate-500">Simge</div>
-            <div className="flex flex-wrap gap-1.5">
-              {GROUP_EMOJIS.map((item) => (
-                <button key={item} type="button" onClick={() => setEmoji(item)} className={"grid h-9 w-9 place-items-center rounded-xl text-lg transition " + (emoji === item ? "bg-cyan-950 ring-2 ring-cyan-950" : "bg-slate-100 hover:bg-slate-200")}>{item}</button>
-              ))}
+            <div className="mb-1 flex items-center justify-between text-xs font-black text-slate-500">
+              Simge
+              <button type="button" onClick={() => iconInput.current && iconInput.current.click()} className="inline-flex items-center gap-1 text-cyan-800 hover:underline"><Camera size={12} /> Görsel yükle</button>
             </div>
+            <div className="flex flex-wrap gap-1.5">
+              {icon && (
+                <span className="relative grid h-9 w-9 overflow-hidden rounded-xl ring-2 ring-cyan-950">
+                  <img src={icon} alt="" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => setIcon(null)} className="absolute right-0 top-0 grid h-4 w-4 place-items-center rounded-bl-md bg-slate-950/70 text-white" title="Görseli kaldır"><X size={10} /></button>
+                </span>
+              )}
+              {(GROUP_EMOJIS.includes(emoji) ? GROUP_EMOJIS : [emoji, ...GROUP_EMOJIS.slice(0, -1)]).map((item) => (
+                <button key={item} type="button" onClick={() => pickEmoji(item)} className={"grid h-9 w-9 place-items-center rounded-xl text-lg transition " + (!icon && emoji === item ? "bg-cyan-950 ring-2 ring-cyan-950" : "bg-slate-100 hover:bg-slate-200")}>{item}</button>
+              ))}
+              <button type="button" onClick={() => setEmojiPicker(true)} className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200" title="Daha fazla simge"><MoreHorizontal size={18} /></button>
+            </div>
+            {emojiPicker && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setEmojiPicker(false); }}>
+                <div className="max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-3xl bg-white p-4 shadow-2xl">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-base font-black">Simge seç</h3>
+                    <button type="button" onClick={() => setEmojiPicker(false)} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-100" title="Kapat"><X size={17} /></button>
+                  </div>
+                  {GROUP_EMOJI_SETS.map(([title, items]) => (
+                    <div key={title} className="mt-3">
+                      <div className="mb-1.5 text-xs font-black text-slate-500">{title}</div>
+                      <div className="grid grid-cols-8 gap-1.5">
+                        {items.map((item) => (
+                          <button key={item} type="button" onClick={() => pickEmoji(item)} className={"grid h-9 w-9 place-items-center rounded-xl text-lg transition " + (!icon && emoji === item ? "bg-cyan-950 ring-2 ring-cyan-950" : "bg-slate-100 hover:bg-slate-200")}>{item}</button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => { setEmojiPicker(false); if (iconInput.current) iconInput.current.click(); }} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-slate-200 py-2.5 text-sm font-black text-cyan-800 hover:bg-slate-50"><Camera size={15} /> Kendi görselini yükle</button>
+                </div>
+              </div>
+            )}
           </div>
 
           <label className="block">

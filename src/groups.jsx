@@ -6,7 +6,6 @@ import {
   Crown,
   Hash,
   Link2,
-  MoreHorizontal,
   Pencil,
   Plus,
   Search,
@@ -81,7 +80,6 @@ export const GROUP_EMOJI_SETS = [
 const ALL_EMOJIS = Array.from(new Set(GROUP_EMOJI_SETS_FLAT()));
 function GROUP_EMOJI_SETS_FLAT() { return GROUP_EMOJI_SETS.flatMap(([, items]) => items); }
 const shuffled = (list) => list.map((item) => ({ item, key: Math.random() })).sort((a, b) => a.key - b.key).map(({ item }) => item);
-const ROW_SIZE = 6; // satırda gösterilen hazır seçenek sayısı (+ ⋯ + Yükle)
 const GROUP_COLORS = ["bg-cyan-100", "bg-emerald-100", "bg-amber-100", "bg-sky-100", "bg-rose-100", "bg-indigo-100", "bg-orange-100", "bg-slate-200"];
 
 export const MAX_GROUP_RULES = 10;
@@ -589,6 +587,7 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
   const [icon, setIcon] = useState(group ? group.icon || null : null); // yüklenen simge görseli
   const [emojiPicker, setEmojiPicker] = useState(false);
   const [coverPicker, setCoverPicker] = useState(false);
+  const [showAll, setShowAll] = useState(false); // açılır pencerede tüm seçenekler
   const [emojiPool] = useState(() => shuffled(ALL_EMOJIS)); // pencere açıkken sıra sabit
   const [coverPool] = useState(() => shuffled(COVER_PRESETS));
   const iconInput = useRef(null);
@@ -628,23 +627,29 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
   function pickEmoji(item) {
     setEmoji(item);
     setIcon(null); // emoji seçilince yüklenen görsel bırakılır
+    closePicker();
+  }
+
+  function openPicker(kind) {
+    setShowAll(false);
+    setCoverPicker(kind === "cover");
+    setEmojiPicker(kind === "icon");
+  }
+
+  function closePicker() {
+    setCoverPicker(false);
     setEmojiPicker(false);
   }
 
   function pickCover(url) {
     setCover(url);
-    setCoverPicker(false);
+    closePicker();
   }
 
-  const coverRow = [cover, ...coverPool.filter((url) => url !== cover)].filter(Boolean).slice(0, ROW_SIZE);
-  const emojiRow = (icon ? [null, emoji, ...emojiPool.filter((item) => item !== emoji)] : [emoji, ...emojiPool.filter((item) => item !== emoji)]).slice(0, ROW_SIZE);
-  const cell = "aspect-square w-full overflow-hidden rounded-xl transition";
-  const MoreCell = ({ onClick, title }) => (
-    <button type="button" onClick={onClick} title={title} className={cell + " grid place-items-center bg-slate-100 text-slate-600 hover:bg-slate-200"}><MoreHorizontal size={18} /></button>
-  );
-  const UploadCell = ({ onClick, title }) => (
-    <button type="button" onClick={onClick} title={title} className={cell + " flex flex-col items-center justify-center gap-0.5 border-2 border-dashed border-slate-300 text-[10px] font-black text-slate-500 hover:border-cyan-700 hover:text-cyan-800"}><Camera size={15} /><span className="hidden sm:block">Yükle</span></button>
-  );
+  const PREVIEW_COUNT = 12; // pencere ilk açıldığında gösterilen seçenek sayısı
+  const coverPreview = [cover, ...coverPool.filter((url) => url !== cover)].filter((url) => url && COVER_PRESETS.includes(url)).slice(0, PREVIEW_COUNT);
+  const emojiPreview = [emoji, ...emojiPool.filter((item) => item !== emoji)].slice(0, PREVIEW_COUNT);
+  const tileClass = (on) => "grid place-items-center rounded-xl text-xl transition " + (on ? "bg-cyan-950 ring-2 ring-cyan-950 ring-offset-2" : "bg-slate-100 hover:bg-slate-200");
 
   function save() {
     const cleanName = name.trim();
@@ -690,74 +695,62 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
 
         <div className="relative">
           <Cover group={{ cover }} className="h-32" />
+          <button type="button" onClick={() => openPicker("cover")} className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-slate-950/60 px-3 py-1.5 text-xs font-black text-white hover:bg-slate-950/80">
+            <Camera size={14} /> Kapağı değiştir
+          </button>
           <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={uploadCover} />
           <div className="absolute -bottom-7 left-5 z-10">
-            <GroupTile group={{ emoji, icon, color: group ? group.color : "bg-cyan-100" }} />
+            <button type="button" onClick={() => openPicker("icon")} className="group relative block rounded-2xl" title="Simgeyi değiştir">
+              <GroupTile group={{ emoji, icon, color: group ? group.color : "bg-cyan-100" }} />
+              <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-slate-950/75 text-white ring-2 ring-white group-hover:bg-slate-950"><Camera size={12} /></span>
+            </button>
             <input ref={iconInput} type="file" accept="image/*" className="hidden" onChange={uploadIcon} />
           </div>
         </div>
 
         <div className="grid gap-4 px-5 pb-5 pt-10">
-          <div>
-            <div className="mb-1 text-xs font-black text-slate-500">Kapak</div>
-            <div className="grid grid-cols-8 gap-2">
-              {coverRow.map((url) => (
-                <button key={url} type="button" onClick={() => setCover(url)} className={cell + " ring-2 ring-offset-2 " + (cover === url ? "ring-cyan-700" : "ring-transparent")}>
-                  <img src={url} alt="" className="h-full w-full object-cover" />
-                </button>
-              ))}
-              {Array.from({ length: ROW_SIZE - coverRow.length }).map((_, index) => <span key={"bos" + index} />)}
-              <MoreCell onClick={() => setCoverPicker(true)} title="Diğer hazır kapaklar" />
-              <UploadCell onClick={() => fileInput.current && fileInput.current.click()} title="Kapak görseli yükle" />
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-1 text-xs font-black text-slate-500">Simge</div>
-            <div className="grid grid-cols-8 gap-2">
-              {emojiRow.map((item) =>
-                item === null ? (
-                  <span key="gorsel" className={cell + " relative ring-2 ring-cyan-950 ring-offset-2"}>
-                    <img src={icon} alt="" className="h-full w-full object-cover" />
-                    <button type="button" onClick={() => setIcon(null)} className="absolute right-0 top-0 grid h-4 w-4 place-items-center rounded-bl-md bg-slate-950/70 text-white" title="Görseli kaldır"><X size={10} /></button>
-                  </span>
-                ) : (
-                  <button key={item} type="button" onClick={() => pickEmoji(item)} className={cell + " grid place-items-center text-xl sm:text-2xl " + (!icon && emoji === item ? "bg-cyan-950 ring-2 ring-cyan-950 ring-offset-2" : "bg-slate-100 hover:bg-slate-200")}>{item}</button>
-                )
-              )}
-              <MoreCell onClick={() => setEmojiPicker(true)} title="Diğer simgeler" />
-              <UploadCell onClick={() => iconInput.current && iconInput.current.click()} title="Simge görseli yükle" />
-            </div>
-          </div>
-
           {(emojiPicker || coverPicker) && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) { setEmojiPicker(false); setCoverPicker(false); } }}>
-              <div className="max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-3xl bg-white p-4 shadow-2xl">
-                <div className="mb-2 flex items-center justify-between">
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) closePicker(); }}>
+              <div className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-3xl bg-white p-4 shadow-2xl">
+                <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-base font-black">{coverPicker ? "Kapak seç" : "Simge seç"}</h3>
-                  <button type="button" onClick={() => { setEmojiPicker(false); setCoverPicker(false); }} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-100" title="Kapat"><X size={17} /></button>
+                  <button type="button" onClick={closePicker} className="rounded-full p-1.5 text-slate-600 hover:bg-slate-100" title="Kapat"><X size={17} /></button>
                 </div>
                 {coverPicker ? (
-                  <div className="mt-3 grid grid-cols-4 gap-2">
-                    {COVER_PRESETS.map((url) => (
+                  <div className="grid grid-cols-4 gap-2">
+                    {(showAll ? COVER_PRESETS : coverPreview).map((url) => (
                       <button key={url} type="button" onClick={() => pickCover(url)} className={"aspect-[4/3] overflow-hidden rounded-xl ring-2 ring-offset-2 " + (cover === url ? "ring-cyan-700" : "ring-transparent")}>
                         <img src={url} alt="" className="h-full w-full object-cover" />
                       </button>
                     ))}
                   </div>
-                ) : (
+                ) : showAll ? (
                   GROUP_EMOJI_SETS.map(([title, items]) => (
-                    <div key={title} className="mt-3">
+                    <div key={title} className="mb-3">
                       <div className="mb-1.5 text-xs font-black text-slate-500">{title}</div>
                       <div className="grid grid-cols-8 gap-1.5">
                         {items.map((item) => (
-                          <button key={item} type="button" onClick={() => pickEmoji(item)} className={"grid h-9 w-9 place-items-center rounded-xl text-lg transition " + (!icon && emoji === item ? "bg-cyan-950 ring-2 ring-cyan-950" : "bg-slate-100 hover:bg-slate-200")}>{item}</button>
+                          <button key={item} type="button" onClick={() => pickEmoji(item)} className={"aspect-square " + tileClass(!icon && emoji === item)}>{item}</button>
                         ))}
                       </div>
                     </div>
                   ))
+                ) : (
+                  <div className="grid grid-cols-6 gap-2">
+                    {emojiPreview.map((item) => (
+                      <button key={item} type="button" onClick={() => pickEmoji(item)} className={"aspect-square text-2xl " + tileClass(!icon && emoji === item)}>{item}</button>
+                    ))}
+                  </div>
                 )}
-                <button type="button" onClick={() => { const input = coverPicker ? fileInput.current : iconInput.current; setEmojiPicker(false); setCoverPicker(false); if (input) input.click(); }} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-slate-200 py-2.5 text-sm font-black text-cyan-800 hover:bg-slate-50"><Camera size={15} /> Kendi görselini yükle</button>
+                {!showAll && (
+                  <button type="button" onClick={() => setShowAll(true)} className="mt-3 w-full rounded-2xl bg-slate-100 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-200">
+                    Daha fazla göster ({coverPicker ? COVER_PRESETS.length : ALL_EMOJIS.length})
+                  </button>
+                )}
+                {!coverPicker && icon && (
+                  <button type="button" onClick={() => { setIcon(null); closePicker(); }} className="mt-2 w-full rounded-2xl py-2 text-sm font-black text-red-600 hover:bg-red-50">Yüklenen görseli kaldır</button>
+                )}
+                <button type="button" onClick={() => { const input = coverPicker ? fileInput.current : iconInput.current; closePicker(); if (input) input.click(); }} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-slate-200 py-2.5 text-sm font-black text-cyan-800 hover:bg-slate-50"><Camera size={15} /> Kendi görselini yükle</button>
               </div>
             </div>
           )}

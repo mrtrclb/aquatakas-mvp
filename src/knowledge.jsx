@@ -54,6 +54,10 @@ function keepersOf(kb, slug) {
     .map(([id]) => (/^\d+$/.test(id) ? Number(id) : id));
 }
 
+function fansOf(kb, slug) {
+  return Object.values(kb.favorites || {}).filter((slugs) => (slugs || []).includes(slug)).length;
+}
+
 // Bir ilan/paylaşımın bu türle ilgili olup olmadığı: paylaşımda kayıtlı türler ya da metinden otomatik tanıma
 export function relatedListings(listings, slug) {
   return listings.filter((item) => (item.speciesSlugs || []).includes(slug) || detectSpecies(item.title + " " + item.description).includes(slug));
@@ -427,7 +431,10 @@ export function KbCategoryPage({ kb, categoryId }) {
   if (!category) return <p className="p-10 text-center text-sm text-slate-500">Kategori bulunamadı.</p>;
   const list = kb.species
     .filter((item) => item.category === category.id && (difficulty === "Tümü" || item.difficulty === difficulty))
-    .sort((a, b) => (sort === "popular" ? keepersOf(kb, b.slug).length - keepersOf(kb, a.slug).length : a.name.localeCompare(b.name, "tr")));
+    .sort((a, b) => {
+      const diff = sort === "popular" ? keepersOf(kb, b.slug).length - keepersOf(kb, a.slug).length : sort === "favorite" ? fansOf(kb, b.slug) - fansOf(kb, a.slug) : 0;
+      return diff || a.name.localeCompare(b.name, "tr"); // eşitlikte A-Z
+    });
   const section = KB_SECTIONS.find((item) => item.id === category.section);
 
   return (
@@ -440,7 +447,7 @@ export function KbCategoryPage({ kb, categoryId }) {
           ))}
         </div>
         <div className="flex gap-1 rounded-full bg-slate-100 p-0.5">
-          {[["az", "A-Z"], ["popular", "En çok beslenen"]].map(([key, label]) => (
+          {[["az", "A-Z"], ["popular", "En çok beslenen"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
             <button key={key} onClick={() => setSort(key)} className={"rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
           ))}
         </div>

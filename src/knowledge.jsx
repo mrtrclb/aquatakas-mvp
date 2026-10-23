@@ -501,8 +501,8 @@ function RegularCategoryPage({ kb, categoryId }) {
           ))}
         </div>
         <div className="flex max-w-full gap-1 overflow-x-auto whitespace-nowrap rounded-full bg-slate-100 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {[["mix", "Karışık"], ["az", "A-Z"], ["popular", "En çok beslenen"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
-            <button key={key} onClick={() => setSort(key)} className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
+          {[["az", "A-Z"], ["popular", "En çok beslenen"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
+            <button key={key} onClick={() => setSort(sort === key ? "mix" : key)} aria-pressed={sort === key} className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
           ))}
         </div>
       </div>
@@ -1572,8 +1572,8 @@ function TrCategoryPage({ kb, categoryId }) {
             {basins.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
           <div className="flex max-w-full gap-1 overflow-x-auto whitespace-nowrap rounded-full bg-slate-100 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {[["mix", "Karışık"], ["az", "A-Z"], ["risk", "Koruma durumu"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
-              <button key={key} onClick={() => setSort(key)} className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
+            {[["az", "A-Z"], ["risk", "Koruma durumu"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
+              <button key={key} onClick={() => setSort(sort === key ? "mix" : key)} aria-pressed={sort === key} className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
             ))}
           </div>
         </div>

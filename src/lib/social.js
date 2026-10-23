@@ -9,9 +9,9 @@ const ddmmyyyy = (value) => new Date(value).toLocaleDateString("tr-TR");
 // Kota tasarrufu: sayfa "boşta" sayılınca canlı bağlantı tamamen kapatılır (soket dahil); kullanıcı geri
 // gelince yeniden açılır ve arada kaçanlar tek seferde yüklenir. Boşta sayılma:
 //  - sekme 90 sn'den uzun arka planda (gizli) kalırsa, ya da
-//  - sayfa görünür olsa bile (yan pencere, ikinci ekran, başından kalkılmış bilgisayar) 10 dk hiç etkileşim olmazsa.
+//  - sayfa görünür olsa bile (yan pencere, ikinci ekran, başından kalkılmış bilgisayar) 5 dk hiç etkileşim olmazsa.
 const HIDDEN_CLOSE_MS = 90 * 1000;
-const INACTIVE_CLOSE_MS = 10 * 60 * 1000;
+const INACTIVE_CLOSE_MS = 5 * 60 * 1000;
 
 // Tüm canlı aboneliklerin ortak "boşta mı" durumu
 const liveIdle = (() => {

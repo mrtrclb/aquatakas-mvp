@@ -26,7 +26,7 @@ export const KB_CATEGORIES = [
   { id: "aci-su", section: "tatlisu", name: "Acı Su Balıkları", emoji: "🌊", tone: "from-emerald-300 to-cyan-700" },
   { id: "yilanbaslar", section: "tatlisu", name: "Yılanbaşlar", emoji: "🐍", tone: "from-lime-300 to-stone-700", notice: "Yılanbaşlarla ilgili ithalat, ticaret ve bulundurma kuralları ülkeye ve zamana göre değişebilir; bazı türler istilacı potansiyel taşır. Edinmeden önce güncel resmî mevzuatı kontrol edin ve hiçbir koşulda doğaya salmayın." },
   { id: "ilkel-siradisi-baliklar", section: "tatlisu", name: "İlkel & Sıra Dışı Balıklar", emoji: "🐉", tone: "from-stone-400 to-emerald-900" },
-  { id: "diger-baliklar", section: "tatlisu", name: "Diğer Balıklar", emoji: "🦈", tone: "from-zinc-300 to-emerald-800" },
+  { id: "diger-baliklar", section: "tatlisu", name: "Diğer Balıklar & Amfibiler", emoji: "🦈", tone: "from-zinc-300 to-emerald-800" },
   { id: "karidesler", section: "omurgasiz", name: "Karidesler", emoji: "🦐", tone: "from-red-300 to-rose-600" },
   { id: "salyangozlar", section: "omurgasiz", name: "Salyangozlar", emoji: "🐌", tone: "from-amber-200 to-yellow-700" },
   { id: "kerevitler", section: "omurgasiz", name: "Kerevitler", emoji: "🦞", tone: "from-orange-300 to-orange-600" },

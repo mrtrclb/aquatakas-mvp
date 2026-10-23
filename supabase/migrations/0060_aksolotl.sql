@@ -1,5 +1,8 @@
 -- Aquagram — 0060: Aksolotl (Ambystoma mexicanum) — "Diğer Balıklar" kategorisinin ilk türü + 12 varyete
+-- Kategori adı: "Diğer Balıklar & Amfibiler".
 -- Görsel numaraları: 779 = tür (yabani tip), 780–790 = varyeteler (scripts/gorsel-numaralari.json "formlar").
+
+update public.kb_categories set name = 'Diğer Balıklar & Amfibiler' where id = 'diger-baliklar';
 
 insert into public.species (slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, care_notice, range_areas, status)
 values (

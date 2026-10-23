@@ -1591,7 +1591,7 @@ export default function AquagramApp() {
     listingFilterAside
   ) : null;
   // Mobilde sağ sütun yerine açılır panelin altında gösterilenler
-  const drawerExtras = kbMode ? <KbWidgets kb={kb} /> : null;
+  const drawerExtras = kbMode ? <KbWidgets kb={kb} posts={posts} listings={listings} /> : null;
   const isListingFilterPanel = leftAside === listingFilterAside;
 
   const navItems = [["home", "Ana sayfa", Home, goHome], ["listings", "İlanlar", Tag, openListingsPage], ["community", "Topluluk", Users, openCommunity], ["kb", "Bilgi Bankası", BookOpen, kb.openHome]];
@@ -1955,7 +1955,7 @@ export default function AquagramApp() {
 )}
 </section>
         {!detailMode && !accountMode && !userListingsMode && (
-          <RightSidebar minimal={kbMode}>{kbMode ? <KbWidgets kb={kb} /> : null}</RightSidebar>
+          <RightSidebar minimal={kbMode}>{kbMode ? <KbWidgets kb={kb} posts={posts} listings={listings} /> : null}</RightSidebar>
         )}
       </main>
 

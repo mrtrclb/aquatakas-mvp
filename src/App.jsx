@@ -8,7 +8,8 @@ import { useDbCommunity, mapPost, uploadMedia, uploadBlobUrl } from "./lib/commu
 import { useDbMessages, useNotifications, notificationText } from "./lib/social";
 import { useDbKnowledge } from "./lib/knowledge";
 import { useSiteSettings } from "./lib/settings";
-import { useLiveAds, trackAdImpression, openAd } from "./lib/ads";
+import { useLiveAds, trackAdImpression, openAd, mapAd } from "./lib/ads";
+import { playNotificationSound, setSoundEnabled, soundEnabled } from "./lib/sound";
 import { SeenMarker, markSeen, pickLeastSeen, rotate } from "./lib/rotation";
 import { LazySiteInfoModal as SiteInfoModal, SiteLinks, BLOG_URL } from "./site-links.jsx";
 import { LEGAL_PATHS } from "./lib/legal-meta.js";
@@ -42,6 +43,8 @@ import {
   Pin,
   X,
   BadgeCheck,
+  Volume2,
+  VolumeX,
   Star,
   Camera,
   Play,
@@ -452,6 +455,13 @@ export default function AquagramApp() {
   const community = useDbCommunity(myId);
   const msgs = useDbMessages(isMember ? myId : null);
   const notifs = useNotifications(isMember ? myId : null);
+  // Yeni bildirim ya da mesaj gelince kısa ses (site açıkken; ilk yüklemede çalmaz)
+  const alertCount = notifs.unread + msgs.unreadCount;
+  const prevAlertCount = useRef(null);
+  useEffect(() => {
+    if (prevAlertCount.current !== null && alertCount > prevAlertCount.current) playNotificationSound();
+    prevAlertCount.current = alertCount;
+  }, [alertCount]);
   const kbDb = useDbKnowledge(myId);
   const siteSettings = useSiteSettings();
   livePools = useLiveAds();
@@ -1885,7 +1895,7 @@ export default function AquagramApp() {
     onProfile={(actor) => actor && users[actor.id] && setProfileUser(users[actor.id])}
   />
 ) : effectiveMemberPage === "ads" ? (
-  <Suspense fallback={<div className="p-10 text-center text-sm font-bold text-slate-400">Yükleniyor…</div>}><AdsManagerPage auth={auth} onToast={setToast} previews={{ FeedAdCard, SidebarAd, DetailBannerAd }} /></Suspense>
+  <Suspense fallback={<div className="p-10 text-center text-sm font-bold text-slate-400">Yükleniyor…</div>}><AdsManagerPage auth={auth} onToast={setToast} previews={{ FeedAdCard, SidebarAd, DetailBannerAd, NotificationAdRow, NotificationAdCard }} /></Suspense>
 ) : selectedListing ? (
   <ListingDetail
     item={selectedListing}
@@ -4485,20 +4495,91 @@ function TeamMessageModal({ item, onClose }) {
   );
 }
 
+// Bildirim reklamı: bildirime dokununca açılan reklam kartı (çarpıyla kapanır)
+function NotificationAdModal({ ad, onClose }) {
+  useAdImpression(ad);
+  useEffect(() => {
+    const onKey = (event) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-950/55 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <NotificationAdCard ad={ad} onClose={onClose} />
+    </div>,
+    document.body
+  );
+}
+
+function NotificationAdCard({ ad, onClose, preview = false }) {
+  return (
+    <div role="dialog" aria-label={"Reklam: " + ad.title} className="relative w-full max-w-sm overflow-hidden rounded-[28px] bg-white shadow-2xl">
+      <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-slate-950/60 text-white backdrop-blur hover:bg-slate-950/80" title="Kapat" aria-label="Kapat"><X size={18} /></button>
+      <div className="aspect-[16/10] w-full bg-amber-100"><AdImage ad={ad} /></div>
+      <div className="p-5">
+        <div className="mb-1.5 flex min-w-0 items-center gap-2">
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">Reklam</span>
+          <span className="truncate text-[13px] font-black text-amber-800">{ad.brand}</span>
+        </div>
+        <h3 className="text-xl font-black leading-snug text-slate-950">{ad.title}</h3>
+        {ad.text && <p className="mt-1.5 text-[15px] leading-relaxed text-slate-600">{ad.text}</p>}
+        {ad.url ? (
+          <button type="button" onClick={() => !preview && openAd(ad)} className="mt-4 w-full rounded-full bg-amber-500 py-3 text-sm font-black text-white hover:bg-amber-600">{ad.cta || "İncele"}</button>
+        ) : (
+          <button type="button" onClick={onClose} className="mt-4 w-full rounded-full bg-slate-100 py-3 text-sm font-black text-slate-700 hover:bg-slate-200">Kapat</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Bildirim listesindeki reklam satırı (Reklamlarım önizlemesinde de kullanılır)
+function NotificationAdRow({ ad, unread = true, onOpen, onRemove, time = "şimdi" }) {
+  return (
+    <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => { if (event.key === "Enter") onOpen && onOpen(); }} className={"flex w-full cursor-pointer items-start gap-3 px-4 py-3.5 text-left transition hover:bg-amber-50 " + (unread ? "bg-amber-50/60" : "")}>
+      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-amber-100"><AdImage ad={ad} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="mb-0.5 flex min-w-0 items-center gap-1.5 text-xs font-black">
+          <span className="rounded-full bg-amber-100 px-1.5 py-px text-[10px] uppercase tracking-[0.1em] text-amber-800">Sponsorlu</span>
+          <span className="truncate text-amber-800">{ad.brand}</span>
+        </span>
+        <span className="line-clamp-2 block text-sm font-bold leading-snug text-slate-800">{ad.title}</span>
+        <span className="mt-1 block text-xs font-bold text-slate-400">{time} · dokun ve incele</span>
+      </span>
+      {onRemove && (
+        <button type="button" onClick={(event) => { event.stopPropagation(); onRemove(); }} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700" title="Bildirimi kaldır" aria-label="Bildirimi kaldır"><X size={16} /></button>
+      )}
+    </div>
+  );
+}
+
 function NotificationsPage({ notifs, onOpen, onProfile }) {
   const [teamMessage, setTeamMessage] = useState(null);
+  const [adOpen, setAdOpen] = useState(null);
+  const [sound, setSound] = useState(soundEnabled);
   const icons = { post_like: "❤️", post_comment: "💬", comment_like: "👍", feature_approved: "📌", feature_rejected: "⚠️", group_join: "👋", review: "⭐", system: "🔔", content_removed: "🛡️", content_restored: "✅", ad_approved: "📣", ad_rejected: "⚠️", account_suspended: "⛔", account_restored: "✅", report_resolved: "🛡️", group_closed: "🔒", group_reopened: "🔓", verification_approved: "✔️", verification_rejected: "⚠️", suggestion_approved: "🐟", suggestion_rejected: "🐟", form_suggestion_approved: "📍", form_suggestion_rejected: "📍", team_message: "📨" };
   return (
     <div className="mx-auto max-w-2xl p-5">
       {teamMessage && <TeamMessageModal item={teamMessage} onClose={() => setTeamMessage(null)} />}
+      {adOpen && <NotificationAdModal ad={adOpen} onClose={() => setAdOpen(null)} />}
       <div className="mb-4 flex items-end justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
           <h2 className="text-2xl font-black tracking-tight">Bildirimler</h2>
           <p className="mt-1 text-sm text-slate-500">Beğeniler, yorumlar, grup katılımları ve ilan başvuruların.</p>
         </div>
-        {notifs.unread > 0 && (
-          <button onClick={notifs.markAllRead} className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50">Tümünü okundu say</button>
-        )}
+        <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => { const next = !sound; setSound(next); setSoundEnabled(next); if (next) playNotificationSound(true); }}
+            className={"flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black " + (sound ? "border-cyan-200 bg-cyan-50 text-cyan-900" : "border-slate-200 text-slate-500 hover:bg-slate-50")}
+            title="Site açıkken yeni bildirim gelince kısa bir ses çalar"
+          >
+            {sound ? <Volume2 size={14} /> : <VolumeX size={14} />} Ses {sound ? "açık" : "kapalı"}
+          </button>
+          {notifs.unread > 0 && (
+            <button onClick={notifs.markAllRead} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50">Tümünü okundu say</button>
+          )}
+        </div>
       </div>
       {notifs.items.length === 0 ? (
         <div className="rounded-[24px] bg-slate-50 p-10 text-center">
@@ -4508,7 +4589,16 @@ function NotificationsPage({ notifs, onOpen, onProfile }) {
         </div>
       ) : (
         <div className="divide-y divide-slate-100 overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-          {notifs.items.map((item) => (
+          {notifs.items.map((item) => item.type === "ad_notice" ? (
+            item.ad ? (
+              <NotificationAdRow key={item.id} ad={mapAd(item.ad)} unread={!item.read_at} time={timeAgoTr(item.created_at)} onOpen={() => setAdOpen(mapAd(item.ad))} onRemove={() => notifs.remove(item.id)} />
+            ) : (
+              <div key={item.id} className="flex items-center gap-3 px-4 py-3 text-sm text-slate-400">
+                <span className="flex-1">Bu sponsorlu içeriğin yayın süresi doldu.</span>
+                <button type="button" onClick={() => notifs.remove(item.id)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-slate-100" title="Bildirimi kaldır" aria-label="Bildirimi kaldır"><X size={16} /></button>
+              </div>
+            )
+          ) : (
             <button key={item.id} onClick={() => (item.type === "team_message" ? setTeamMessage(item) : onOpen(item))} className={"flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50 " + (item.read_at ? "" : "bg-cyan-50/60")}>
               <span
                 onClick={(event) => { if (item.actor) { event.stopPropagation(); onProfile(item.actor); } }}

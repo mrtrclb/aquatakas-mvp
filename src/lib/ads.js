@@ -8,7 +8,8 @@ export const AD_PLACEMENTS = {
   detail: { label: "İlan detayı", hint: "İlan detay sayfasının üstünde geniş şerit" },
   post: { label: "Paylaşım detayı", hint: "Topluluk paylaşımı açıldığında, yorumlardan hemen önce geniş şerit" },
   species: { label: "Bilgi Bankası tür sayfası", hint: "Tür detay sayfasının en üstünde geniş şerit" },
-  article: { label: "Makale sayfası", hint: "Bilgi Bankası makale detayının en üstünde geniş şerit" }
+  article: { label: "Makale sayfası", hint: "Bilgi Bankası makale detayının en üstünde geniş şerit" },
+  notification: { label: "Bildirim reklamı", hint: "Yayın haftasında siteye giren her üyeye bir kez bildirim olarak gider; üye dokununca reklam kartın açılır. Üyeler günde en fazla 1 reklam bildirimi alır, bu yüzden aynı hafta birden çok reklam varsa sırayla dağıtılır." }
 };
 const EMPTY_POOLS = () => Object.fromEntries(Object.keys(AD_PLACEMENTS).map((key) => [key, []]));
 

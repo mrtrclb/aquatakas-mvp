@@ -178,7 +178,7 @@ export function useNotifications(myId) {
     }
     const { data } = await supabase
       .from("notifications")
-      .select("*, actor:profiles!notifications_actor_id_fkey(id, username, avatar_url), post:posts(slug, text), listing:listings(title), grp:groups(slug, name)")
+      .select("*, actor:profiles!notifications_actor_id_fkey(id, username, avatar_url), post:posts(slug, text), listing:listings(title), grp:groups(slug, name), ad:ads(id, brand, title, text, cta, image_url, target_url, placement)")
       .eq("user_id", myId)
       .order("created_at", { ascending: false })
       .limit(60);
@@ -190,13 +190,35 @@ export function useNotifications(myId) {
   }, [reload]);
   useLiveReload("notifications", "notifications", myId, reload);
 
+  // Bildirim reklamı: günde bir kez sunucuya "bana uygun reklam var mı" diye sorulur
+  useEffect(() => {
+    if (!myId) return;
+    // Bugün reklam aldıysa yarına kadar, almadıysa bu oturumda bir daha sorulmaz
+    const key = "aq_ad_claim_" + myId;
+    const today = new Date().toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" });
+    try {
+      if (localStorage.getItem(key) === today || sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch (err) { /* depolama kapalı */ }
+    supabase.rpc("claim_notification_ad").then(({ data, error }) => {
+      if (error || !data) return;
+      try { localStorage.setItem(key, today); } catch (err) { /* depolama kapalı */ }
+      reload();
+    });
+  }, [myId, reload]);
+
+  async function remove(id) {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+    await supabase.from("notifications").delete().eq("id", id);
+  }
+
   async function markAllRead() {
     if (!items.some((item) => !item.read_at)) return;
     setItems((prev) => prev.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
     await supabase.rpc("mark_notifications_read");
   }
 
-  return { items, unread: items.filter((item) => !item.read_at).length, reload, markAllRead };
+  return { items, unread: items.filter((item) => !item.read_at).length, reload, markAllRead, remove };
 }
 
 export function notificationText(item) {
@@ -244,6 +266,8 @@ export function notificationText(item) {
       return "Lokalite / varyete önerin onaylandı: " + (item.body || "") + " · Teşekkürler!";
     case "form_suggestion_rejected":
       return "Lokalite / varyete önerin bu kez eklenmedi: " + (item.body || "");
+    case "ad_notice":
+      return (item.ad && item.ad.title) || item.body || "Sponsorlu içerik";
     case "team_message":
       return item.body || "Aquagram Ekibi'nden mesajın var";
     case "group_join":

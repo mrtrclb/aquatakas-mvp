@@ -180,7 +180,7 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
     image: form.image,
     url: null
   };
-  const { FeedAdCard, SidebarAd, DetailBannerAd } = previews;
+  const { FeedAdCard, SidebarAd, DetailBannerAd, NotificationAdRow, NotificationAdCard } = previews;
 
   return (
     <div className="mx-auto max-w-5xl p-5">
@@ -280,9 +280,22 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
           <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-4">
             <h3 className="mb-1 text-lg font-black">Canlı önizleme</h3>
             <p className="mb-3 text-xs text-slate-500">{placement ? (AD_PLACEMENTS[placement] || {}).label + " alanında böyle görünür" : "Paket seç"}</p>
+            {placement === "notification" && NotificationAdRow ? (
+              <div className="pointer-events-none grid gap-3">
+                <div>
+                  <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-slate-400">1 · Üyenin bildirimlerinde</p>
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><NotificationAdRow ad={previewAd} /></div>
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-slate-400">2 · Dokununca açılan kart</p>
+                  <div className="flex justify-center rounded-2xl bg-slate-900/50 p-4"><NotificationAdCard ad={previewAd} preview onClose={() => {}} /></div>
+                </div>
+              </div>
+            ) : (
             <div className="pointer-events-none overflow-hidden rounded-2xl bg-white">
               {placement === "feed" ? <FeedAdCard ad={previewAd} /> : ["detail", "post", "species", "article"].includes(placement) ? <div className="p-2 [&>div]:mb-0"><DetailBannerAd ad={previewAd} /></div> : <SidebarAd ad={previewAd} />}
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -365,7 +378,7 @@ function MyAdCard({ row, state, onEdit, onRepeat, onEnd }) {
 
         {(state === "live" || state === "ended") && (
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <Stat icon={Eye} label="Gösterim" value={row.impressions.toLocaleString("tr-TR")} />
+            <Stat icon={Eye} label={row.placement === "notification" ? "Ulaşan üye" : "Gösterim"} value={(row.placement === "notification" ? row.deliveries || 0 : row.impressions).toLocaleString("tr-TR")} />
             <Stat icon={MousePointerClick} label="Tıklama" value={row.clicks.toLocaleString("tr-TR")} />
             <Stat icon={BarChart3} label="Tıklama oranı" value={ctr} />
           </div>

@@ -778,7 +778,19 @@
   "775": "vesicularia-dubyana",
   "776": "vesicularia-ferriei",
   "777": "vesicularia-montagnei",
-  "778": "vesicularia-montagnei-mini-christmas"
+  "778": "vesicularia-montagnei-mini-christmas",
+  "779": "ambystoma-mexicanum",
+  "780": "ambystoma-mexicanum-leucistic",
+  "781": "ambystoma-mexicanum-piebald",
+  "782": "ambystoma-mexicanum-golden-albino",
+  "783": "ambystoma-mexicanum-white-albino",
+  "784": "ambystoma-mexicanum-copper",
+  "785": "ambystoma-mexicanum-melanoid",
+  "786": "ambystoma-mexicanum-axanthic",
+  "787": "ambystoma-mexicanum-lavender",
+  "788": "ambystoma-mexicanum-gfp",
+  "789": "ambystoma-mexicanum-mosaic",
+  "790": "ambystoma-mexicanum-chimera"
  },
  "makale": {
   "M1": "beta-baligi-fanusta-yasar-mi-kucuk-kabin-ardindaki-buyuk-yanlis",
@@ -878,6 +890,50 @@
   "294": [
    "danio-rerio",
    "Leopard"
+  ],
+  "780": [
+   "ambystoma-mexicanum",
+   "Leucistic"
+  ],
+  "781": [
+   "ambystoma-mexicanum",
+   "Piebald"
+  ],
+  "782": [
+   "ambystoma-mexicanum",
+   "Golden Albino"
+  ],
+  "783": [
+   "ambystoma-mexicanum",
+   "White Albino"
+  ],
+  "784": [
+   "ambystoma-mexicanum",
+   "Copper"
+  ],
+  "785": [
+   "ambystoma-mexicanum",
+   "Melanoid"
+  ],
+  "786": [
+   "ambystoma-mexicanum",
+   "Axanthic"
+  ],
+  "787": [
+   "ambystoma-mexicanum",
+   "Lavender"
+  ],
+  "788": [
+   "ambystoma-mexicanum",
+   "GFP"
+  ],
+  "789": [
+   "ambystoma-mexicanum",
+   "Mosaic"
+  ],
+  "790": [
+   "ambystoma-mexicanum",
+   "Chimera"
   ]
  }
 }

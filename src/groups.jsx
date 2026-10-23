@@ -31,8 +31,21 @@ const COVER = {
   monster: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1400&q=80"
 };
 
-// Bitkili görseli Unsplash'ten kaldırıldığı için hazır kapaklardan çıkarıldı
-export const COVER_PRESETS = [COVER.deniz, COVER.tanganyika, COVER.monster];
+// Hazır kapaklar: renk geçişli (gradyan) küçük SVG'ler. Dış siteye bağlı olmadıkları için hiç kırılmaz.
+const gradientCover = (from, to) =>
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 2' preserveAspectRatio='none'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='" +
+      from + "'/><stop offset='1' stop-color='" + to + "'/></linearGradient></defs><rect width='8' height='2' fill='url(#g)'/></svg>"
+  );
+export const COVER_PRESETS = [
+  gradientCover("#0b4f63", "#14b8a6"), // okyanus
+  gradientCover("#1e1b4b", "#7c3aed"), // gece moru
+  gradientCover("#9f1239", "#fb923c"), // mercan
+  gradientCover("#14532d", "#84cc16"), // yosun
+  gradientCover("#1e3a8a", "#38bdf8"), // derin mavi
+  gradientCover("#78350f", "#fbbf24") // kum
+];
 export const GROUP_EMOJIS = ["🐠", "🪨", "🌿", "🦐", "🪸", "🦈", "🐡", "🍂", "💧", "🐢", "🔬", "🏠"];
 // "⋯" ile açılan geniş simge seçimi
 export const GROUP_EMOJI_SETS = [
@@ -647,12 +660,15 @@ export function GroupFormModal({ group, users, groups, currentUserId, onClose, o
         <div className="grid gap-4 px-5 pb-5 pt-10">
           <div>
             <div className="mb-1 text-xs font-black text-slate-500">Hazır kapaklar</div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {COVER_PRESETS.map((url) => (
-                <button key={url} type="button" onClick={() => setCover(url)} className={"h-12 w-20 overflow-hidden rounded-xl bg-gradient-to-br from-cyan-900 to-teal-500 ring-2 " + (cover === url ? "ring-cyan-700" : "ring-transparent")}>
-                  <img src={url} alt="" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                <button key={url} type="button" onClick={() => setCover(url)} className={"h-12 w-16 overflow-hidden rounded-xl ring-2 ring-offset-2 " + (cover === url ? "ring-cyan-700" : "ring-transparent")}>
+                  <img src={url} alt="" className="h-full w-full object-cover" />
                 </button>
               ))}
+              <button type="button" onClick={() => fileInput.current && fileInput.current.click()} className={"grid h-12 w-16 place-items-center overflow-hidden rounded-xl border-2 border-dashed text-slate-500 hover:bg-slate-50 " + (cover && !COVER_PRESETS.includes(cover) ? "border-cyan-700" : "border-slate-300")} title="Kapak görseli yükle">
+                {cover && !COVER_PRESETS.includes(cover) ? <img src={cover} alt="" className="h-full w-full object-cover" /> : <span className="flex flex-col items-center text-[11px] font-black"><Camera size={15} />Yükle</span>}
+              </button>
             </div>
           </div>
 

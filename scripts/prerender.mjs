@@ -308,7 +308,7 @@ async function main() {
     const body = "<h1>" + esc(group.name) + "</h1><p>" + esc(group.description) + "</p><p>" + (group.member_count || 0) + " üye</p>";
     add(
       "/grup/" + group.slug,
-      page({ path: "/grup/" + group.slug, title: group.name + " grubu — Aquagram Topluluk", description: clip(group.description || group.name + " grubu", 158), image: group.cover_url || OG_DEFAULT, body }),
+      page({ path: "/grup/" + group.slug, title: group.name + " grubu — Aquagram Topluluk", description: clip(group.description || group.name + " grubu", 158), image: (group.cover_url && !group.cover_url.startsWith("data:") && group.cover_url) || OG_DEFAULT, body }),
       today,
       "0.5"
     );

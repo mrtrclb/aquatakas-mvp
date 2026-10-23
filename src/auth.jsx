@@ -45,7 +45,7 @@ export function useAuth() {
 
   async function reloadProfile() {
     if (!userId) return null;
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    const { data } = await supabase.from("my_profile").select("*").eq("id", userId).maybeSingle();
     setProfile(data || null);
     return data;
   }
@@ -60,7 +60,7 @@ export function useAuth() {
     (async () => {
       // Profil kayıttan hemen sonra tetikleyiciyle oluşur; nadiren bir an gecikebilir
       for (let attempt = 0; attempt < 3 && !cancelled; attempt += 1) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+        const { data } = await supabase.from("my_profile").select("*").eq("id", userId).maybeSingle();
         if (data) {
           if (!cancelled) setProfile(data);
           break;

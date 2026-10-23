@@ -175,7 +175,7 @@ async function must(promise) {
 async function profilesByIds(ids) {
   const unique = Array.from(new Set(ids.filter(Boolean)));
   if (!unique.length) return {};
-  const rows = await must(supabase.from("profiles").select(PROFILE_COLS).in("id", unique));
+  const rows = await must(supabase.from("admin_profiles").select(PROFILE_COLS).in("id", unique));
   return Object.fromEntries(rows.map((row) => [row.id, row]));
 }
 
@@ -978,7 +978,7 @@ async function loadReportTargets(groups) {
   }
   const userIds = idsOf("user");
   if (userIds.length) {
-    (await must(supabase.from("profiles").select(PROFILE_COLS).in("id", userIds))).forEach((row) => {
+    (await must(supabase.from("admin_profiles").select(PROFILE_COLS).in("id", userIds))).forEach((row) => {
       out["user:" + row.id] = { title: "@" + row.username, userId: row.id, removed: isSuspended(row), suspended: isSuspended(row) };
     });
   }
@@ -1204,7 +1204,7 @@ function AdsSection() {
   const { act, ask } = useAdmin();
   const [status, setStatus] = useState("pending");
   const state = useLoad(async () => {
-    const rows = await must(supabase.from("ads").select("*").eq("status", status).order("created_at", { ascending: false }).limit(200));
+    const rows = await must(supabase.from("admin_ads").select("*").eq("status", status).order("created_at", { ascending: false }).limit(200));
     const profiles = await profilesByIds(rows.map((row) => row.advertiser_id));
     return { rows, profiles };
   }, [status]);
@@ -1284,7 +1284,7 @@ function UsersSection() {
   }, [query]);
 
   const state = useLoad(async () => {
-    let request = supabase.from("profiles").select(PROFILE_COLS).order("created_at", { ascending: false }).limit(100);
+    let request = supabase.from("admin_profiles").select(PROFILE_COLS).order("created_at", { ascending: false }).limit(100);
     if (term) request = request.ilike("username", "%" + term.replace(/[%_]/g, "") + "%");
     if (filter === "suspended") request = request.gt("suspended_until", new Date().toISOString());
     if (filter === "unverified") request = request.eq("phone_verified", false);
@@ -1410,7 +1410,7 @@ function VerificationRequests() {
 function UserDetail({ userId }) {
   const { act, ask, isSuper } = useAdmin();
   const state = useLoad(async () => {
-    const profile = await must(supabase.from("profiles").select(PROFILE_COLS + ", bio, district").eq("id", userId).maybeSingle());
+    const profile = await must(supabase.from("admin_profiles").select(PROFILE_COLS + ", bio, district").eq("id", userId).maybeSingle());
     if (!profile) return { profile: null };
     const [privateInfo, listings, posts, comments, reportsAgainst] = await Promise.all([
       supabase.rpc("admin_user_private_info", { p_user_id: userId }),
@@ -1636,7 +1636,7 @@ function ProSection() {
   const [months, setMonths] = useState(1);
   const state = useLoad(async () => {
     const [members, purchases] = await Promise.all([
-      must(supabase.from("profiles").select(PROFILE_COLS + ", pro_until, message_bonus").gt("pro_until", new Date().toISOString()).order("pro_until", { ascending: true }).limit(500)),
+      must(supabase.from("admin_profiles").select(PROFILE_COLS + ", pro_until, message_bonus").gt("pro_until", new Date().toISOString()).order("pro_until", { ascending: true }).limit(500)),
       must(supabase.from("pro_purchases").select("*").order("created_at", { ascending: false }).limit(300))
     ]);
     const people = await profilesByIds(purchases.flatMap((row) => [row.user_id, row.granted_by]));
@@ -2025,7 +2025,7 @@ function TeamMessagesSection() {
     if (q.length < 2) { setResults([]); return undefined; }
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const { data } = await supabase.from("profiles").select(PROFILE_COLS).ilike("username", "%" + q + "%").order("username").limit(20);
+      const { data } = await supabase.from("admin_profiles").select(PROFILE_COLS).ilike("username", "%" + q + "%").order("username").limit(20);
       const rows = (data || []).sort((a, b) => Number(!a.username.toLowerCase().startsWith(q)) - Number(!b.username.toLowerCase().startsWith(q)));
       if (!cancelled) setResults(rows.slice(0, 8));
     }, 250);
@@ -3392,7 +3392,7 @@ function StaffSection() {
     if (!param || !state.data) return;
     (async () => {
       const existing = state.data.rows.find((row) => row.user_id === param);
-      const profile = state.data.profiles[param] || (await must(supabase.from("profiles").select(PROFILE_COLS).eq("id", param).maybeSingle()));
+      const profile = state.data.profiles[param] || (await must(supabase.from("admin_profiles").select(PROFILE_COLS).eq("id", param).maybeSingle()));
       if (profile) setEditing({ profile, permissions: new Set(existing ? existing.permissions : ["reports"]), isNew: !existing || !existing.active, role: existing ? existing.role : "moderator" });
     })().catch(() => {});
   }, [param, state.data]);
@@ -3401,7 +3401,7 @@ function StaffSection() {
     event.preventDefault();
     const name = username.trim().replace(/^@/, "");
     if (!name) return;
-    const { data } = await supabase.from("profiles").select(PROFILE_COLS).eq("username", name).maybeSingle();
+    const { data } = await supabase.from("admin_profiles").select(PROFILE_COLS).eq("username", name).maybeSingle();
     if (!data) return act(Promise.resolve({ error: { message: "@" + name + " bulunamadı" } }));
     const existing = state.data && state.data.rows.find((row) => row.user_id === data.id);
     setEditing({ profile: data, permissions: new Set(existing ? existing.permissions : ["reports"]), isNew: !existing || !existing.active, role: existing ? existing.role : "moderator" });

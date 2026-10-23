@@ -49,7 +49,7 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
 
   const reload = useCallback(async () => {
     const [adsRes, planRes] = await Promise.all([
-      supabase.from("ads").select("*").eq("advertiser_id", myId).order("created_at", { ascending: false }),
+      supabase.from("my_ads").select("*").eq("advertiser_id", myId).order("created_at", { ascending: false }),
       supabase.from("site_settings").select("value").eq("key", "ad_plans").maybeSingle()
     ]);
     setRows(adsRes.data || []);

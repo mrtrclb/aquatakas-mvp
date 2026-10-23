@@ -1145,7 +1145,20 @@ export default function AquagramApp() {
     if (isNew || group.slug !== groupSlug) openGroup(group);
   }
 
+  // Bir bağlantıyı (ör. tür sayfası) üyeye mesaj olarak gönder: konuşmayı bul/oluştur, mesajı yaz
+  async function sendLinkToUser(otherId, topic, body) {
+    if (!isMember) {
+      requireLogin();
+      return false;
+    }
+    const convId = await msgs.start(otherId, topic);
+    await msgs.send(convId.replace(/^dm/, ""), body);
+    return true;
+  }
+
   const communityCtx = {
+    sendLinkToUser,
+    myDbId: myId,
     rules: Array.isArray(siteSettings.community_rules) && siteSettings.community_rules.length ? siteSettings.community_rules : null,
     users,
     UserName,

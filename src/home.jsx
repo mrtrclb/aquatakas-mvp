@@ -4,6 +4,10 @@ import { CalendarDays, ChevronRight, Flame, Hash, Info, MapPin, MessageCircle, P
 import { Avatar, PostCard, extractTags, mediaLabel, normalizeTr, timeAgo } from "./community.jsx";
 import { SeenMarker, rotate } from "./lib/rotation";
 import { GroupIcon } from "./lib/group-icon.jsx";
+import { firstUrl } from "./link-preview.jsx";
+
+// Medya: en az 1 görsel, yüklenen video (en fazla 1 dk) ya da bağlantı önizlemesi (YouTube, Instagram, haber…)
+const isMediaPost = (post) => (post.images && post.images.length > 0) || Boolean(post.video) || Boolean(firstUrl(post.text || ""));
 
 /* ------------------------------------------------------------------ */
 /* Ayarlar                                                             */
@@ -20,7 +24,8 @@ export const HOME_FILTERS = [
   ["listings", "İlanlar"],
   ["posts", "İçerikler"],
   ["questions", "Sorular"],
-  ["polls", "Anketler"]
+  ["polls", "Anketler"],
+  ["media", "Medya"]
 ];
 
 const STORE_KEY = "hh_home_filter";
@@ -289,6 +294,7 @@ export function HomeFeed({ posts, listings, groups, ctx, filter, tab, location }
     if (tab === "following") feedPosts = feedPosts.filter((post) => isFollowedPost(post, joinedIds, followedTags));
     if (filter === "questions") feedPosts = feedPosts.filter(isQuestion);
     if (filter === "polls") feedPosts = feedPosts.filter((post) => post.poll);
+    if (filter === "media") feedPosts = feedPosts.filter(isMediaPost);
     feedPosts = feedPosts.slice().sort((a, b) => b.createdAt - a.createdAt);
 
     // İlanlar yalnızca "Senin için" + "Tümü" görünümünde karışır

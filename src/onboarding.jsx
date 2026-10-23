@@ -9,6 +9,7 @@ import { supabase, trError } from "./lib/supabase";
 import { TR_CITIES } from "./lib/listings";
 import { SpeciesImage } from "./knowledge.jsx";
 import { KB_CATEGORIES, KB_SECTIONS } from "./species.js";
+import { CategoryEmoji } from "./components/tr-flag.jsx";
 import { GroupIcon } from "./lib/group-icon.jsx";
 
 // Yeni üyeye ilk girişte adım adım profil kurulumu: (Google/Apple ile gelene önce kullanıcı adı + koşullar) → türler → gruplar → hakkında + şehir → sosyal hesaplar → bitti
@@ -266,7 +267,7 @@ export function OnboardingModal({ auth, species, groups, speciesId, onClose }) {
                       <section key={category.id}>
                         <div className="mb-1.5 flex items-center justify-between gap-2">
                           <h3 className="flex items-center gap-1.5 text-sm font-black text-slate-800">
-                            <span aria-hidden="true">{category.emoji}</span> {category.name}
+                            <span aria-hidden="true"><CategoryEmoji category={category} /></span> {category.name}
                             {picked > 0 && <span className="rounded-full bg-cyan-700 px-1.5 text-[12px] text-white">{picked}</span>}
                           </h3>
                           {items.length > 3 && (

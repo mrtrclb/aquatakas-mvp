@@ -26,6 +26,7 @@ import {
   X
 } from "lucide-react";
 import { categoryById, detectSpecies, speciesBySlug, speciesTag } from "./species.js";
+import { CategoryEmoji } from "./components/tr-flag.jsx";
 import { LinkPreviewCard, URL_RE, firstUrl } from "./link-preview.jsx";
 import { ProBadge } from "./pro.jsx";
 import { GroupIcon } from "./lib/group-icon.jsx";
@@ -689,7 +690,7 @@ export function SpeciesChips({ slugs, ctx, className = "mt-2.5" }) {
           title={item.latin + " · tür sayfasına git"}
           className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-black text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100"
         >
-          <span>{categoryById(item.category).emoji}</span> {item.name}
+          <span><CategoryEmoji category={categoryById(item.category)} /></span> {item.name}
         </button>
       ))}
     </div>
@@ -1911,7 +1912,7 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
                     if (!item) return null;
                     return (
                       <span key={slug} className="inline-flex items-center gap-1 rounded-full bg-white py-0.5 pl-2 pr-1 text-xs font-black text-emerald-800 ring-1 ring-emerald-200">
-                        {categoryById(item.category).emoji} {item.name}
+                        <CategoryEmoji category={categoryById(item.category)} /> {item.name}
                         <button type="button" onClick={() => setRemovedSpecies((prev) => [...prev, slug])} title="Bu türü çıkar" className="rounded-full p-0.5 hover:bg-emerald-100"><X size={11} /></button>
                       </span>
                     );

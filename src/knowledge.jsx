@@ -38,6 +38,7 @@ import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
 import { useCategoryCovers } from "./lib/settings";
 import { RecentArticles, SpeciesArticlesButton } from "./articles.jsx";
+import { CategoryEmoji, TrFlag } from "./components/tr-flag.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -147,7 +148,7 @@ function SpeciesCard({ species, kb }) {
       <div className="flex min-w-0 flex-1 flex-col p-3">
         <h3 className="line-clamp-2 break-words text-sm font-black leading-snug text-slate-900 group-hover:underline">{species.name}</h3>
         <p className="mt-0.5 truncate text-xs italic text-slate-500" title={species.latin}>{species.latin}</p>
-        {isTr && species.trStatus && <p className="mt-1 text-[12px] font-bold text-slate-500">{species.trStatus === "endemik" ? "🇹🇷 " : ""}{TR_STATUS[species.trStatus]}{species.basins.length ? " · " + species.basins.slice(0, 2).join(", ") + (species.basins.length > 2 ? "…" : "") : ""}</p>}
+        {isTr && species.trStatus && <p className="mt-1 text-[12px] font-bold text-slate-500">{species.trStatus === "endemik" && <TrFlag className="mr-1" />}{TR_STATUS[species.trStatus]}{species.basins.length ? " · " + species.basins.slice(0, 2).join(", ") + (species.basins.length > 2 ? "…" : "") : ""}</p>}
         <div className="mt-auto flex min-h-[18px] items-center gap-3 whitespace-nowrap pt-2 text-[12px] font-bold text-slate-400">
           {keepers > 0 && <span className="flex items-center gap-1" title={keepers + " üye besliyor"}><Fish size={12} /> {keepers} besleyen</span>}
           {comments > 0 && <span className="flex items-center gap-1" title={comments + " deneyim"}><MessageCircle size={12} /> {comments}</span>}
@@ -338,7 +339,7 @@ export function SuggestSpeciesModal({ initial = {}, userId, onClose, onDone }) {
               <option value="">Seç</option>
               {KB_SECTIONS.map((section) => (
                 <optgroup key={section.id} label={section.name}>
-                  {KB_CATEGORIES.filter((cat) => cat.section === section.id).map((cat) => <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>)}
+                  {KB_CATEGORIES.filter((cat) => cat.section === section.id).map((cat) => <option key={cat.id} value={cat.id}>{cat.protected ? "" : cat.emoji + " "}{cat.name}</option>)}
                 </optgroup>
               ))}
             </select>
@@ -418,7 +419,7 @@ export function KbHome({ kb, section = "tatlisu" }) {
             const count = kb.species.filter((item) => item.category === cat.id).length;
             return (
               <button key={cat.id} onClick={() => kb.openCategory(cat.id)} className="group flex flex-col items-center text-center">
-                <span className={"grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br text-4xl shadow-sm ring-4 ring-white transition group-hover:scale-105 group-hover:shadow-lg sm:h-28 sm:w-28 " + cat.tone}>{cat.emoji}</span>
+                <span className={"grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br text-4xl shadow-sm ring-4 ring-white transition group-hover:scale-105 group-hover:shadow-lg sm:h-28 sm:w-28 " + cat.tone}><CategoryEmoji category={cat} /></span>
                 <span className="mt-2 text-sm font-black leading-snug text-slate-800 group-hover:text-cyan-800">{cat.name}</span>
                 <span className="text-[12px] font-bold text-slate-400">{count} tür</span>
               </button>
@@ -444,7 +445,7 @@ function CategoryBand({ category, section, onBack }) {
     <div className={"sticky top-[60px] z-20 overflow-hidden border-b border-slate-200 lg:top-[72px] " + (showImage ? "bg-slate-900" : "bg-gradient-to-r " + category.tone)} data-testid="category-band">
       {showImage && <img src={cover} alt="" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />}
       <div className={"absolute inset-0 " + (showImage ? "bg-gradient-to-r from-slate-950/80 via-slate-950/45 to-slate-950/5" : "bg-gradient-to-r from-black/25 via-black/5 to-transparent")} />
-      {!showImage && <span aria-hidden="true" className="pointer-events-none absolute -bottom-4 right-4 select-none text-7xl opacity-30 sm:text-8xl">{category.emoji}</span>}
+      {!showImage && <span aria-hidden="true" className="pointer-events-none absolute -bottom-4 right-4 select-none text-7xl opacity-30 sm:text-8xl"><CategoryEmoji category={category} /></span>}
       <div className="relative flex min-h-[76px] items-center gap-3 px-3 py-3 sm:min-h-[92px]">
         <button onClick={onBack} className="rounded-full bg-white/20 p-2 text-white backdrop-blur hover:bg-white/30" title="Geri"><ArrowLeft size={19} /></button>
         <div className="min-w-0 text-white [text-shadow:0_1px_6px_rgba(0,0,0,.35)]">
@@ -1675,7 +1676,7 @@ function TrSpeciesPage({ species, kb, ctx }) {
       <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
         <button onClick={() => kb.openCategory(category.id)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Geri"><ArrowLeft size={19} /></button>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">{category.emoji} {category.name}</p>
+          <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400"><CategoryEmoji category={category} /> {category.name}</p>
           <h2 className="truncate text-lg font-black leading-tight">{species.name}</h2>
         </div>
         <SpeciesShareButton species={species} ctx={ctx} />
@@ -1690,7 +1691,7 @@ function TrSpeciesPage({ species, kb, ctx }) {
       <header className={"border-b border-slate-100 px-4 pb-4 pt-5 " + (images.length ? "grid gap-4 sm:grid-cols-[1fr_180px]" : "")}>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            {species.trStatus && <span className={"rounded-full px-2 py-0.5 text-[12px] font-black ring-1 " + (species.trStatus === "endemik" ? "bg-red-50 text-red-800 ring-red-200" : "bg-slate-100 text-slate-700 ring-slate-200")}>{species.trStatus === "endemik" ? "🇹🇷 " : ""}{TR_STATUS[species.trStatus]}</span>}
+            {species.trStatus && <span className={"rounded-full px-2 py-0.5 text-[12px] font-black ring-1 " + (species.trStatus === "endemik" ? "bg-red-50 text-red-800 ring-red-200" : "bg-slate-100 text-slate-700 ring-slate-200")}>{species.trStatus === "endemik" && <TrFlag className="mr-1" />}{TR_STATUS[species.trStatus]}</span>}
             {species.iucn && <IucnChip code={species.iucn} />}
           </div>
           <h1 className="mt-3 text-[26px] font-black leading-tight tracking-tight text-slate-950 sm:text-[28px]">

@@ -1,6 +1,7 @@
 import React from "react";
 import { BookOpen, ChevronRight, ShieldCheck, Tag } from "lucide-react";
 import { categoryById, detectSpecies, speciesBySlug, withoutProtected } from "./species.js";
+import { CategoryEmoji } from "./components/tr-flag.jsx";
 
 const FACT_KEYS = { fish: ["Sıcaklık", "pH", "Min. akvaryum", "Huy", "Yetişkin boy"], plant: ["Işık", "CO2", "Sıcaklık", "Büyüme hızı"], coral: ["Işık", "Akıntı", "Sıcaklık", "Tuzluluk (SG)"] };
 
@@ -69,7 +70,7 @@ function SpeciesCareCard({ species, onOpen }) {
         {cover ? (
           <img src={cover} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
         ) : (
-          <span className={"grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-xl " + category.tone}>{category.emoji}</span>
+          <span className={"grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-xl " + category.tone}><CategoryEmoji category={category} /></span>
         )}
         <span className="min-w-0">
           <span className="block text-[12px] font-black uppercase tracking-wide text-cyan-800">Bakım kartı</span>

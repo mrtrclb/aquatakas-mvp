@@ -1218,8 +1218,33 @@ export function KbMinePage({ kb, ctx }) {
 /* Sağ sütun                                                           */
 /* ------------------------------------------------------------------ */
 
-export function KbWidgets({ kb }) {
-  const recent = kb.species.slice().sort((a, b) => b.addedAt - a.addedAt).slice(0, 5);
+// Bir türün son hareketi: içerik düzenlemesi / kabul edilen öneri (veritabanı), ya da türle ilgili yeni paylaşım, soru, ilan
+function useRecentlyUpdated(kb, posts, listings) {
+  return useMemo(() => {
+    const latest = {};
+    const bump = (slug, at, reason) => {
+      if (!slug || !at) return;
+      if (!latest[slug] || at > latest[slug].at) latest[slug] = { at, reason };
+    };
+    kb.species.forEach((item) => bump(item.slug, Math.max(item.updatedAt || 0, item.addedAt ? Math.floor(item.addedAt) : 0), item.updatedAt > item.addedAt + 1000 ? "güncellendi" : "eklendi"));
+    (posts || []).forEach((post) => {
+      const slugs = new Set([...(post.speciesSlugs || []), ...detectSpecies(post.text || "")]);
+      slugs.forEach((slug) => bump(slug, post.createdAt, post.kind === "question" ? "soru soruldu" : "paylaşım yapıldı"));
+    });
+    (listings || []).forEach((item) => {
+      const slugs = new Set([...(item.speciesSlugs || []), ...detectSpecies((item.title || "") + " " + (item.description || ""))]);
+      slugs.forEach((slug) => bump(slug, item.createdAt, "ilan eklendi"));
+    });
+    return kb.species
+      .filter((item) => latest[item.slug])
+      .map((item) => ({ species: item, ...latest[item.slug] }))
+      .sort((a, b) => b.at - a.at)
+      .slice(0, 5);
+  }, [kb.species, posts, listings]);
+}
+
+export function KbWidgets({ kb, posts, listings }) {
+  const recent = useRecentlyUpdated(kb, posts, listings);
   const lastCommented = [];
   kb.comments
     .slice()
@@ -1241,8 +1266,8 @@ export function KbWidgets({ kb }) {
   return (
     <div className="mt-4 grid gap-4">
       <section className="rounded-[28px] border border-slate-200 p-4">
-        <h3 className="mb-1.5 flex items-center gap-2 text-sm font-black text-slate-900"><Clock size={15} className="text-cyan-700" /> Son eklenen profiller</h3>
-        <div className="grid">{recent.map((item) => <Row key={item.slug} species={item} meta={item.latin} />)}</div>
+        <h3 className="mb-1.5 flex items-center gap-2 text-sm font-black text-slate-900"><Clock size={15} className="text-cyan-700" /> Son güncellenen profiller</h3>
+        <div className="grid">{recent.map(({ species, at, reason }) => <Row key={species.slug} species={species} meta={timeAgo(at) + " önce " + reason} />)}</div>
       </section>
       <section className="rounded-[28px] border border-slate-200 p-4">
         <h3 className="mb-1.5 flex items-center gap-2 text-sm font-black text-slate-900"><MessageCircle size={15} className="text-cyan-700" /> Son yorumlanan profiller</h3>

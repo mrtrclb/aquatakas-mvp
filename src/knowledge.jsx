@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 const SpeciesMap = lazy(() => import("./species-map.jsx"));
 const MapPicker = lazy(() => import("./species-map.jsx").then((mod) => ({ default: mod.MapPicker })));
@@ -461,14 +461,31 @@ export function KbCategoryPage({ kb, categoryId }) {
   return <RegularCategoryPage kb={kb} categoryId={categoryId} />;
 }
 
+// Kategori her açıldığında yeni bir karışık sıra; aynı ziyaret içinde (favori, filtre vb.) sıra sabit kalır
+function useShuffleKey(categoryId) {
+  const [seed, setSeed] = useState(() => Math.random());
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    setSeed(Math.random());
+  }, [categoryId]);
+  return useCallback((slug) => {
+    let h = Math.floor(seed * 2147483647) ^ 0x9e3779b9;
+    for (let i = 0; i < slug.length; i++) h = Math.imul(h ^ slug.charCodeAt(i), 2654435761);
+    return (h ^ (h >>> 15)) >>> 0;
+  }, [seed]);
+}
+
 function RegularCategoryPage({ kb, categoryId }) {
   const category = categoryById(categoryId);
   const [difficulty, setDifficulty] = useState("Tümü");
-  const [sort, setSort] = useState("az");
+  const [sort, setSort] = useState("mix");
+  const mixKey = useShuffleKey(categoryId);
   if (!category) return <p className="p-10 text-center text-sm text-slate-500">Kategori bulunamadı.</p>;
   const list = kb.species
     .filter((item) => item.category === category.id && (difficulty === "Tümü" || item.difficulty === difficulty))
     .sort((a, b) => {
+      if (sort === "mix") return mixKey(a.slug) - mixKey(b.slug);
       const diff = sort === "popular" ? keepersOf(kb, b.slug).length - keepersOf(kb, a.slug).length : sort === "favorite" ? fansOf(kb, b.slug) - fansOf(kb, a.slug) : 0;
       return diff || a.name.localeCompare(b.name, "tr"); // eşitlikte A-Z
     });
@@ -483,9 +500,9 @@ function RegularCategoryPage({ kb, categoryId }) {
             <button key={value} onClick={() => setDifficulty(value)} className={"rounded-full px-3 py-1 text-xs font-black " + (difficulty === value ? "bg-cyan-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>{value}</button>
           ))}
         </div>
-        <div className="flex gap-1 rounded-full bg-slate-100 p-0.5">
-          {[["az", "A-Z"], ["popular", "En çok beslenen"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
-            <button key={key} onClick={() => setSort(key)} className={"rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
+        <div className="flex max-w-full gap-1 overflow-x-auto whitespace-nowrap rounded-full bg-slate-100 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {[["mix", "Karışık"], ["az", "A-Z"], ["popular", "En çok beslenen"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
+            <button key={key} onClick={() => setSort(key)} className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
           ))}
         </div>
       </div>
@@ -1507,14 +1524,15 @@ function TrCategoryPage({ kb, categoryId }) {
   const [status, setStatus] = useState("");
   const [iucn, setIucn] = useState("");
   const [basin, setBasin] = useState("");
-  const [sort, setSort] = useState("az");
+  const [sort, setSort] = useState("mix");
+  const mixKey = useShuffleKey(categoryId);
   const all = kb.species.filter((item) => item.category === category.id);
   const basins = Array.from(new Set(all.flatMap((item) => item.basins || []))).sort((a, b) => a.localeCompare(b, "tr"));
   const codes = IUCN_ORDER.filter((code) => all.some((item) => item.iucn === code));
   const statuses = Object.keys(TR_STATUS).filter((key) => all.some((item) => item.trStatus === key));
   const list = all
     .filter((item) => (!status || item.trStatus === status) && (!iucn || item.iucn === iucn) && (!basin || (item.basins || []).includes(basin)))
-    .sort((a, b) => (sort === "risk" ? IUCN_ORDER.indexOf(a.iucn) - IUCN_ORDER.indexOf(b.iucn) : sort === "favorite" ? fansOf(kb, b.slug) - fansOf(kb, a.slug) : 0) || a.name.localeCompare(b.name, "tr"));
+    .sort((a, b) => (sort === "mix" ? mixKey(a.slug) - mixKey(b.slug) : 0) || (sort === "risk" ? IUCN_ORDER.indexOf(a.iucn) - IUCN_ORDER.indexOf(b.iucn) : sort === "favorite" ? fansOf(kb, b.slug) - fansOf(kb, a.slug) : 0) || a.name.localeCompare(b.name, "tr"));
   const chip = (active) => "shrink-0 rounded-full px-3 py-1 text-xs font-black " + (active ? "bg-cyan-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200");
   return (
     <div>
@@ -1553,9 +1571,9 @@ function TrCategoryPage({ kb, categoryId }) {
             <option value="">Tüm havzalar</option>
             {basins.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
-          <div className="flex gap-1 rounded-full bg-slate-100 p-0.5">
-            {[["az", "A-Z"], ["risk", "Koruma durumu"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
-              <button key={key} onClick={() => setSort(key)} className={"rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
+          <div className="flex max-w-full gap-1 overflow-x-auto whitespace-nowrap rounded-full bg-slate-100 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {[["mix", "Karışık"], ["az", "A-Z"], ["risk", "Koruma durumu"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
+              <button key={key} onClick={() => setSort(key)} className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
             ))}
           </div>
         </div>

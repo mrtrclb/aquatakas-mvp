@@ -4,20 +4,52 @@ import { supabase } from "./supabase";
 const hhmm = (value) => new Date(value).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 const ddmmyyyy = (value) => new Date(value).toLocaleDateString("tr-TR");
 
-// Bir tablo değişince yeniden yükleyen canlı abonelik (RLS geçerli: yalnızca görmeye yetkili olunan satırlar gelir)
-function useLiveReload(channelName, table, myId, reload) {
+// Bir tablo değişince yeniden yükleyen canlı abonelik (RLS geçerli: yalnızca görmeye yetkili olunan satırlar gelir).
+// filter verilirse sunucu yalnızca eşleşen satırları gönderir (ör. "user_id=eq.<id>").
+// Kota tasarrufu: sekme 90 sn'den uzun arka planda kalırsa canlı bağlantı kapatılır; sekmeye dönülünce
+// yeniden açılır ve arada kaçanlar tek seferde yüklenir. Kullanıcı farkı görmez.
+const IDLE_CLOSE_MS = 90 * 1000;
+function useLiveReload(channelName, table, myId, reload, filter) {
   const reloadRef = useRef(reload);
   reloadRef.current = reload;
   useEffect(() => {
     if (!myId) return undefined;
-    const channel = supabase
-      .channel(channelName + "-" + myId)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table }, () => reloadRef.current())
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
+    let channel = null;
+    let idleTimer = null;
+    const open = () => {
+      if (channel) return;
+      const opts = { event: "INSERT", schema: "public", table };
+      if (filter) opts.filter = filter;
+      channel = supabase
+        .channel(channelName + "-" + myId)
+        .on("postgres_changes", opts, () => reloadRef.current())
+        .subscribe();
     };
-  }, [channelName, table, myId]);
+    const close = () => {
+      if (!channel) return;
+      supabase.removeChannel(channel);
+      channel = null;
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(close, IDLE_CLOSE_MS);
+      } else {
+        clearTimeout(idleTimer);
+        if (!channel) {
+          open();
+          reloadRef.current();
+        }
+      }
+    };
+    if (document.visibilityState !== "hidden") open();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      clearTimeout(idleTimer);
+      close();
+    };
+  }, [channelName, table, myId, filter]);
 }
 
 // ---------------------------------------------------------------------------
@@ -188,7 +220,7 @@ export function useNotifications(myId) {
   useEffect(() => {
     reload();
   }, [reload]);
-  useLiveReload("notifications", "notifications", myId, reload);
+  useLiveReload("notifications", "notifications", myId, reload, myId ? "user_id=eq." + myId : undefined);
 
   // Bildirim reklamı: günde bir kez sunucuya "bana uygun reklam var mı" diye sorulur
   useEffect(() => {

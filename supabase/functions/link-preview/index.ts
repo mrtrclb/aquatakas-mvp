@@ -55,12 +55,27 @@ async function resolvesPublic(host: string) {
   return records.every((ip) => !isPrivateHost(ip));
 }
 
-function decode(text: string) {
+// Adlandırılmış HTML karakterleri (Türkçe harfler dahil). Bazı siteler "&uuml;" gibi kodlu, hatta
+// "&amp;uuml;" gibi iki kez kodlu gönderiyor; bu yüzden çözme iki tur yapılır.
+const NAMED: Record<string, string> = {
+  amp: "&", quot: '"', apos: "'", lt: "<", gt: ">", nbsp: " ", hellip: "…", ndash: "–", mdash: "—",
+  lsquo: "‘", rsquo: "’", sbquo: "‚", ldquo: "“", rdquo: "”", bdquo: "„", laquo: "«", raquo: "»",
+  middot: "·", bull: "•", copy: "©", reg: "®", trade: "™", deg: "°", euro: "€",
+  ccedil: "ç", Ccedil: "Ç", uuml: "ü", Uuml: "Ü", ouml: "ö", Ouml: "Ö", gbreve: "ğ", Gbreve: "Ğ",
+  scedil: "ş", Scedil: "Ş", inodot: "ı", imath: "ı", Idot: "İ", iuml: "ï", euml: "ë", auml: "ä", Auml: "Ä",
+  acirc: "â", Acirc: "Â", icirc: "î", Icirc: "Î", ucirc: "û", Ucirc: "Û", ocirc: "ô", ecirc: "ê",
+  aacute: "á", eacute: "é", iacute: "í", oacute: "ó", uacute: "ú", agrave: "à", egrave: "è", ntilde: "ñ", szlig: "ß"
+};
+
+function decodeOnce(text: string) {
   return text
-    .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
-    .replace(/\s+/g, " ").trim();
+    .replace(/&([a-z]+);/gi, (all, name) => (name in NAMED ? NAMED[name] : all));
+}
+
+function decode(text: string) {
+  return decodeOnce(decodeOnce(text)).replace(/\s+/g, " ").trim();
 }
 
 function meta(html: string, keys: string[]) {

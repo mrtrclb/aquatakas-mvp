@@ -98,14 +98,26 @@ function pathLabel(url) {
 }
 
 // Paylaşımda gösterilen kart. compact: yazarken (composer) gösterilen küçük sürüm
+// Önbellekteki eski önizlemelerde kalan "&uuml;" gibi kodlu harfleri tarayıcıda çözer
+function fixEntities(text) {
+  if (!text || text.indexOf("&") === -1 || typeof document === "undefined") return text;
+  const area = document.createElement("textarea");
+  let out = text;
+  for (let i = 0; i < 2 && out.indexOf("&") !== -1; i += 1) {
+    area.innerHTML = out;
+    out = area.value;
+  }
+  return out;
+}
+
 export function LinkPreviewCard({ url, compact = false, onRemove }) {
   const platform = platformOf(url);
   const { data, loading } = useLinkPreview(url);
   const [playing, setPlaying] = useState(false);
   if (!platform) return null;
   const ytId = youTubeId(url);
-  const title = (data && data.title) || "";
-  const description = (data && data.description) || "";
+  const title = fixEntities((data && data.title) || "");
+  const description = fixEntities((data && data.description) || "");
   const image = (data && data.image) || (ytId ? "https://img.youtube.com/vi/" + ytId + "/hqdefault.jpg" : "");
   const site = (data && data.site) || platform.name;
   const stop = (event) => event.stopPropagation();
@@ -127,8 +139,8 @@ export function LinkPreviewCard({ url, compact = false, onRemove }) {
           )}
         </div>
         <a href={url} target="_blank" rel="noopener noreferrer nofollow" className="block px-3 py-2 hover:bg-slate-50">
-          <span className="block text-[12px] font-black uppercase tracking-wide text-slate-400">YouTube{data && data.author ? " · " + data.author : ""}</span>
-          <span className="line-clamp-2 text-sm font-black text-slate-900">{title || "YouTube videosu"}</span>
+          <span className="block text-[13px] font-black uppercase tracking-wide text-slate-400">YouTube{data && data.author ? " · " + data.author : ""}</span>
+          <span className="line-clamp-2 text-base font-black leading-snug text-slate-900 sm:text-lg">{title || "YouTube videosu"}</span>
         </a>
       </div>
     );
@@ -151,16 +163,16 @@ export function LinkPreviewCard({ url, compact = false, onRemove }) {
           </span>
         )}
         <span className={"min-w-0 flex-1 px-3 py-2.5 " + (onRemove ? "pr-10" : "")}>
-          <span className="flex items-center gap-1 text-[12px] font-black uppercase tracking-wide text-slate-400">
+          <span className={"flex items-center gap-1 font-black uppercase tracking-wide text-slate-400 " + (compact ? "text-[12px]" : "text-[13px]")}>
             {platform.known && (showImage || compact) && <span className={"inline-block h-2 w-2 rounded-full " + platform.color} />}
             {site}
             {loading && <Loader2 size={11} className="animate-spin" />}
           </span>
-          <span className="line-clamp-2 text-sm font-black leading-snug text-slate-900">{title || (loading ? "Önizleme hazırlanıyor…" : fallbackTitle)}</span>
+          <span className={"line-clamp-2 font-black leading-snug text-slate-900 " + (compact ? "text-sm" : "mt-0.5 text-base sm:text-lg")}>{title || (loading ? "Önizleme hazırlanıyor…" : fallbackTitle)}</span>
           {description ? (
-            <span className={"mt-0.5 text-xs leading-relaxed text-slate-500 " + (compact ? "line-clamp-1" : "line-clamp-2")}>{description}</span>
+            <span className={"mt-1 leading-relaxed text-slate-500 " + (compact ? "line-clamp-1 text-xs" : "line-clamp-2 text-sm sm:text-[15px]")}>{description}</span>
           ) : (
-            !loading && <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-500">{platform.host + pathLabel(url)} <ExternalLink size={11} className="shrink-0" /></span>
+            !loading && <span className={"mt-1 flex items-center gap-1 truncate text-slate-500 " + (compact ? "text-xs" : "text-sm")}>{platform.host + pathLabel(url)} <ExternalLink size={11} className="shrink-0" /></span>
           )}
         </span>
       </a>

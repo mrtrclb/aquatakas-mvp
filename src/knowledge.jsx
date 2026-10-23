@@ -19,6 +19,8 @@ import {
   MapPin,
   MessageCircle,
   Send,
+  Share2,
+  Link2,
   Users,
   Search,
   Star,
@@ -1054,6 +1056,142 @@ function FormsSection({ species, ctx, onLocate }) {
   );
 }
 
+// Tür sayfası paylaşımı: mesaj olarak gönder, bağlantıyı kopyala, WhatsApp
+function SpeciesShareButton({ species, ctx }) {
+  const [open, setOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+  const ref = useRef(null);
+  const url = "https://aquagram.com.tr/tur/" + species.slug;
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (event) => { if (ref.current && !ref.current.contains(event.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+  function copy() {
+    setOpen(false);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => ctx.onToast("Bağlantı kopyalandı"), () => ctx.onToast(url));
+    else ctx.onToast(url);
+  }
+  const item = "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50";
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Paylaş" aria-haspopup="menu" aria-expanded={open}><Share2 size={19} /></button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-11 z-30 w-60 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); if (ctx.isMember) setSending(true); else ctx.onAuth(); }} className={item}><Send size={16} className="text-cyan-800" /> Mesaj olarak gönder</button>
+          <button type="button" role="menuitem" onClick={copy} className={item}><Link2 size={16} className="text-slate-500" /> Bağlantıyı kopyala</button>
+          <a role="menuitem" href={"https://wa.me/?text=" + encodeURIComponent(species.name + " (" + species.latin + ") — Aquagram: " + url)} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={item}><MessageCircle size={16} className="text-emerald-600" /> WhatsApp'ta paylaş</a>
+        </div>
+      )}
+      {sending && <SendSpeciesModal species={species} url={url} ctx={ctx} onClose={() => setSending(false)} />}
+    </div>
+  );
+}
+
+function SendSpeciesModal({ species, url, ctx, onClose }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [target, setTarget] = useState(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const onKey = (event) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  useEffect(() => {
+    const q = query.trim().replace(/^@/, "").toLowerCase();
+    if (target || q.length < 2) { setResults([]); return undefined; }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id, username, avatar_url, city").ilike("username", q.replace(/[%_]/g, "") + "%").neq("id", ctx.myDbId || "").order("username").limit(6);
+      if (!cancelled) setResults(data || []);
+    }, 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query, target, ctx.myDbId]);
+
+  async function send() {
+    if (!target) return setError("Önce bir üye seç.");
+    setBusy(true);
+    setError("");
+    try {
+      const body = (note.trim() ? note.trim() + "\n\n" : "") + species.name + " (" + species.latin + ")\n" + url;
+      const ok = await ctx.sendLinkToUser(target.id, species.name + " hakkında", body);
+      if (ok) {
+        ctx.onToast("@" + target.username + " kullanıcısına gönderildi");
+        onClose();
+      }
+    } catch (err) {
+      setError(trError(err));
+    }
+    setBusy(false);
+  }
+
+  const avatar = (user) =>
+    user.avatar_url ? (
+      <img src={user.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+    ) : (
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-cyan-900 text-xs font-black uppercase text-white">{user.username.slice(0, 1)}</span>
+    );
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 pt-[10vh] backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-black">Mesaj olarak gönder</h2>
+          <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Kapat"><X size={19} /></button>
+        </div>
+        <div className="mb-4 flex items-center gap-3 rounded-2xl bg-slate-50 p-2.5">
+          <SpeciesImage species={species} className="h-12 w-12 shrink-0 rounded-xl" label={false} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black text-slate-900">{species.name}</p>
+            <p className="truncate text-xs italic text-slate-500">{species.latin}</p>
+          </div>
+        </div>
+        <label className="mb-1 block text-xs font-black text-slate-500">Kime?</label>
+        {target ? (
+          <div className="flex items-center gap-2.5 rounded-2xl border border-cyan-700 bg-cyan-50/60 p-2">
+            {avatar(target)}
+            <span className="min-w-0 flex-1 truncate text-sm font-black text-slate-900">@{target.username}</span>
+            <button type="button" onClick={() => { setTarget(null); setQuery(""); }} className="rounded-full p-1.5 text-slate-500 hover:bg-white" title="Değiştir"><X size={15} /></button>
+          </div>
+        ) : (
+          <div className="relative">
+            <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 focus-within:border-cyan-700">
+              <Search size={16} className="text-slate-400" />
+              <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Üye adı yaz, ör. @mavilikler" className="w-full bg-transparent text-base outline-none sm:text-sm" />
+            </label>
+            {results.length > 0 && (
+              <div className="absolute inset-x-0 top-full z-10 mt-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-xl">
+                {results.map((user) => (
+                  <button key={user.id} type="button" onClick={() => { setTarget(user); setResults([]); }} className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left hover:bg-slate-50">
+                    {avatar(user)}
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-black text-slate-900">@{user.username}</span>
+                      {user.city && <span className="block truncate text-xs text-slate-500">{user.city}</span>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {query.trim().replace(/^@/, "").length >= 2 && results.length === 0 && <p className="mt-1.5 text-xs text-slate-400">Eşleşen üye yok.</p>}
+          </div>
+        )}
+        <label className="mb-1 mt-4 block text-xs font-black text-slate-500">Not ekle <span className="font-bold text-slate-400">(isteğe bağlı)</span></label>
+        <textarea value={note} onChange={(event) => setNote(event.target.value.slice(0, 500))} rows={3} placeholder="Ör. Şu türe bir bak, senin tanka çok yakışır." className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base outline-none focus:border-cyan-700 sm:text-sm" />
+        {error && <p className="mt-2 text-sm font-bold text-red-600">{error}</p>}
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-full px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-100">Vazgeç</button>
+          <button type="button" onClick={send} disabled={!target || busy} className="flex items-center gap-1.5 rounded-full bg-cyan-950 px-5 py-2.5 text-sm font-black text-white hover:bg-cyan-900 disabled:opacity-40">
+            {busy ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Gönder
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SpeciesPage({ species, kb, ctx, listings, posts }) {
   const [sort, setSort] = useState("newest");
   const [mapFocus, setMapFocus] = useState(null);
@@ -1072,10 +1210,11 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
     <div>
       <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
         <button onClick={() => kb.openCategory(category.id)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Geri"><ArrowLeft size={19} /></button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">{category.name}</p>
           <h2 className="truncate text-lg font-black leading-tight">{species.name}</h2>
         </div>
+        <SpeciesShareButton species={species} ctx={ctx} />
       </div>
 
       {ctx.adsFor && ctx.adsFor("species").length > 0 && (

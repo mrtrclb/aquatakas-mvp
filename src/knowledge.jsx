@@ -39,13 +39,35 @@ import { RecentArticles, SpeciesArticlesButton } from "./articles.jsx";
 /* Yardımcılar                                                         */
 /* ------------------------------------------------------------------ */
 
+// Sonuçlar ilgiye göre sıralanır: adın başı > ad > Latince ad > lokalite/varyete adları > anahtar kelimeler > kategori
 export function searchSpecies(species, query) {
   const terms = normalizeTr(query).split(/\s+/).filter(Boolean);
   if (!terms.length) return [];
-  return species.filter((item) => {
-    const hay = normalizeTr([item.name, item.latin, ...(item.keywords || []), ...(item.forms || []).flatMap((form) => [form.name, ...form.aliases]), categoryById(item.category).name].join(" "));
-    return terms.every((term) => hay.includes(term));
+  const scored = [];
+  species.forEach((item) => {
+    const name = normalizeTr(item.name);
+    const latin = normalizeTr(item.latin);
+    const forms = normalizeTr((item.forms || []).flatMap((form) => [form.name, ...form.aliases]).join(" "));
+    const keywords = normalizeTr((item.keywords || []).join(" "));
+    const category = normalizeTr(categoryById(item.category).name);
+    let score = 0;
+    for (const term of terms) {
+      const words = (text) => text.split(/[\s/()\-–,.]+/);
+      const best =
+        name.startsWith(term) ? 100 :
+        words(name).some((word) => word.startsWith(term)) ? 80 :
+        name.includes(term) ? 60 :
+        latin.startsWith(term) || words(latin).some((word) => word.startsWith(term)) ? 50 :
+        latin.includes(term) ? 40 :
+        forms.includes(term) ? 30 :
+        keywords.includes(term) ? 20 :
+        category.includes(term) ? 10 : 0;
+      if (!best) return; // her terim bir yerde geçmeli
+      score += best;
+    }
+    scored.push({ item, score });
   });
+  return scored.sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, "tr")).map(({ item }) => item);
 }
 
 function keepersOf(kb, slug) {

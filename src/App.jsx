@@ -2584,46 +2584,40 @@ function SidebarAd({ ad }) {
 function FeedAdCard({ ad }) {
   const [infoOpen, setInfoOpen] = useState(false);
   useAdImpression(ad);
+  let host = "";
+  try { host = ad.url ? new URL(ad.url).hostname.replace(/^www\./, "") : ""; } catch (err) { host = ""; }
 
+  // Akıştaki paylaşımlarla aynı iskelet: solda marka simgesi, sağda başlık satırı + içerik + alt satır
   return (
-    <article onClick={() => openAd(ad)} className={"border-b border-slate-200 bg-amber-50/55 p-4 transition hover:bg-amber-50 " + (ad.url ? "cursor-pointer" : "")}>
-      <div className="grid grid-cols-[82px_1fr_auto] gap-4">
-        <div className="h-20 w-20 overflow-hidden rounded-2xl bg-amber-100">
-          <AdImage ad={ad} />
+    <article onClick={() => openAd(ad)} className={"flex gap-3 border-b border-slate-200 px-4 py-3.5 transition hover:bg-slate-50/70 " + (ad.url ? "cursor-pointer" : "")}>
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-100 text-lg font-black uppercase text-amber-800 ring-1 ring-amber-200" aria-hidden="true">{(ad.brand || "R").slice(0, 1)}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 text-sm sm:text-[15px]">
+          <span className="min-w-0 truncate font-black text-slate-900">{ad.brand}</span>
+          <span className="shrink-0 text-slate-400">· Sponsorlu</span>
+          <button
+            type="button"
+            onClick={(event) => { event.stopPropagation(); setInfoOpen(true); }}
+            className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            title="Bu reklam hakkında"
+            aria-label="Bu reklam hakkında"
+          >
+            <Info size={13} />
+          </button>
         </div>
 
-        <div className="min-w-0">
-          <div className="mb-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[12px] font-black uppercase tracking-[0.12em] text-amber-700">
-              Reklam
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setInfoOpen(true);
-                }}
-                className="grid h-4 w-4 place-items-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200"
-                title="Bu reklam hakkında"
-              >
-                <Info size={10} />
-              </button>
-            </span>
+        <h3 className="mt-1 line-clamp-2 text-[16px] font-black leading-snug text-slate-900 sm:text-[18px]">{ad.title}</h3>
+        {ad.text && <p className="mt-0.5 line-clamp-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">{ad.text}</p>}
 
-            <span className="min-w-0 truncate text-[13px] font-black text-amber-800">
-              {ad.brand}
-            </span>
+        {ad.image && (
+          <div className="mt-2.5 overflow-hidden rounded-2xl border border-slate-200 bg-amber-50">
+            <AdImage ad={ad} className="aspect-[16/9] max-h-[340px] w-full object-cover" />
           </div>
+        )}
 
-          <h3 className="line-clamp-1 text-[16px] font-black leading-snug text-slate-950">
-            {ad.title}
-          </h3>
-          <p className="mt-1 line-clamp-2 text-[14px] leading-relaxed text-slate-600">
-            {ad.text}
-          </p>
-        </div>
-
-        <div className="flex items-center">
-          <AdCta ad={ad} className="rounded-full bg-amber-500 px-4 py-2 text-xs font-black text-white hover:bg-amber-600" />
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="min-w-0 truncate text-sm text-slate-400">{host}</span>
+          <AdCta ad={ad} className="shrink-0 rounded-full bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600" />
         </div>
       </div>
 

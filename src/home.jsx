@@ -1,6 +1,6 @@
 import { imgProps } from "./lib/img";
 import React, { useMemo, useState } from "react";
-import { CalendarDays, ChevronRight, Flame, Hash, Info, MapPin, MessageCircle, Pin, Play, Sparkles, Users, X } from "lucide-react";
+import { CalendarDays, ChevronRight, Flame, Hash, Info, MapPin, MessageCircle, Pin, Play, Share2, Sparkles, Users, X } from "lucide-react";
 import { Avatar, PostCard, extractTags, mediaLabel, normalizeTr, timeAgo } from "./community.jsx";
 import { SeenMarker, rotate } from "./lib/rotation";
 import { GroupIcon } from "./lib/group-icon.jsx";
@@ -117,36 +117,58 @@ export function HomeTopBar({ filter, onFilter, tab, onTab, location, onLocation,
 function HomeListingCard({ item, ctx, featured }) {
   const user = ctx.users[item.userId];
   const UserName = ctx.UserName;
+  const listedAt = item.date ? Date.parse(item.date + "T12:00:00") : null;
+  const image = item.images && item.images[0];
+  const stop = (fn) => (event) => { event.stopPropagation(); fn(); };
+  function share() {
+    const url = "https://aquagram.com.tr/ilan/" + (item.dbId || "ornek-" + item.id);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => ctx.onToast && ctx.onToast("Bağlantı kopyalandı"), () => {});
+  }
   return (
     <article
       onClick={() => ctx.onOpenListing(item)}
-      className={"relative flex cursor-pointer gap-3 border-b border-slate-200 px-4 py-3.5 transition " + (featured ? "bg-cyan-50/50 hover:bg-cyan-50" : "hover:bg-slate-50/70")}
+      className="relative flex cursor-pointer gap-3 border-b border-slate-200 px-4 py-3.5 transition hover:bg-slate-50/70"
     >
+      {featured && <span className="absolute inset-y-0 left-0 w-1 bg-amber-400" aria-hidden="true" />}
       <SeenMarker kind="listing" id={item.id} enabled={Boolean(featured)} />
       <Avatar user={user} onClick={() => ctx.onProfile(user)} />
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5 text-sm">
-          <button type="button" onClick={(event) => { event.stopPropagation(); ctx.onProfile(user); }} className="font-black text-slate-900 hover:underline"><UserName user={user} /></button>
-          <span className="text-slate-400">· ilan verdi</span>
-          {featured && <span className="ml-auto flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[12px] font-black text-amber-800"><Pin size={10} fill="currentColor" /> Öne çıkan</span>}
+        <div className="flex items-center gap-1.5 text-sm sm:text-[15px]">
+          <button type="button" onClick={stop(() => ctx.onProfile(user))} className="min-w-0 truncate font-black text-slate-900 hover:underline"><UserName user={user} /></button>
+          <span className="shrink-0 text-slate-400">· ilan verdi{listedAt ? " · " + timeAgo(listedAt) : ""}</span>
+          {featured && <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-black text-amber-800 ring-1 ring-amber-200"><Pin size={10} fill="currentColor" /> Öne çıkan</span>}
         </div>
-        <div className="mt-2 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white sm:flex-row sm:gap-3">
-          <div className="relative aspect-[16/9] w-full shrink-0 bg-gradient-to-br from-cyan-800 to-teal-500 sm:aspect-auto sm:h-28 sm:w-36">
-            <img {...imgProps(item.images[0], "160px", [240, 480])} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-            {item.youtube && <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white"><Play size={12} fill="currentColor" /></span>}
+
+        <h3 className="mt-1 line-clamp-2 text-[16px] font-black leading-snug text-slate-900 sm:text-[18px]">{item.title}</h3>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-slate-500 sm:text-sm">
+          <span className="font-black text-cyan-900">{ctx.priceLabel(item)}</span>
+          <span className="text-slate-300">·</span>
+          <span className="font-bold text-slate-600">{item.type}</span>
+          <span className="text-slate-300">·</span>
+          <span>{item.category}</span>
+          {item.city && (
+            <span className="flex items-center gap-1"><span className="mr-1 text-slate-300">·</span><MapPin size={13} /> {item.city}{item.district ? " / " + item.district : ""}</span>
+          )}
+        </div>
+
+        {image && (
+          <div className="relative mt-2.5 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-cyan-800 to-teal-500">
+            <img {...imgProps(image, "(max-width: 640px) 100vw, 560px", [480, 960])} alt="" loading="lazy" decoding="async" className="aspect-[16/9] max-h-[340px] w-full object-cover" onError={(event) => { event.currentTarget.style.visibility = "hidden"; }} />
+            {item.images.length > 1 && <span className="absolute bottom-2 right-2 rounded-full bg-slate-950/65 px-2 py-0.5 text-[12px] font-black text-white">1/{item.images.length}</span>}
+            {item.youtube && <span className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-red-600 text-white"><Play size={13} fill="currentColor" /></span>}
           </div>
-          <div className="min-w-0 flex-1 px-3 py-2.5 sm:pl-0">
-            <div className="flex flex-wrap gap-1">
-              <span className="rounded-full bg-cyan-950 px-2 py-0.5 text-[12px] font-black text-white">{item.type}</span>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-black text-slate-600">{item.category}</span>
-            </div>
-            <h3 className="mt-1.5 line-clamp-2 text-[15px] font-black leading-snug text-slate-900 sm:line-clamp-1">{item.title}</h3>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
-              <span className="flex items-center gap-1"><MapPin size={12} /> {item.city} / {item.district}</span>
-              <span className="flex items-center gap-1"><CalendarDays size={12} /> {ctx.formatDate(item.date)}</span>
-            </div>
-            <div className="mt-1.5 text-base font-black text-cyan-950">{ctx.priceLabel(item)}</div>
-          </div>
+        )}
+
+        <div className="mt-3 flex max-w-sm items-center justify-between text-slate-500">
+          <button type="button" onClick={stop(() => user && ctx.onMessage(user, item.title))} className="flex items-center gap-1.5 rounded-full text-sm font-semibold hover:text-cyan-700" title="Satıcıya mesaj gönder">
+            <MessageCircle size={18} /> Mesaj gönder
+          </button>
+          <button type="button" onClick={stop(() => ctx.onOpenListing(item))} className="flex items-center gap-1.5 rounded-full text-sm font-semibold hover:text-cyan-700" title="İlanı aç">
+            İlana git <ChevronRight size={16} />
+          </button>
+          <button type="button" onClick={stop(share)} className="flex items-center gap-1.5 rounded-full text-sm font-semibold hover:text-cyan-700" title="Bağlantıyı kopyala">
+            <Share2 size={17} />
+          </button>
         </div>
       </div>
     </article>

@@ -1130,8 +1130,13 @@ function SendSpeciesModal({ species, url, ctx, onClose }) {
     if (target || q.length < 2) { setResults([]); return undefined; }
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const { data } = await supabase.from("profiles").select("id, username, avatar_url, city").ilike("username", q.replace(/[%_]/g, "") + "%").neq("id", ctx.myDbId || "").order("username").limit(6);
-      if (!cancelled) setResults(data || []);
+      // Adın herhangi bir yerinde geçenler; adı yazılanla başlayanlar önce
+      const clean = q.replace(/[%_\\]/g, "");
+      let request = supabase.from("profiles").select("id, username, avatar_url, city").ilike("username", "%" + clean + "%").order("username").limit(20);
+      if (ctx.myDbId) request = request.neq("id", ctx.myDbId);
+      const { data } = await request;
+      const rows = (data || []).sort((a, b) => Number(!a.username.toLowerCase().startsWith(clean)) - Number(!b.username.toLowerCase().startsWith(clean))).slice(0, 6);
+      if (!cancelled) setResults(rows);
     }, 250);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [query, target, ctx.myDbId]);
@@ -1199,7 +1204,7 @@ function SendSpeciesModal({ species, url, ctx, onClose }) {
                 ))}
               </div>
             )}
-            {query.trim().replace(/^@/, "").length >= 2 && results.length === 0 && <p className="mt-1.5 text-xs text-slate-400">Eşleşen üye yok.</p>}
+            {query.trim().replace(/^@/, "").length >= 2 && results.length === 0 && <p className="mt-1.5 text-xs text-slate-400">Bu adla bir üye bulunamadı. Kullanıcı adını (@ olmadan) yazmayı dene.</p>}
           </div>
         )}
         <label className="mb-1 mt-4 block text-xs font-black text-slate-500">Not ekle <span className="font-bold text-slate-400">(isteğe bağlı)</span></label>

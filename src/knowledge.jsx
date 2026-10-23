@@ -17,6 +17,7 @@ import {
   Pencil,
   Heart,
   HelpCircle,
+  Info,
   MapPin,
   MessageCircle,
   Send,
@@ -1079,6 +1080,45 @@ function FormsSection({ species, ctx, onLocate }) {
   );
 }
 
+// Bilimsel ad değişikliği notu: masaüstünde üzerine gelince, telefonda dokununca açılır
+function NameNoteInfo({ note }) {
+  const [pos, setPos] = useState(null); // açıkken pencerenin ekrandaki yeri
+  const ref = useRef(null);
+  const show = () => {
+    const rect = ref.current.getBoundingClientRect();
+    const width = Math.min(288, window.innerWidth - 32);
+    const left = Math.max(16, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 16));
+    setPos({ top: rect.bottom + 8, left, width });
+  };
+  const hide = () => setPos(null);
+  useEffect(() => {
+    if (!pos) return undefined;
+    const close = (event) => { if (ref.current && !ref.current.contains(event.target)) hide(); };
+    document.addEventListener("pointerdown", close);
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
+    };
+  }, [pos]);
+  return (
+    <span ref={ref} className="ml-1.5 inline-block align-[0.15em]" onPointerEnter={(event) => event.pointerType === "mouse" && show()} onPointerLeave={(event) => event.pointerType === "mouse" && hide()}>
+      <button type="button" onClick={() => (pos ? hide() : show())} className="grid h-6 w-6 place-items-center rounded-full bg-sky-100 text-sky-800 ring-1 ring-sky-200 transition hover:bg-sky-200" aria-label="Bilimsel ad değişikliği" aria-expanded={Boolean(pos)}>
+        <Info size={14} strokeWidth={2.6} />
+      </button>
+      {pos && createPortal(
+        <span role="tooltip" style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width }} className="z-50 block rounded-2xl bg-slate-900 p-3 text-left text-[13px] font-medium leading-relaxed tracking-normal text-white shadow-xl">
+          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-sky-300">Bilimsel ad değişikliği</span>
+          {note}
+        </span>,
+        document.body
+      )}
+    </span>
+  );
+}
+
 // Tür sayfası paylaşımı: mesaj olarak gönder, bağlantıyı kopyala, WhatsApp
 function SpeciesShareButton({ species, ctx }) {
   const [open, setOpen] = useState(false);
@@ -1259,7 +1299,10 @@ export function SpeciesPage({ species, kb, ctx, listings, posts }) {
             {species.temperament && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-black text-slate-600">{species.temperament}</span>}
             {species.rare && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[12px] font-black text-violet-700">💎 Nadir</span>}
           </div>
-          <h1 className="mt-2 text-2xl font-black leading-tight tracking-tight text-slate-950">{species.name}</h1>
+          <h1 className="mt-2 text-2xl font-black leading-tight tracking-tight text-slate-950">
+            {species.name}
+            {species.nameNote && <NameNoteInfo note={species.nameNote} />}
+          </h1>
           <p className="text-sm italic text-slate-500">{species.latin}</p>
           <p className="mt-3 text-[15px] leading-relaxed text-slate-700">{species.desc}</p>
 

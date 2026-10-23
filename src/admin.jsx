@@ -1198,7 +1198,7 @@ function FeaturesSection() {
 /* Reklamlar                                                           */
 /* ------------------------------------------------------------------ */
 
-const PLACEMENT_LABELS = { feed: "Akış içi", sidebar: "Yan sütun", detail: "İlan detayı", post: "Paylaşım detayı", species: "Tür sayfası" };
+const PLACEMENT_LABELS = { feed: "Akış içi", sidebar: "Yan sütun", detail: "İlan detayı", post: "Paylaşım detayı", species: "Tür sayfası", article: "Makale", notification: "Bildirim" };
 
 function AdsSection() {
   const { act, ask } = useAdmin();

@@ -790,7 +790,34 @@
   "787": "ambystoma-mexicanum-lavender",
   "788": "ambystoma-mexicanum-gfp",
   "789": "ambystoma-mexicanum-mosaic",
-  "790": "ambystoma-mexicanum-chimera"
+  "790": "ambystoma-mexicanum-chimera",
+  "791": "hymenochirus-boettgeri",
+  "792": "xenopus-laevis",
+  "793": "cynops-orientalis",
+  "794": "pleurodeles-waltl",
+  "795": "typhlonectes-natans",
+  "796": "carinotetraodon-travancoricus",
+  "797": "colomesus-asellus",
+  "798": "parambassis-ranga",
+  "799": "badis-badis",
+  "800": "dario-dario",
+  "801": "macrognathus-siamensis",
+  "802": "mastacembelus-erythrotaenia",
+  "803": "elassoma-evergladei",
+  "804": "enneacanthus-chaetodon",
+  "805": "datnioides-microlepis",
+  "806": "indostomus-paradoxus",
+  "807": "nannostomus-beckfordi",
+  "808": "nannostomus-marginatus",
+  "809": "nannostomus-eques",
+  "810": "carnegiella-strigata",
+  "811": "gasteropelecus-sternicla",
+  "812": "anostomus-anostomus",
+  "813": "abramites-hypselonotus",
+  "814": "distichodus-sexfasciatus",
+  "815": "potamotrygon-motoro",
+  "816": "lepisosteus-oculatus",
+  "817": "xenopus-laevis-albino"
  },
  "makale": {
   "M1": "beta-baligi-fanusta-yasar-mi-kucuk-kabin-ardindaki-buyuk-yanlis",
@@ -934,6 +961,10 @@
   "790": [
    "ambystoma-mexicanum",
    "Chimera"
+  ],
+  "817": [
+   "xenopus-laevis",
+   "Albino"
   ]
  }
 }

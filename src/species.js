@@ -60,6 +60,7 @@ export const TR_STATUS = { endemik: "Endemik", yerli: "Yerli", yabanci: "Yabanc�
 // Türkiye bölümündeki "Grup" filtresi: familya → Türkçe grup adı
 export const FAMILY_TR = {
   Aphaniidae: "Dişlisazancıkları",
+  Cobitidae: "Taşemenleri",
   Cyprinidae: "Sazangiller",
   Xenocyprididae: "Asya sazanları",
   Gobionidae: "Derekayaları",

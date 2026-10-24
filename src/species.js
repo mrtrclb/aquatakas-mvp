@@ -61,6 +61,7 @@ export const TR_STATUS = { endemik: "Endemik", yerli: "Yerli", yabanci: "Yabanc�
 export const FAMILY_TR = {
   Aphaniidae: "Dişlisazancıkları",
   Cobitidae: "Taşemenleri",
+  Nemacheilidae: "Çöpçü balıkları",
   Cyprinidae: "Sazangiller",
   Xenocyprididae: "Asya sazanları",
   Gobionidae: "Derekayaları",

@@ -92,7 +92,7 @@ export function BrandLogo({ brand, size = 44, className = "" }) {
   if (brand.logo && !failed) {
     return (
       <span className={"grid shrink-0 place-items-center overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 " + className} style={style}>
-        <img src={brand.logo} alt={brand.name} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-contain p-1.5" />
+        <img src={brand.logo} alt={brand.name} loading="lazy" onError={() => setFailed(true)} className="max-h-full max-w-full object-contain p-1.5" />
       </span>
     );
   }
@@ -135,8 +135,8 @@ function ProductCard({ product, cat, showBrand = true }) {
     <button onClick={() => openProduct(product.slug)} className="group flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white text-left transition hover:border-cyan-300 hover:shadow-sm">
       <ProductImage product={product} category={category} className="aspect-square w-full border-b border-slate-100" />
       <div className="flex min-w-0 flex-1 flex-col p-3">
-        {showBrand && brand && <span className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">{brand.name}</span>}
-        <span className="line-clamp-2 text-sm font-black leading-snug text-slate-900 group-hover:text-cyan-900">{cleanName(product, brand)}</span>
+        {showBrand && brand && cleanName(product, brand) === product.name && <span className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">{brand.name}</span>}
+        <span className="line-clamp-2 text-sm font-black leading-snug text-slate-900 group-hover:text-cyan-900">{product.name}</span>
         <span className="mt-auto flex items-center gap-1 pt-2 text-[12px] font-bold text-slate-500">
           {product.ratingCount ? (
             <>
@@ -278,7 +278,7 @@ function ProductsHome({ cat, actions }) {
               <button key={row.id} onClick={() => openCategory(row.id)} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-cyan-300 hover:bg-cyan-50/40">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-50 text-xl" aria-hidden="true">{row.emoji}</span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-black text-slate-900">{row.name}</span>
+                  <span className="line-clamp-2 text-[13px] font-black leading-tight text-slate-900">{row.name}</span>
                   <span className="text-[12px] font-bold text-slate-400">{count ? count + " ürün" : "Yakında"}</span>
                 </span>
               </button>
@@ -386,7 +386,7 @@ function CategoryPage({ category, cat, actions }) {
       <div className="p-4">
         <div className={GRID}>
           {list.map((row) => <ProductCard key={row.slug} product={row} cat={cat} />)}
-          <AddTile title="Ürün ekle" text={"Listede olmayan bir " + category.name.toLocaleLowerCase("tr") + " ürünü ekle."} onClick={() => actions.addProduct({ category: category.id })} />
+          <AddTile title="Ürün ekle" text="Bu kategoride listede olmayan bir ürünü ekle." onClick={() => actions.addProduct({ category: category.id })} />
         </div>
       </div>
     </div>
@@ -507,7 +507,7 @@ function Gallery({ product, category }) {
             const next = Math.round(node.scrollLeft / Math.max(1, node.clientWidth));
             if (next !== index) setIndex(next);
           }}
-          className="flex aspect-square w-full snap-x snap-mandatory overflow-x-auto rounded-3xl border border-slate-200 bg-white [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex aspect-[4/3] w-full snap-x snap-mandatory overflow-x-auto rounded-3xl border border-slate-200 bg-white sm:aspect-square [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {images.map((url, i) => (
             <button key={url + i} type="button" onClick={() => setLightbox(i)} className="relative h-full w-full shrink-0 snap-center" aria-label={product.name + " görseli " + (i + 1)}>
@@ -622,7 +622,7 @@ function ProductPage({ product, cat, ctx, posts, listings, actions }) {
 
   return (
     <div>
-      <TopBar title={shortName} kicker={(category ? category.name : "Ürün") + (brand ? " · " + brand.name : "")} onBack={() => (category ? openCategory(category.id) : openProductsHome())} />
+      <TopBar title={product.name} kicker={(category ? category.name : "Ürün") + (brand ? " · " + brand.name : "")} onBack={() => (category ? openCategory(category.id) : openProductsHome())} />
 
       {ctx.adsFor && ctx.adsFor("product").length > 0 && ctx.RotatingDetailAd && (
         <div className="px-4 pt-4 [&>div]:mb-0"><ctx.RotatingDetailAd placement="product" pageKey={product.slug} /></div>
@@ -636,7 +636,7 @@ function ProductPage({ product, cat, ctx, posts, listings, actions }) {
               <BrandLogo brand={brand} size={26} className="rounded-lg" /> {brand.name} {brand.verified && <VerifiedTick size={14} />}
             </button>
           )}
-          <h1 className="mt-2 text-2xl font-black leading-tight tracking-tight text-slate-950">{shortName}</h1>
+          <h1 className="mt-2 text-2xl font-black leading-tight tracking-tight text-slate-950">{product.name}</h1>
           {product.model && <p className="text-sm font-bold text-slate-400">Model: {product.model}</p>}
           <button onClick={() => document.getElementById("degerlendirmeler") && document.getElementById("degerlendirmeler").scrollIntoView({ behavior: "smooth" })} className="mt-2 flex items-center gap-1.5 text-sm font-bold text-slate-600">
             <Stars value={product.rating} size={16} />

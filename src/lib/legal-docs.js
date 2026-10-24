@@ -52,20 +52,26 @@ export const LEGAL_DOCS = {
         "Alınan kararlar kısa bir gerekçeyle ilgili üyeye bildirilir. Karara itiraz etmek için " + CONTACT + " adresine yazabilirsin.",
         "Şikâyetler gizli tutulur; şikâyet edenin kimliği içerik sahibiyle paylaşılmaz."
       ]],
-      ["8. Ücretli hizmetler", [
-        "İlan öne çıkarma ve reklam gibi ücretli hizmetlerin süresi ve fiyatı başvuru sırasında gösterilir. Başvurular ekip incelemesinden sonra yayına alınır; reddedilen başvurularda ödeme alınmışsa iade edilir.",
+      ["8. Ürün ve marka sayfaları, değerlendirmeler", [
+        "Ürünler bölümündeki ürün ve marka bilgileri, görseller ve teknik değerler üretici, distribütör ve satıcıların kamuya açık bilgilerine dayanır; yalnızca bilgilendirme amaçlıdır. Aquagram herhangi bir ürünün satıcısı, üreticisi ya da distribütörü değildir; ürünlerin satışından, fiyatından ve garantisinden sorumlu değildir. Hak sahibi olduğunuz bir içeriğin kaldırılmasını " + CONTACT + " adresinden talep edebilirsiniz.",
+        "Ürün değerlendirmeleri ve yıldız puanları üyelerin kişisel deneyimlerini yansıtır; Aquagram'ın görüşü değildir. Değerlendirmede kendi deneyiminizi, gerçeğe uygun ve ölçülü bir dille anlatmalısınız. Hakaret, küçük düşürücü ifade, kanıtlanamayan iddia (ör. ürünün sahte, zehirli ya da hileli olduğu), rakip firma adına yapılan yönlendirici yorumlar ve karşılık (ücret, ürün vb.) alınarak yazılan ancak bunu belirtmeyen değerlendirmeler yasaktır ve kaldırılır.",
+        "Markanın üreticisi ya da resmî Türkiye distribütörü olduğunu belgeleyen hesaplar, ücretsiz olarak marka hesabı doğrulaması isteyebilir. Doğrulanan marka hesabı, değerlendirmelere \"Resmî marka yanıtı\" rozetiyle yanıt verebilir; değerlendirmeleri silemez ya da değiştiremez. Marka hesabının yanıtları da bu koşullara tabidir.",
+        "Üyeler, listede olmayan bir marka ya da ürün için başvurabilir. Başvurular ekip incelemesinden sonra yayına alınır; Aquagram bilgileri düzeltme, kısaltma ya da başvuruyu gerekçesini bildirerek reddetme hakkını saklı tutar."
+      ]],
+      ["9. Ücretli hizmetler", [
+        "İlan öne çıkarma, reklam ve marka/ürün ekleme gibi ücretli hizmetlerin süresi ve fiyatı başvuru sırasında gösterilir. Başvurular ekip incelemesinden sonra yayına alınır; reddedilen başvurularda ödeme alınmışsa iade edilir.",
         "Onaylanıp yayına alınan bir reklamın, süresi dolmadan reklam veren tarafından yayından kaldırılması hâlinde kısmi ya da tam ücret iadesi yapılmaz. Mesafeli sözleşmelere ilişkin yasal haklar saklıdır.",
         "Aquagram PRO üyelik seçilen süre (1, 3 ya da 12 ay) boyunca geçerlidir ve otomatik yenilenmez. PRO ayrıcalıkları (ücretsiz öne çıkarma ve reklam hakları, günlük üste taşıma hakkı, ek sohbet hakkı ve PRO rozeti) satın alma sayfasında açıklanır. Her satın alımda ay başına 2 ücretsiz öne çıkarma ve 1 ücretsiz reklam hakkı hesaba eklenir; kullanılmayan bu haklar silinmez, üyelik süresi bittikten sonra da kullanılabilir. Bu haklar 30 günde en fazla 2 öne çıkarma ve 1 reklam olacak şekilde kullanılabilir; reddedilen ya da onaydan önce geri çekilen başvurularda kullanılan hak iade edilir. Günlük üste taşıma hakkı ve PRO rozeti yalnızca üyelik süresince geçerlidir. Ücretsiz haklarla yapılan öne çıkarma ve reklam başvuruları da ekip incelemesine tabidir. Kurallara aykırılık nedeniyle askıya alınan hesaplarda kalan PRO süresi için iade yapılmaz."
       ]],
-      ["9. Sorumluluğun sınırlandırılması", [
+      ["10. Sorumluluğun sınırlandırılması", [
         "Platform \"olduğu gibi\" sunulur. Aquagram, kesintisiz ya da hatasız çalışmayı garanti etmez.",
         "Üyeler arasındaki alışveriş, takas, teslimat ve ödemelerden doğan zararlardan, üyelerin içeriklerinden ve üçüncü kişilerin sitelerinden Aquagram sorumlu değildir. Bu sınırlama, kast ve ağır kusur hâllerinde ve kanunen sınırlanamayan durumlarda uygulanmaz."
       ]],
-      ["10. Değişiklikler ve fesih", [
+      ["11. Değişiklikler ve fesih", [
         "Aquagram bu koşulları değiştirebilir. Önemli değişiklikler Platform üzerinden duyurulur; değişiklikten sonra Platform'u kullanmaya devam etmen güncel koşulları kabul ettiğin anlamına gelir.",
         "Hesabını dilediğin zaman Hesabım sayfasındaki \"Hesabımı sil\" düğmesiyle kapatabilirsin. Hesap kapatıldığında e-posta adresin, şifren ve profil bilgilerin silinir, yayındaki ilanların kaldırılır. Topluluk sohbetlerinin bütünlüğü için paylaşım, yorum, tür deneyimi ve değerlendirmelerin \"misafir_…\" biçiminde anonim bir kullanıcı adıyla yayında kalır; bunları hesabını silmeden önce kendin silebilirsin."
       ]],
-      ["11. Uygulanacak hukuk", [
+      ["12. Uygulanacak hukuk", [
         "Bu koşullar Türkiye Cumhuriyeti hukukuna tabidir. Uyuşmazlıklarda tüketici işlemleri bakımından Tüketici Hakem Heyetleri ve Tüketici Mahkemeleri, diğer hâllerde İstanbul Mahkemeleri ve İcra Daireleri yetkilidir.",
         "İletişim: " + CONTACT
       ]]
@@ -82,7 +88,8 @@ export const LEGAL_DOCS = {
       ["İşlenen kişisel veriler", [
         "Kimlik ve hesap bilgileri: kullanıcı adı, profil resmi, şehir/ilçe, biyografi, sosyal medya hesap adları.",
         "İletişim bilgileri: e-posta adresi; mavi tik talebinde bulunursanız cep telefonu numarası.",
-        "Kullanıcı işlem bilgileri: ilanlar, paylaşımlar, yorumlar, beğeniler, mesajlar, değerlendirmeler, beslediğiniz ve favori türler, grup üyelikleri, şikâyetler, reklam ve öne çıkarma başvuruları.",
+        "Marka hesabı doğrulaması başvurusunda bulunursanız: firma unvanı, yetkili adı soyadı ve görevi, kurumsal e-posta adresi, telefon numarası ve yetkinizi gösteren belgeler (bu belgeler herkese açık değildir, yalnızca doğrulama için ekip tarafından görüntülenir).",
+        "Kullanıcı işlem bilgileri: ilanlar, paylaşımlar, yorumlar, beğeniler, mesajlar, değerlendirmeler, ürün değerlendirmeleri ve puanları, marka ve ürün ekleme başvuruları, beslediğiniz ve favori türler, grup üyelikleri, şikâyetler, reklam ve öne çıkarma başvuruları.",
         "İşlem güvenliği bilgileri: şifrenizin geri döndürülemez özeti, oturum ve giriş kayıtları, teknik hizmet sağlayıcının tuttuğu IP adresi ve tarayıcı bilgisi içeren güvenlik kayıtları.",
         "Ziyaret istatistikleri kişiyle ilişkilendirilmeden, yalnızca gün ve sayfa bölümü bazında toplam sayı olarak tutulur; bu sayılar kişisel veri içermez."
       ]],
@@ -91,6 +98,7 @@ export const LEGAL_DOCS = {
         "Hesap ve platform güvenliğinin sağlanması, kötüye kullanımın, dolandırıcılığın ve kurallara aykırı içeriğin önlenmesi, şikâyetlerin incelenmesi (KVKK m. 5/2-f meşru menfaat).",
         "5651 sayılı Kanun ve diğer mevzuattan doğan yükümlülüklerin yerine getirilmesi, yetkili makamların taleplerinin karşılanması (KVKK m. 5/2-ç).",
         "Mavi tik talebinde telefon numaranızın teyit edilmesi (KVKK m. 5/2-c ve 5/2-f).",
+        "Marka hesabı doğrulamasında markayı temsil yetkinizin teyit edilmesi (KVKK m. 5/2-c ve 5/2-f).",
         "Hakların tesisi, kullanılması ve korunması (KVKK m. 5/2-e)."
       ]],
       ["Kişisel verilerin aktarılması", [

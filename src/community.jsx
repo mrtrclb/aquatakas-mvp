@@ -777,7 +777,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false, eager =
         {!post.video && !(post.images && post.images.length) && firstUrl(post.text) && <LinkPreviewCard url={firstUrl(post.text)} />}
         <PollBlock post={post} ctx={ctx} />
         <SpeciesChips slugs={post.speciesSlugs} ctx={ctx} />
-        <ProductChips slugs={post.productSlugs} rating={post.rating} ratedProduct={post.ratedProduct} className={post.speciesSlugs && post.speciesSlugs.length ? "mt-1.5" : "mt-2.5"} />
+        <ProductChips slugs={post.productSlugs} className={post.speciesSlugs && post.speciesSlugs.length ? "mt-1.5" : "mt-2.5"} />
 
         {detail && <div className="mt-3 text-sm text-slate-500">{fullDate(post.createdAt)}</div>}
 

@@ -9,6 +9,7 @@ export const PRO_FEATURES = [
   ["📣", "Ayda 1 ücretsiz reklam", "İşletmeni ya da üretimini tanıt. Kullanmadığın hak birikir (ayda en fazla 1)."],
   ["⬆️", "Günde 3 kez üste taşı", "İlanların yeni ilan gibi listelerin ve akışın başına çıksın (normal üyeler günde 1)."],
   ["💬", "+100 sohbet hakkı", "Mesaj kutun 20 sohbetle sınırlı kalmasın; her PRO alımında +100 sohbet."],
+  ["🏷️", "Marka ve ürün ekleme (12 ay)", "12 aylık PRO alımında 1 marka ve 5 ürün ekleme hakkı; Ürünler bölümünde kendi markanı ve ürünlerini tanıt."],
   ["💎", "PRO rozeti", "Kullanıcı adının yanında PRO rozeti görünür."]
 ];
 

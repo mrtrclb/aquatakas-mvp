@@ -1,5 +1,13 @@
 {
  "ok": [
+  "marka/seachem",
+  "marka/tropica",
+  "marka/fluval",
+  "marka/api",
+  "marka/tetra",
+  "marka/aquael"
+ ],
+ "skipped": [
   "marka/eheim",
   "marka/jbl",
   "urun/eheim-classic-350-1",
@@ -23,54 +31,5 @@
   "urun/tetramin-flakes-2",
   "urun/tetramin-flakes-3"
  ],
- "skipped": [],
- "failed": [
-  {
-   "out": "marka/seachem",
-   "url": [
-    "https://www.aquasabi.com/bilder/hersteller/normal/Seachem.jpg"
-   ],
-   "error": "HTTP Error 410: Gone"
-  },
-  {
-   "out": "marka/tropica",
-   "url": [
-    "https://www.aquasabi.com/bilder/hersteller/normal/Tropica.jpg",
-    "https://www.aquasabi.com/bilder/hersteller/normal/TROPICA.jpg"
-   ],
-   "error": "HTTP Error 410: Gone"
-  },
-  {
-   "out": "marka/fluval",
-   "url": [
-    "https://www.aquasabi.com/bilder/hersteller/normal/Fluval.jpg",
-    "https://www.aquasabi.com/bilder/hersteller/normal/FLUVAL.jpg"
-   ],
-   "error": "HTTP Error 410: Gone"
-  },
-  {
-   "out": "marka/api",
-   "url": [
-    "https://www.aquasabi.com/bilder/hersteller/normal/API.jpg",
-    "https://www.aquasabi.com/bilder/hersteller/normal/Api.jpg"
-   ],
-   "error": "HTTP Error 410: Gone"
-  },
-  {
-   "out": "marka/tetra",
-   "url": [
-    "https://www.aquasabi.com/bilder/hersteller/normal/Tetra.jpg",
-    "https://www.aquasabi.com/bilder/hersteller/normal/TETRA.jpg"
-   ],
-   "error": "HTTP Error 410: Gone"
-  },
-  {
-   "out": "marka/aquael",
-   "url": [
-    "https://www.aquasabi.com/bilder/hersteller/normal/Aquael.jpg",
-    "https://www.aquasabi.com/bilder/hersteller/normal/AQUAEL.jpg"
-   ],
-   "error": "HTTP Error 410: Gone"
-  }
- ]
+ "failed": []
 }

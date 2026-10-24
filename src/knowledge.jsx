@@ -33,7 +33,7 @@ import {
 import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostCard, RichText, VideoBlock, normalizeTr, timeAgo } from "./community.jsx";
 import { LinkPreviewCard, firstUrl } from "./link-preview.jsx";
 import { FORM_KINDS } from "./lib/knowledge";
-import { DIFFICULTY_COLORS, IUCN, IUCN_ORDER, KB_CATEGORIES, KB_SECTIONS, TR_STATUS, categoryById, detectSpecies } from "./species.js";
+import { DIFFICULTY_COLORS, IUCN, IUCN_ORDER, KB_CATEGORIES, KB_SECTIONS, TR_STATUS, categoryById, detectSpecies, foldTr } from "./species.js";
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
 import { useCategoryCovers } from "./lib/settings";
@@ -46,6 +46,7 @@ import { CategoryEmoji, TrFlag } from "./components/tr-flag.jsx";
 
 // Sonuçlar ilgiye göre sıralanır: adın başı > ad > Latince ad > lokalite/varyete adları > anahtar kelimeler > kategori
 export function searchSpecies(species, query) {
+  const normalizeTr = foldTr; // arama da büyük "I" ve ı/i farkından etkilenmesin
   const terms = normalizeTr(query).split(/\s+/).filter(Boolean);
   if (!terms.length) return [];
   const scored = [];

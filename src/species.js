@@ -271,20 +271,30 @@ export const SEED_SPECIES_COMMENTS = [
 /* ------------------------------------------------------------------ */
 
 const lower = (text) => (text || "").toLocaleLowerCase("tr");
+// Eşleştirme için: Türkçe küçük harf + noktasız ı'yı i sayar ("ZIPPER" → "zipper", "INDOSTOMUS" → "indostomus")
+export const foldTr = (text) => lower(text).replace(/ı/g, "i");
 const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Her tür için: Latince ad + Türkçe ad + anahtar kelimeler. Kelime başından eşleşir (Türkçe ekler için sonu serbest);
 // 4 harften kısa ifadeler yalnızca tam kelime olarak eşleşir.
+// "Beta (Betta)", "Beani / Green Guapote" gibi adların her parçası ayrı ad sayılır
+function nameParts(name) {
+  const parts = String(name || "").split(/\s*\/\s*|\s*\(|\)\s*/).map((part) => part.trim()).filter((part) => part.length >= 3);
+  return parts.length > 1 ? parts : [];
+}
+const matcher = (word, wholeWord) => {
+  const w = escapeRe(foldTr(word).replace(/['’]/g, ""));
+  return new RegExp("(^|[^\\p{L}\\p{N}])" + w + (wholeWord || w.length < 4 ? "(?![\\p{L}\\p{N}])" : ""), "u");
+};
 function buildMatchers(list) {
   return list.map((item) => ({
-  slug: item.slug,
-  patterns: [(item.latin || "").replace(/ sp\.$/, ""), item.name, ...(item.keywords || [])]
-    .filter(Boolean)
-    .map((word) => {
-      const w = escapeRe(lower(word).replace(/['’]/g, ""));
-      return new RegExp("(^|[^\\p{L}\\p{N}])" + w + (w.length < 4 ? "(?![\\p{L}\\p{N}])" : ""), "u");
-    })
-}));
+    slug: item.slug,
+    patterns: [
+      ...[(item.latin || "").replace(/ sp\.$/, ""), item.name, ...(item.keywords || [])].filter(Boolean).map((word) => matcher(word, false)),
+      // Parçalar: 5 harfe kadar olanlar yalnızca tam kelime ("Multi" → "multivitamin" eşleşmesin)
+      ...nameParts(item.name).map((part) => matcher(part, part.length <= 5))
+    ]
+  }));
 }
 let MATCHERS = buildMatchers(SPECIES);
 
@@ -296,7 +306,7 @@ export function setSpeciesCatalog(list) {
 
 export function detectSpecies(text) {
   // Etiketlerdeki alt çizgi boşluk sayılır: #öpüşen_gurami → "öpüşen gurami"
-  const hay = lower(text).replace(/['’]/g, "").replace(/_/g, " ");
+  const hay = foldTr(text).replace(/['’]/g, "").replace(/_/g, " ");
   if (!hay.trim()) return [];
   return MATCHERS.filter((matcher) => matcher.patterns.some((re) => re.test(hay))).map((matcher) => matcher.slug);
 }

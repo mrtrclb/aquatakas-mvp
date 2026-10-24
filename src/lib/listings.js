@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { compressImage, extForType } from "./media-compress";
 import { supabase } from "./supabase";
 
 export const TR_CITIES = [
@@ -112,21 +113,9 @@ export function useDbListings(userId) {
   return { rows, loading, error, reload };
 }
 
-// Telefon fotoğraflarını yüklemeden önce küçültür (en uzun kenar 1600 px, JPEG)
-export async function shrinkImage(file, maxSide = 1600, quality = 0.85) {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-    if (scale === 1 && file.type === "image/jpeg" && file.size < 1.5 * 1024 * 1024) return file;
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
-    return blob || file;
-  } catch {
-    return file;
-  }
+// Fotoğrafları yüklemeden önce küçültür ve WebP'ye çevirir (kalite ortak ayardan, %78)
+export async function shrinkImage(file, maxSide = 1600) {
+  return compressImage(file, maxSide);
 }
 
 export async function uploadListingImages(userId, files, onProgress) {
@@ -134,7 +123,7 @@ export async function uploadListingImages(userId, files, onProgress) {
   for (let index = 0; index < files.length; index += 1) {
     const blob = await shrinkImage(files[index]);
     const type = blob.type || "image/jpeg";
-    const ext = type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
+    const ext = extForType(type);
     const path = userId + "/listings/" + Date.now() + "-" + index + "." + ext;
     const { error } = await supabase.storage.from("listing-media").upload(path, blob, { contentType: type });
     if (error) throw error;

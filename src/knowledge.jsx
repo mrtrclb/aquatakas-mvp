@@ -297,7 +297,7 @@ export function SuggestSpeciesModal({ initial = {}, userId, onClose, onDone }) {
     try {
       const urls = [];
       for (const image of images) {
-        const blob = await shrinkImage(image.file, 1600, 0.85);
+        const blob = await shrinkImage(image.file, 1600);
         const type = blob.type || "image/jpeg";
         const path = userId + "/suggestions/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
         const { error: upErr } = await supabase.storage.from("community-media").upload(path, blob, { contentType: type });
@@ -882,7 +882,7 @@ function SuggestFormModal({ species, userId, onClose, onDone }) {
     try {
       const urls = [];
       for (const image of images) {
-        const blob = await shrinkImage(image.file, 1600, 0.85);
+        const blob = await shrinkImage(image.file, 1600);
         const type = blob.type || "image/jpeg";
         const path = userId + "/suggestions/form-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
         const { error: upErr } = await supabase.storage.from("community-media").upload(path, blob, { contentType: type });
@@ -1610,20 +1610,19 @@ function TrCategoryPage({ kb, categoryId }) {
           ))}
           <IucnLegend codes={codes} />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap gap-1.5">
-            {groups.length > 1 && (
-              <select value={group} onChange={(event) => setGroup(event.target.value)} className="min-w-0 max-w-full rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Grup">
-                <option value="">Tüm gruplar</option>
-                {groups.map((name) => <option key={name} value={name}>{familyLabel(name)} ({name})</option>)}
-              </select>
-            )}
-            <select value={basin} onChange={(event) => setBasin(event.target.value)} className="min-w-0 max-w-full rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Havza">
-              <option value="">Tüm havzalar</option>
-              {basins.map((name) => <option key={name} value={name}>{name}</option>)}
+        <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {groups.length > 1 && (
+            <select value={group} onChange={(event) => setGroup(event.target.value)} className="w-40 shrink-0 truncate rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Grup">
+              <option value="">Tüm gruplar</option>
+              {groups.map((name) => <option key={name} value={name}>{familyLabel(name)} ({name})</option>)}
             </select>
-          </div>
-          <div className="flex max-w-full gap-1 overflow-x-auto whitespace-nowrap rounded-full bg-slate-100 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          )}
+          <select value={basin} onChange={(event) => setBasin(event.target.value)} className="w-36 shrink-0 truncate rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Havza">
+            <option value="">Tüm havzalar</option>
+            {basins.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+          <span className="mx-0.5 h-5 w-px shrink-0 bg-slate-200" />
+          <div className="flex shrink-0 gap-1 rounded-full bg-slate-100 p-0.5">
             {[["az", "A-Z"], ["risk", "Koruma durumu"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
               <button key={key} onClick={() => setSort(sort === key ? "mix" : key)} aria-pressed={sort === key} className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
             ))}

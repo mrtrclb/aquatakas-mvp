@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { shrinkImage } from "./listings";
+import { compressVideo } from "./media-compress";
 
 const ts = (value) => (value ? new Date(value).getTime() : Date.now());
 
@@ -121,11 +122,12 @@ export function useDbCommunity(myId) {
 }
 
 // blob: adresindeki (önizleme) dosyayı Supabase depolamasına yükler, herkese açık adresi döner
-export async function uploadBlobUrl(userId, folder, blobUrl, nameHint = "") {
+export async function uploadBlobUrl(userId, folder, blobUrl, nameHint = "", onProgress = null) {
   const response = await fetch(blobUrl);
   let blob = await response.blob();
   const isImage = /^image\//.test(blob.type);
   if (isImage && blob.type !== "image/gif") blob = await shrinkImage(blob);
+  else if (/^video\//.test(blob.type) || /\.(mp4|mov|webm|m4v)$/i.test(nameHint)) blob = await compressVideo(blob, onProgress);
   const type = blob.type || "application/octet-stream";
   const ext = (type.split("/")[1] || nameHint.split(".").pop() || "bin").replace("jpeg", "jpg").replace("quicktime", "mov");
   const path = userId + "/" + folder + "/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
@@ -135,12 +137,12 @@ export async function uploadBlobUrl(userId, folder, blobUrl, nameHint = "") {
 }
 
 // Paylaşım/yorumdaki görselleri ve video dosyasını yükler (bağlantı videoları olduğu gibi kalır)
-export async function uploadMedia(userId, folder, images = [], video = null) {
+export async function uploadMedia(userId, folder, images = [], video = null, onVideoProgress = null) {
   const outImages = [];
   for (const url of images) outImages.push(url.startsWith("blob:") ? await uploadBlobUrl(userId, folder, url) : url);
   let outVideo = video;
   if (video && video.kind === "file" && String(video.url).startsWith("blob:")) {
-    outVideo = { ...video, url: await uploadBlobUrl(userId, folder, video.url, video.name || "") };
+    outVideo = { ...video, url: await uploadBlobUrl(userId, folder, video.url, video.name || "", onVideoProgress) };
   }
   return { images: outImages, video: outVideo };
 }

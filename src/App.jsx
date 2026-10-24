@@ -2,7 +2,8 @@ import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "rea
 import { createPortal } from "react-dom";
 import { useAuth, AuthModal, NewPasswordModal, AquagramMark } from "./auth";
 import { supabase, trError } from "./lib/supabase";
-import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, uploadListingImages, loadFeaturedPlans } from "./lib/listings";
+import { TR_CITIES, TR_TO_TYPE, mapListing, profileToUser, useDbListings, uploadListingImages, loadFeaturedPlans, shrinkImage } from "./lib/listings";
+import { extForType } from "./lib/media-compress";
 import { detectSpecies } from "./species";
 import { useDbCommunity, mapPost, uploadMedia, uploadBlobUrl } from "./lib/community";
 import { useDbMessages, useNotifications, notificationText } from "./lib/social";
@@ -914,7 +915,7 @@ export default function AquagramApp() {
         if (!speciesId) return setToast("Tür bulunamadı, sayfayı yenileyip tekrar dene.");
         try {
           setToast("Paylaşılıyor…");
-          const media = await uploadMedia(myId, "species", images, video);
+          const media = await uploadMedia(myId, "species", images, video, (p) => setToast("Video hazırlanıyor… %" + Math.round(p * 100)));
           const { error } = await supabase.from("species_comments").insert({ species_id: speciesId, user_id: myId, text: text || "", images: media.images, video: media.video });
           if (error) throw error;
           // Türkiye türlerinde gözlem akışta tür etiketli bir paylaşım olarak da yayımlanır
@@ -1055,7 +1056,7 @@ export default function AquagramApp() {
   async function publishDbPost(post) {
     try {
       setToast("Paylaşılıyor…");
-      const media = await uploadMedia(myId, "posts", post.images || [], post.video || null);
+      const media = await uploadMedia(myId, "posts", post.images || [], post.video || null, (p) => setToast("Video hazırlanıyor… %" + Math.round(p * 100)));
       const group = post.groupId ? groups.find((item) => item.id === post.groupId) : null;
       if (group && group.dbId && !group.memberIds.includes(myId)) {
         const joined = await supabase.from("group_members").insert({ group_id: group.dbId });
@@ -1245,7 +1246,7 @@ export default function AquagramApp() {
     onReply: async (postId, { text, images = [], video = null }) => {
       if (isDbPost(postId) && myId) {
         try {
-          const media = await uploadMedia(myId, "comments", images, video);
+          const media = await uploadMedia(myId, "comments", images, video, (p) => setToast("Video hazırlanıyor… %" + Math.round(p * 100)));
           const { error } = await supabase.from("comments").insert({ post_id: dbIdOf(postId), text: text || "", images: media.images, video: media.video });
           if (error) throw error;
           await community.reload();
@@ -2745,12 +2746,18 @@ function AccountPage({ auth, onSaved }) {
     event.target.value = "";
     if (!file) return;
     if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return setError("Profil resmi JPG, PNG ya da WEBP olmalı.");
-    if (file.size > 2 * 1024 * 1024) return setError("Profil resmi en fazla 2 MB olabilir.");
+    if (file.size > 25 * 1024 * 1024) return setError("Profil resmi en fazla 25 MB olabilir.");
     setError("");
     setUploading(true);
-    const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+    const blob = await shrinkImage(file, 512);
+    const type = blob.type || "image/jpeg";
+    if (blob.size > 2 * 1024 * 1024) {
+      setUploading(false);
+      return setError("Profil resmi küçültülemedi; daha küçük bir resim dene.");
+    }
+    const ext = extForType(type);
     const path = profile.id + "/" + Date.now() + "." + ext;
-    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { contentType: file.type });
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, blob, { contentType: type });
     if (upErr) {
       setUploading(false);
       return setError(trError(upErr));

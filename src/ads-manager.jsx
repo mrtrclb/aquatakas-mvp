@@ -122,7 +122,7 @@ export default function AdsManagerPage({ auth, onToast, previews }) {
 
   async function uploadImage() {
     if (!form.imageFile) return form.image;
-    const blob = await shrinkImage(form.imageFile, 1600, 0.85);
+    const blob = await shrinkImage(form.imageFile, 1600);
     const type = blob.type || "image/jpeg";
     const path = myId + "/ads/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
     const { error: upErr } = await supabase.storage.from("ad-media").upload(path, blob, { contentType: type });

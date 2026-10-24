@@ -2354,7 +2354,7 @@ function SpeciesFormsEditor({ speciesId, latin, slug }) {
     setUploading(true);
     const urls = [];
     for (const file of files.slice(0, 4)) {
-      const blob = await shrinkImage(file, 1600, 0.86);
+      const blob = await shrinkImage(file, 1600);
       const type = blob.type || "image/jpeg";
       const path = "species/" + slug + "/form-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
       const { error } = await supabase.storage.from("species-media").upload(path, blob, { contentType: type });
@@ -2543,7 +2543,7 @@ function ArticlesAdmin({ speciesRows }) {
     if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
     setBusy(true);
     try {
-      const blob = await shrinkImage(file, 1800, 0.85);
+      const blob = await shrinkImage(file, 1800);
       const type = blob.type || "image/jpeg";
       const path = "articles/" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
       const { error } = await supabase.storage.from("species-media").upload(path, blob, { contentType: type });
@@ -2703,7 +2703,7 @@ function CategoryCovers({ categories }) {
     setError("");
     setBusy(id);
     try {
-      const blob = await shrinkImage(file, 2000, 0.85);
+      const blob = await shrinkImage(file, 1920);
       const type = blob.type || "image/jpeg";
       const path = "categories/" + id + "/" + Date.now() + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
       const { error: upErr } = await supabase.storage.from("species-media").upload(path, blob, { contentType: type });
@@ -3074,7 +3074,7 @@ function SpeciesEditor({ param }) {
     const uploaded = [];
     for (const file of files.slice(0, room)) {
       try {
-        const blob = await shrinkImage(file, 1800, 0.86);
+        const blob = await shrinkImage(file, 1800);
         const type = blob.type || "image/jpeg";
         const path = "species/" + (form.slug || "yeni") + "/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + (type.split("/")[1] || "jpg").replace("jpeg", "jpg");
         const { error: upErr } = await supabase.storage.from("species-media").upload(path, blob, { contentType: type });

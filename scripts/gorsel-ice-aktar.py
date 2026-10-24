@@ -71,7 +71,7 @@ def main():
             elif kind == "tur":
                 sql.append(f"update public.species set images = {arr} where slug = '{slug}';")
             else:
-                sql.append(f"update public.articles set cover_url = '{urls[0]}', images = {arr} where slug = '{slug}';")
+                sql.append(f"update public.articles set cover_url = '{urls[0]}' where slug = '{slug}';")  # makalelerde yalnızca kapak var
 
     text = "\n".join(sql) + "\n"
     if out_sql:

@@ -1963,17 +1963,61 @@ export function KbWidgets({ kb, posts, listings }) {
 }
 
 /* Profil kartı için: beslediği türler */
-export function KeptSpeciesChips({ slugs, kb, onOpen }) {
-  const list = slugs.map((slug) => kb.species.find((item) => item.slug === slug)).filter(Boolean);
-  if (!list.length) return <p className="rounded-xl bg-white p-2 text-sm text-slate-500 ring-1 ring-slate-200">Henüz tür eklenmemiş.</p>;
+function KeptChip({ item, onOpen }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {list.map((item) => (
-        <button key={item.slug} onClick={() => onOpen(item)} className="inline-flex items-center gap-1.5 rounded-full bg-white py-1 pl-1 pr-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-cyan-50">
-          <SpeciesImage species={item} round label={false} className="h-5 w-5 text-[6px]" />
-          {item.name}
+    <button onClick={() => onOpen(item)} className="inline-flex items-center gap-1.5 rounded-full bg-white py-1 pl-1 pr-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-cyan-50">
+      <SpeciesImage species={item} round label={false} className="h-5 w-5 text-[6px]" />
+      {item.name}
+    </button>
+  );
+}
+
+// Profilde beslenen türler: önce rastgele 3 tür; "Tümünü gör" ile kategorilere göre gruplanmış tam liste
+export function KeptSpeciesChips({ slugs, kb, onOpen, preview = 3 }) {
+  const [expanded, setExpanded] = useState(false);
+  const list = useMemo(() => slugs.map((slug) => kb.species.find((item) => item.slug === slug)).filter(Boolean), [slugs, kb.species]);
+  const sample = useMemo(() => {
+    const copy = list.slice();
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy.slice(0, preview);
+  }, [list, preview]);
+  const grouped = useMemo(() => {
+    const order = new Map(KB_CATEGORIES.map((cat, index) => [cat.id, index]));
+    const byCat = new Map();
+    for (const item of list) {
+      if (!byCat.has(item.category)) byCat.set(item.category, []);
+      byCat.get(item.category).push(item);
+    }
+    return [...byCat.entries()]
+      .sort((a, b) => (order.has(a[0]) ? order.get(a[0]) : 999) - (order.has(b[0]) ? order.get(b[0]) : 999))
+      .map(([id, items]) => ({ cat: categoryById(id), items: items.sort((a, b) => a.name.localeCompare(b.name, "tr")) }));
+  }, [list]);
+  if (!list.length) return <p className="rounded-xl bg-white p-2 text-sm text-slate-500 ring-1 ring-slate-200">Henüz tür eklenmemiş.</p>;
+  const more = list.length > preview;
+  return (
+    <div>
+      {expanded ? (
+        <div className="grid gap-2.5">
+          {grouped.map(({ cat, items }) => (
+            <div key={cat ? cat.id : "diger"}>
+              <div className="mb-1 flex items-center gap-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
+                {cat && <CategoryEmoji category={cat} />} {cat ? cat.name : "Diğer"} <span className="font-bold normal-case tracking-normal">· {items.length}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">{items.map((item) => <KeptChip key={item.slug} item={item} onOpen={onOpen} />)}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">{sample.map((item) => <KeptChip key={item.slug} item={item} onOpen={onOpen} />)}</div>
+      )}
+      {more && (
+        <button type="button" onClick={() => setExpanded((open) => !open)} className="mt-2 text-xs font-black text-cyan-800 hover:underline">
+          {expanded ? "Daha az göster" : "Tümünü gör (" + list.length + ")"}
         </button>
-      ))}
+      )}
     </div>
   );
 }

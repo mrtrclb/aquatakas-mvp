@@ -6,10 +6,10 @@ const ts = (value) => (value ? new Date(value).getTime() : Date.now());
 const PROFILE_COLS = "id, username, city, bio, avatar_url, phone_verified, socials, created_at, pro_until";
 
 // Veritabanı tür satırını arayüzdeki tür nesnesine çevirir (koddaki örnek veriyle aynı biçim)
-export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at, content_updated_at, care_notice, name_note, range_areas, authority, tr_status, iucn, basins, sections, refs";
+export const SPECIES_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, description, facts, keywords, is_rare, image_url, images, status, created_at, content_updated_at, care_notice, name_note, range_areas, authority, tr_status, iucn, basins, family, sections, refs";
 // Açılışta yalnızca hafif sütunlar yüklenir; açıklama, bilgi tablosu, bakım notu ve yayılım alanları
 // sayfa açıldıktan sonra ayrıca gelir (ilk yüklemede ~190 KB yerine ~40 KB). Tür sayfalarında hemen yüklenir.
-export const SPECIES_LIGHT_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, keywords, is_rare, image_url, images, status, created_at, content_updated_at, tr_status, iucn, basins";
+export const SPECIES_LIGHT_COLS = "id, slug, name, latin, category_id, kind, difficulty, temperament, keywords, is_rare, image_url, images, status, created_at, content_updated_at, tr_status, iucn, basins, family";
 const SPECIES_DETAIL_COLS = "id, description, facts, care_notice, name_note, range_areas, authority, sections, refs";
 export function mapSpeciesDetails(row) {
   return {
@@ -54,6 +54,7 @@ export function mapSpeciesRow(row) {
     trStatus: row.tr_status || "",
     iucn: row.iucn || "",
     basins: row.basins || [],
+    family: row.family || "",
     ...mapProtectedDetails(row),
     status: row.status,
     addedAt: ts(row.created_at) + (row.id || 0), // aynı anda eklenenler için kararlı sıra

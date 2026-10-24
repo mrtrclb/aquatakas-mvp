@@ -43,7 +43,7 @@ async function loadData() {
   const sections = local.KB_SECTIONS;
   try {
     const [species, listings, groups, articles, forms, redirects] = await Promise.all([
-      rest("species?select=id,slug,name,latin,authority,category_id,kind,difficulty,temperament,description,facts,image_url,images,updated_at,tr_status,iucn,basins,sections,refs&status=eq.published&order=name"),
+      rest("species?select=id,slug,name,latin,authority,category_id,kind,difficulty,temperament,description,facts,image_url,images,updated_at,tr_status,iucn,basins,family,sections,refs&status=eq.published&order=name"),
       rest("listings?select=id,title,description,price,type,city,district,images,updated_at,user_id,owner:profiles!listings_user_id_fkey(username,hide_from_search)&status=eq.active&order=updated_at.desc&limit=2000"),
       rest("groups?select=slug,name,description,cover_url,member_count,created_at&is_closed=eq.false&order=member_count.desc"),
       rest("articles?select=slug,title,excerpt,body,footnotes,sources,cover_url,species_slugs,published_at,updated_at&status=eq.published&order=published_at.desc").catch(() => []),
@@ -165,7 +165,7 @@ async function main() {
   add("/bilgi", page({ path: "/bilgi", title: "Akvaryum Bilgi Bankası: tür bakım rehberi — Aquagram", description: "Akvaryum balıkları, karidesler, mercanlar ve bitkiler için bakım künyesi: sıcaklık, pH, tank hacmi, huy ve hobici deneyimleri.", body: kbBody }), today, "0.9");
 
   for (const cat of data.categories) {
-    const list = data.species.filter((sp) => sp.category === cat.id);
+    const list = data.species.filter((sp) => sp.category === cat.id || (cat.protected && sp.tr_status));
     if (!list.length) continue;
     const body = "<h1>" + esc(cat.name) + "</h1><ul>" + list.map((sp) => '<li><a href="/tur/' + sp.slug + '">' + esc(sp.name) + "</a> <i>" + esc(sp.latin) + "</i></li>").join("") + "</ul>";
     add(
@@ -220,6 +220,7 @@ async function main() {
     const body =
       "<h1>" + esc(sp.name) + "</h1>" + (sp.latin ? "<p><i>" + esc(sp.latin) + "</i></p>" : "") +
       "<p>" + esc(sp.description) + "</p>" +
+      (sp.tr_status && (sp.sections || [])[0] ? "<h2>Türkiye'de</h2><p>" + esc(noCite(sp.sections[0].body)) + "</p>" : "") +
       (facts.length ? "<h2>Bakım künyesi</h2><dl>" + facts.map(([label, value]) => "<dt>" + esc(label) + "</dt><dd>" + esc(value) + "</dd>").join("") + "</dl>" : "") +
       ((sp.forms || []).length
         ? "<h2>Lokaliteler ve varyeteler</h2><ul>" +

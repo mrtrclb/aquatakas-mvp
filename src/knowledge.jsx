@@ -33,7 +33,7 @@ import {
 import { Avatar, ImageGrid, Lightbox, MediaComposer, MoreMenu, PageHeader, PostCard, RichText, VideoBlock, normalizeTr, timeAgo } from "./community.jsx";
 import { LinkPreviewCard, firstUrl } from "./link-preview.jsx";
 import { FORM_KINDS } from "./lib/knowledge";
-import { DIFFICULTY_COLORS, IUCN, IUCN_ORDER, KB_CATEGORIES, KB_SECTIONS, TR_STATUS, categoryById, detectSpecies, foldTr } from "./species.js";
+import { DIFFICULTY_COLORS, IUCN, IUCN_ORDER, KB_CATEGORIES, KB_SECTIONS, TR_STATUS, categoryById, detectSpecies, familyLabel, foldTr } from "./species.js";
 import { supabase, trError } from "./lib/supabase";
 import { shrinkImage } from "./lib/listings";
 import { useCategoryCovers } from "./lib/settings";
@@ -117,7 +117,7 @@ function DifficultyChip({ value }) {
   return <span className={"rounded-full px-2 py-0.5 text-[12px] font-black " + (DIFFICULTY_COLORS[value] || "bg-slate-100 text-slate-600")}>{value}</span>;
 }
 
-function SpeciesCard({ species, kb }) {
+function SpeciesCard({ species, kb, inTr = false }) {
   const keepers = keepersOf(kb, species.slug).length;
   const comments = kb.comments.filter((comment) => comment.slug === species.slug).length;
   const me = kb.currentUserId;
@@ -139,8 +139,9 @@ function SpeciesCard({ species, kb }) {
     >
       <div className="relative">
         <SpeciesImage species={species} className="h-28 text-base sm:h-32" />
-        {isTr ? (
-          species.iucn && <span className="absolute left-2 top-2 shadow-sm"><IucnChip code={species.iucn} short tap={false} /></span>
+        {isTr || (inTr && species.trStatus) ? (
+          species.iucn ? <span className="absolute left-2 top-2 shadow-sm"><IucnChip code={species.iucn} short tap={false} /></span>
+            : species.trStatus === "yabanci" && <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[12px] font-black text-slate-700 shadow-sm ring-1 ring-slate-200">Yabancı</span>
         ) : (
           <span className="absolute left-2 top-2 shadow-sm [&>span]:ring-1 [&>span]:ring-white/70"><DifficultyChip value={species.difficulty} /></span>
         )}
@@ -149,7 +150,7 @@ function SpeciesCard({ species, kb }) {
       <div className="flex min-w-0 flex-1 flex-col p-3">
         <h3 className="line-clamp-2 break-words text-sm font-black leading-snug text-slate-900 group-hover:underline">{species.name}</h3>
         <p className="mt-0.5 truncate text-xs italic text-slate-500" title={species.latin}>{species.latin}</p>
-        {isTr && species.trStatus && <p className="mt-1 text-[12px] font-bold text-slate-500">{species.trStatus === "endemik" && <TrFlag className="mr-1" />}{TR_STATUS[species.trStatus]}{species.basins.length ? " · " + species.basins.slice(0, 2).join(", ") + (species.basins.length > 2 ? "…" : "") : ""}</p>}
+        {(isTr || inTr) && species.trStatus && <p className="mt-1 text-[12px] font-bold text-slate-500">{species.trStatus === "endemik" && <TrFlag className="mr-1" />}{TR_STATUS[species.trStatus]}{species.basins.length ? " · " + species.basins.slice(0, 2).join(", ") + (species.basins.length > 2 ? "…" : "") : ""}</p>}
         <div className="mt-auto flex min-h-[18px] items-center gap-3 whitespace-nowrap pt-2 text-[12px] font-bold text-slate-400">
           {keepers > 0 && <span className="flex items-center gap-1" title={keepers + " üye besliyor"}><Fish size={12} /> {keepers} besleyen</span>}
           {comments > 0 && <span className="flex items-center gap-1" title={comments + " deneyim"}><MessageCircle size={12} /> {comments}</span>}
@@ -1368,6 +1369,18 @@ function RegularSpeciesPage({ species, kb, ctx, listings, posts }) {
         </div>
       </div>
 
+      {species.trStatus && (species.sections || []).length > 0 && (
+        <div className="mx-4 mb-4 rounded-2xl border border-red-200 bg-red-50/60 px-4 py-3 text-sm text-slate-800" data-testid="species-tr" role="note">
+          <p className="flex flex-wrap items-center gap-x-2 font-black text-red-900"><TrFlag /> Türkiye'de {species.trStatus === "yabanci" ? "yerleşik yabancı tür" : TR_STATUS[species.trStatus].toLocaleLowerCase("tr") + " tür"}</p>
+          <p className="mt-1 leading-6">{String(species.sections[0].body).replace(/\s*\[\d+\]/g, "")}</p>
+          {species.trStatus === "yabanci" && <p className="mt-1 font-bold leading-6 text-red-900">Akvaryum ve havuz canlılarını hiçbir koşulda doğaya bırakmayın.</p>}
+          <p className="mt-1.5 text-[12px] text-slate-500">
+            Kaynak: {(species.refs || [])[0] && species.refs[0].url ? <a href={species.refs[0].url} target="_blank" rel="noopener" className="font-bold text-cyan-800 underline decoration-cyan-800/30 underline-offset-2">Kaya vd. (2026)</a> : "Kaya vd. (2026)"}
+            {" · "}<button type="button" onClick={() => kb.openCategory("turkiye")} className="font-bold text-cyan-800 underline decoration-cyan-800/30 underline-offset-2">Türkiye'nin Tatlı Su Balıkları</button>
+          </p>
+        </div>
+      )}
+
       {(species.notice || (categoryById(species.category) || {}).notice) && (
         <div className="mx-4 mb-4 flex gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="species-notice" role="note">
           <span aria-hidden="true" className="text-base leading-5">⚠️</span>
@@ -1527,13 +1540,15 @@ function TrCategoryPage({ kb, categoryId }) {
   const [iucn, setIucn] = useState("");
   const [basin, setBasin] = useState("");
   const [sort, setSort] = useState("mix");
+  const [group, setGroup] = useState("");
   const mixKey = useShuffleKey(categoryId);
-  const all = kb.species.filter((item) => item.category === category.id);
+  const all = kb.species.filter((item) => item.category === category.id || Boolean(item.trStatus));
+  const groups = Array.from(new Set(all.map((item) => item.family).filter(Boolean))).sort((a, b) => familyLabel(a).localeCompare(familyLabel(b), "tr"));
   const basins = Array.from(new Set(all.flatMap((item) => item.basins || []))).sort((a, b) => a.localeCompare(b, "tr"));
   const codes = IUCN_ORDER.filter((code) => all.some((item) => item.iucn === code));
   const statuses = Object.keys(TR_STATUS).filter((key) => all.some((item) => item.trStatus === key));
   const list = all
-    .filter((item) => (!status || item.trStatus === status) && (!iucn || item.iucn === iucn) && (!basin || (item.basins || []).includes(basin)))
+    .filter((item) => (!status || item.trStatus === status) && (!iucn || item.iucn === iucn) && (!basin || (item.basins || []).includes(basin)) && (!group || item.family === group))
     .sort((a, b) => (sort === "mix" ? mixKey(a.slug) - mixKey(b.slug) : 0) || (sort === "risk" ? IUCN_ORDER.indexOf(a.iucn) - IUCN_ORDER.indexOf(b.iucn) : sort === "favorite" ? fansOf(kb, b.slug) - fansOf(kb, a.slug) : 0) || a.name.localeCompare(b.name, "tr"));
   const chip = (active) => "shrink-0 rounded-full px-3 py-1 text-xs font-black " + (active ? "bg-cyan-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200");
   return (
@@ -1553,7 +1568,7 @@ function TrCategoryPage({ kb, categoryId }) {
           ))}
         </div>
         <p className="mt-3 text-[13px] leading-relaxed text-slate-500">
-          Bu bölüm tanıtım ve biyotop bilgisi içindir; buradaki türler doğadan toplanmamalı, alınıp satılmamalıdır. Bilgiler kaynaklıdır; bir hata görürsen tür sayfasından düzeltme önerebilirsin. Şimdiye kadar {all.length} tür eklendi.
+          Bu bölüm tanıtım ve biyotop bilgisi içindir. Yerli türler doğadan toplanmamalı, alınıp satılmamalıdır; yabancı türler ise hiçbir koşulda doğaya bırakılmamalıdır. Bilgiler kaynaklıdır; bir hata görürsen tür sayfasından düzeltme önerebilirsin. Şimdiye kadar {all.length} tür eklendi.
         </p>
       </div>
       <div className="grid gap-2 border-b border-slate-100 px-4 py-2.5">
@@ -1569,10 +1584,18 @@ function TrCategoryPage({ kb, categoryId }) {
           <IucnLegend codes={codes} />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <select value={basin} onChange={(event) => setBasin(event.target.value)} className="min-w-0 max-w-full rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Havza">
-            <option value="">Tüm havzalar</option>
-            {basins.map((name) => <option key={name} value={name}>{name}</option>)}
-          </select>
+          <div className="flex min-w-0 flex-wrap gap-1.5">
+            {groups.length > 1 && (
+              <select value={group} onChange={(event) => setGroup(event.target.value)} className="min-w-0 max-w-full rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Grup">
+                <option value="">Tüm gruplar</option>
+                {groups.map((name) => <option key={name} value={name}>{familyLabel(name)} ({name})</option>)}
+              </select>
+            )}
+            <select value={basin} onChange={(event) => setBasin(event.target.value)} className="min-w-0 max-w-full rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 outline-none" aria-label="Havza">
+              <option value="">Tüm havzalar</option>
+              {basins.map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </div>
           <div className="flex max-w-full gap-1 overflow-x-auto whitespace-nowrap rounded-full bg-slate-100 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {[["az", "A-Z"], ["risk", "Koruma durumu"], ["favorite", "En çok favorilenen"]].map(([key, label]) => (
               <button key={key} onClick={() => setSort(sort === key ? "mix" : key)} aria-pressed={sort === key} className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (sort === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")}>{label}</button>
@@ -1581,7 +1604,7 @@ function TrCategoryPage({ kb, categoryId }) {
         </div>
       </div>
       {list.length ? (
-        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">{list.map((item) => <SpeciesCard key={item.slug} species={item} kb={kb} />)}</div>
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">{list.map((item) => <SpeciesCard key={item.slug} species={item} kb={kb} inTr />)}</div>
       ) : (
         <p className="p-10 text-center text-sm font-semibold text-slate-400">Bu filtreye uyan tür yok.</p>
       )}
@@ -1694,6 +1717,7 @@ function TrSpeciesPage({ species, kb, ctx }) {
           <div className="flex flex-wrap items-center gap-1.5">
             {species.trStatus && <span className={"rounded-full px-2 py-0.5 text-[12px] font-black ring-1 " + (species.trStatus === "endemik" ? "bg-red-50 text-red-800 ring-red-200" : "bg-slate-100 text-slate-700 ring-slate-200")}>{species.trStatus === "endemik" && <TrFlag className="mr-1" />}{TR_STATUS[species.trStatus]}</span>}
             {species.iucn && <IucnChip code={species.iucn} />}
+            {species.family && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-black text-slate-600" title={species.family}>{familyLabel(species.family)}</span>}
           </div>
           <h1 className="mt-3 text-[26px] font-black leading-tight tracking-tight text-slate-950 sm:text-[28px]">
             {species.name}
@@ -1756,7 +1780,9 @@ function TrSpeciesPage({ species, kb, ctx }) {
           {!species.facts.length && <p className="mb-1 text-[12px] text-slate-400">Bu tür için kaynaklı biyotop verisi henüz eklenmedi.</p>}
           <p>{species.iucn === "EX"
             ? "Bu türün nesli tükenmiş kabul edilir; bilgiler tarihî kayıtlara dayanır."
-            : "Doğal popülasyonlarını korumak için doğadan toplanmamalı, alınıp satılmamalıdır. Bilgiler tanıtım ve biyotop amaçlıdır."}</p>
+            : species.trStatus === "yabanci"
+              ? "Bu tür Türkiye'ye sonradan getirilmiştir. Akvaryum ve havuz canlılarını hiçbir koşulda doğaya bırakmayın."
+              : "Doğal popülasyonlarını korumak için doğadan toplanmamalı, alınıp satılmamalıdır. Bilgiler tanıtım ve biyotop amaçlıdır."}</p>
         </div>
       </section>
 

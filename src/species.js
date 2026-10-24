@@ -57,6 +57,24 @@ export const IUCN = {
 };
 export const IUCN_ORDER = ["EX", "EW", "CR", "EN", "VU", "NT", "LC", "DD", "NE"];
 export const TR_STATUS = { endemik: "Endemik", yerli: "Yerli", yabanci: "Yabancı (yerleşik)" };
+// Türkiye bölümündeki "Grup" filtresi: familya → Türkçe grup adı
+export const FAMILY_TR = {
+  Aphaniidae: "Dişlisazancıkları",
+  Cyprinidae: "Sazangiller",
+  Xenocyprididae: "Asya sazanları",
+  Gobionidae: "Derekayaları",
+  Loricariidae: "Zırhlı kedi balıkları",
+  Clariidae: "Clarias kedi balıkları",
+  Heteropneustidae: "Sokan kedi balıkları",
+  Coregonidae: "Alalar",
+  Salmonidae: "Alabalıklar",
+  Oxudercidae: "Kayabalıkları",
+  Poeciliidae: "Canlı doğuranlar",
+  Cichlidae: "Ciklitler",
+  Mugilidae: "Kefaller",
+  Centrarchidae: "Güneş balıkları"
+};
+export const familyLabel = (family) => (FAMILY_TR[family] || family || "");
 
 export const DIFFICULTY_COLORS = { Kolay: "bg-emerald-50 text-emerald-700", Orta: "bg-amber-50 text-amber-800", Zor: "bg-red-50 text-red-700" };
 

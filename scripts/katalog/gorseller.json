@@ -16,42 +16,39 @@
  },
  {
   "url": [
-   "https://www.aquasabi.com/bilder/hersteller/normal/Seachem.jpg"
+   "https://vn-live-02.slatic.net/p/mdc/bb0b618aee4efce5119862af4052e7a3.jpg",
+   "https://www.google.com/s2/favicons?domain=seachem.com&sz=256"
   ],
   "out": "marka/seachem"
  },
  {
   "url": [
-   "https://www.aquasabi.com/bilder/hersteller/normal/Tropica.jpg",
-   "https://www.aquasabi.com/bilder/hersteller/normal/TROPICA.jpg"
+   "https://www.google.com/s2/favicons?domain=tropica.com&sz=256"
   ],
   "out": "marka/tropica"
  },
  {
   "url": [
-   "https://www.aquasabi.com/bilder/hersteller/normal/Fluval.jpg",
-   "https://www.aquasabi.com/bilder/hersteller/normal/FLUVAL.jpg"
+   "https://fluvalaquatics.com/ca/wp-content/themes/fluval/images/logo-fluval.svg",
+   "https://www.google.com/s2/favicons?domain=fluvalaquatics.com&sz=256"
   ],
   "out": "marka/fluval"
  },
  {
   "url": [
-   "https://www.aquasabi.com/bilder/hersteller/normal/API.jpg",
-   "https://www.aquasabi.com/bilder/hersteller/normal/Api.jpg"
+   "https://www.google.com/s2/favicons?domain=apifishcare.com&sz=256"
   ],
   "out": "marka/api"
  },
  {
   "url": [
-   "https://www.aquasabi.com/bilder/hersteller/normal/Tetra.jpg",
-   "https://www.aquasabi.com/bilder/hersteller/normal/TETRA.jpg"
+   "https://www.google.com/s2/favicons?domain=tetra.net&sz=256"
   ],
   "out": "marka/tetra"
  },
  {
   "url": [
-   "https://www.aquasabi.com/bilder/hersteller/normal/Aquael.jpg",
-   "https://www.aquasabi.com/bilder/hersteller/normal/AQUAEL.jpg"
+   "https://www.google.com/s2/favicons?domain=aquael.pl&sz=256"
   ],
   "out": "marka/aquael"
  },

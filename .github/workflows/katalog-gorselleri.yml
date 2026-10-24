@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Pillow kur
-        run: pip install pillow
+        run: pip install pillow cairosvg
       - name: Görselleri indir
         run: python3 scripts/katalog-gorsel-indir.py
       - name: Gönder

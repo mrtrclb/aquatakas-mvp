@@ -42,6 +42,10 @@ def main():
                     last = err
             if data is None:
                 raise last
+            head = data[:400].lstrip().lower()
+            if head.startswith(b"<svg") or (head.startswith(b"<?xml") and b"<svg" in data[:2000].lower()):
+                import cairosvg
+                data = cairosvg.svg2png(bytestring=data, output_width=800)
             with Image.open(io.BytesIO(data)) as im:
                 im = ImageOps.exif_transpose(im)
                 if im.mode in ("RGBA", "LA", "P"):

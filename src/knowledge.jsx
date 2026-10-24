@@ -1311,9 +1311,12 @@ function SpeciesTopBar({ category, species, kb, ctx }) {
     );
   }
   return (
-    <div className="sticky top-[60px] z-20 overflow-hidden border-b border-slate-200 bg-slate-900 lg:top-[72px]" data-testid="species-cover-bar">
-      <img src={cover} alt="" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/55 to-slate-950/20" />
+    <div className="sticky top-[60px] z-20 border-b border-slate-200 bg-slate-900 lg:top-[72px]" data-testid="species-cover-bar">
+      {/* Kırpma yalnızca kapak görselinde; paylaş menüsü şeridin altına taşabilsin */}
+      <div className="absolute inset-0 overflow-hidden">
+        <img src={cover} alt="" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/55 to-slate-950/20" />
+      </div>
       <div className="relative flex min-h-[68px] items-center gap-3 px-3 py-2.5">
         <button onClick={() => kb.openCategory(category.id)} className="rounded-full bg-white/20 p-2 text-white backdrop-blur hover:bg-white/30" title="Geri"><ArrowLeft size={19} /></button>
         <div className="min-w-0 flex-1 text-white [text-shadow:0_1px_6px_rgba(0,0,0,.4)]">

@@ -1,972 +1,976 @@
 {
- "_aciklama": "Görsel yükleme numaraları (aquagram_gorsel_listesi.xlsx ile aynı). Değiştirmeyin; yeni türler sona eklenir. 'formlar': ayrı tür sayfasıyken ana türün lokalite/varyetesine taşınan numaralar; görselleri o kaydın galerisine gider.",
+ "_aciklama": "Görsel yükleme numaraları (aquagram_gorsel_listesi_eksik.xlsx ile aynı, Ekim 2026 yeniden numaralandırma; eski numaralar git geçmişinde). Yeni kayıtlar sona eklenir. 'formlar': lokalite/varyete/ticari ad numaraları; görselleri o kaydın galerisine gider.",
  "tur": {
-  "1": "aristochromis-christyi",
-  "2": "aulonocara-baenschi",
-  "3": "aulonocara-ethelwynnae",
-  "4": "aulonocara-jacobfreibergi",
-  "5": "aulonocara-stuartgranti",
-  "6": "buccochromis-nototaenia",
-  "7": "chindongo-demasoni",
-  "8": "copadichromis-borleyi",
-  "9": "cynotilapia-afra",
-  "10": "cyrtocara-moorii",
-  "11": "dimidiochromis-compressiceps",
-  "12": "fossorochromis-rostratus",
-  "13": "iodotropheus-sprengerae",
-  "14": "labeotropheus-fuelleborni",
-  "15": "labeotropheus-trewavasae",
-  "16": "labidochromis-caeruleus",
-  "17": "labidochromis-chisumulae",
-  "18": "melanochromis-auratus",
-  "19": "pseudotropheus-cyaneorhabdos",
-  "20": "pseudotropheus-johannii",
-  "21": "metriaclima-estherae",
-  "22": "metriaclima-greshakei",
-  "23": "metriaclima-lombardoi",
-  "24": "nimbochromis-livingstonii",
-  "25": "nimbochromis-venustus",
-  "26": "otopharynx-lithobates",
-  "27": "placidochromis-electra",
-  "28": "placidochromis-milomo",
-  "29": "protomelas-taeniolatus",
-  "30": "pseudotropheus-acei",
-  "31": "pseudotropheus-crabro",
-  "32": "pseudotropheus-elongatus",
-  "33": "pseudotropheus-socolofi",
-  "34": "pseudotropheus-tropheops",
-  "35": "sciaenochromis-fryeri",
-  "36": "altolamprologus-calvus",
-  "37": "altolamprologus-compressiceps",
-  "38": "altolamprologus-compressiceps-sumbu-shell",
-  "39": "callochromis-macrops",
-  "40": "cyathopharynx-furcifer",
-  "41": "cyphotilapia-frontosa",
-  "42": "cyprichromis-leptosoma",
-  "43": "cyprichromis-microlepidotus",
-  "44": "cyprichromis-pavo",
-  "45": "ectodus-descampsii",
-  "46": "eretmodus-cyanostictus",
-  "47": "julidochromis-dickfeldi",
-  "48": "julidochromis-marlieri",
-  "49": "julidochromis-ornatus",
-  "50": "julidochromis-regani",
-  "51": "julidochromis-transcriptus",
-  "52": "lobochilotes-labiatus",
-  "53": "neolamprologus-brevis",
-  "54": "neolamprologus-brichardi",
-  "55": "neolamprologus-caudopunctatus",
-  "56": "neolamprologus-cylindricus",
-  "57": "neolamprologus-leleupi",
-  "58": "neolamprologus-multifasciatus",
-  "59": "neolamprologus-ocellatus",
-  "60": "neolamprologus-ornatipinnis",
-  "61": "neolamprologus-similis",
-  "62": "neolamprologus-speciosus",
-  "63": "neolamprologus-stappersi",
-  "64": "neolamprologus-tretocephalus",
-  "65": "ophthalmotilapia-nasuta",
-  "66": "ophthalmotilapia-ventralis",
-  "67": "paracyprichromis-brieni",
-  "68": "paracyprichromis-nigripinnis",
-  "69": "petrochromis-famula",
-  "70": "petrochromis-trewavasae",
-  "71": "spathodus-erythrodon",
-  "72": "tanganicodus-irsacae",
-  "73": "tropheus-moorii",
-  "74": "xenotilapia-flavipinnis",
-  "75": "xenotilapia-melanogenys",
-  "76": "xenotilapia-ochrogenys",
-  "77": "xenotilapia-papilio",
-  "78": "acarichthys-heckelii",
-  "79": "aequidens-diadema",
-  "80": "andinoacara-pulcher",
-  "81": "andinoacara-rivulatus",
-  "82": "apistogramma-agassizii",
-  "83": "apistogramma-baenschi",
-  "84": "apistogramma-bitaeniata",
-  "85": "apistogramma-borellii",
-  "86": "apistogramma-cacatuoides",
-  "87": "apistogramma-macmasteri",
-  "88": "apistogramma-mendezi",
-  "89": "apistogramma-nijsseni",
-  "90": "apistogramma-panduro",
-  "91": "apistogramma-steindachneri",
-  "92": "astronotus-ocellatus",
-  "93": "biotodoma-cupido",
-  "94": "biotodoma-wavrini",
-  "95": "biotoecus-dicentrarchus",
-  "96": "cichlasoma-portalegrense",
-  "97": "cleithracara-maronii",
-  "98": "crenicara-punctulatum",
-  "99": "crenicichla-compressiceps",
-  "100": "crenicichla-regani",
-  "101": "crenicichla-saxatilis",
-  "102": "dicrossus-filamentosus",
-  "103": "geophagus-abalios",
-  "104": "geophagus-altifrons",
-  "105": "geophagus-argyrostictus",
-  "106": "geophagus-brasiliensis",
-  "107": "geophagus-pyrocephalus",
-  "108": "geophagus-sveni",
-  "109": "geophagus-winemilleri",
-  "110": "guianacara-stergiosi",
-  "111": "heros-efasciatus",
-  "112": "heros-sp-rotkeil",
-  "113": "krobia-guianensis",
-  "114": "laetacara-curviceps",
-  "115": "laetacara-dorsigera",
-  "116": "mesonauta-festivus",
-  "117": "mikrogeophagus-ramirezi",
-  "118": "pterophyllum-scalare",
-  "119": "satanoperca-acuticeps",
-  "120": "satanoperca-daemon",
-  "121": "satanoperca-jurupari",
-  "122": "satanoperca-leucosticta",
-  "123": "symphysodon-aequifasciatus",
-  "124": "uaru-amphiacanthoides",
-  "125": "uaru-fernandezyepezi",
-  "126": "amatitlania-kanna",
-  "127": "amatitlania-nigrofasciata",
-  "128": "amatitlania-septemfasciata",
-  "129": "amatitlania-siquia",
-  "130": "amphilophus-citrinellus",
-  "131": "amphilophus-labiatus",
-  "132": "amphilophus-trimaculatus",
-  "133": "chiapaheros-grammodes",
-  "134": "cribroheros-alfari",
-  "135": "cribroheros-longimanus",
-  "136": "cribroheros-robertsoni",
-  "137": "cryptoheros-cutteri",
-  "138": "cryptoheros-nanoluteus",
-  "139": "cryptoheros-sajica",
-  "140": "cryptoheros-spilurus",
-  "141": "herichthys-carpintis",
-  "142": "herichthys-cyanoguttatus",
-  "143": "herichthys-minckleyi",
-  "144": "herichthys-pantostictus",
-  "145": "herichthys-pearsei",
-  "146": "herotilapia-multispinosa",
-  "147": "hypsophrys-nicaraguensis",
-  "148": "maskaheros-argenteus",
-  "149": "maskaheros-regani",
-  "150": "nandopsis-haitiensis",
-  "151": "nandopsis-tetracanthus",
-  "152": "nosferatu-beani",
-  "153": "nosferatu-istlanum",
-  "154": "parachromis-dovii",
-  "155": "parachromis-friedrichsthalii",
-  "156": "parachromis-loisellei",
-  "157": "parachromis-managuensis",
-  "158": "parachromis-motaguensis",
-  "159": "rocio-octofasciata",
-  "160": "rocio-octofasciata-electric-blue-jack-dempsey",
-  "161": "thorichthys-aureus",
-  "162": "thorichthys-deppii",
-  "163": "thorichthys-helleri",
-  "164": "thorichthys-maculipinnis",
-  "165": "thorichthys-meeki",
-  "166": "thorichthys-pasionis",
-  "167": "trichromis-bocourti",
-  "168": "trichromis-salvini",
-  "169": "vieja-bifasciata",
-  "170": "vieja-hartwegi",
-  "171": "vieja-maculicauda",
-  "172": "vieja-melanura",
-  "173": "vieja-regani",
-  "174": "vieja-zonata",
-  "175": "alfaro-cultratus",
-  "176": "ameca-splendens",
-  "177": "anableps-anableps",
-  "178": "belonesox-belizanus",
-  "179": "dermogenys-pusilla",
-  "180": "gambusia-affinis",
-  "181": "girardinus-falcatus",
-  "182": "girardinus-metallicus",
-  "183": "heterandria-formosa",
-  "184": "ilyodon-furcidens",
-  "185": "jenynsia-multidentata",
-  "186": "limia-nigrofasciata",
-  "187": "limia-perugiae",
-  "188": "limia-tridens",
-  "189": "micropoecilia-picta",
-  "190": "nomorhamphus-ebrardtii",
-  "191": "nomorhamphus-liemi",
-  "192": "poecilia-chica",
-  "193": "poecilia-latipinna",
-  "194": "poecilia-reticulata",
-  "195": "poecilia-salvatoris",
-  "196": "poecilia-sphenops",
-  "197": "poecilia-velifera",
-  "198": "poecilia-wingei",
-  "199": "priapella-intermedia",
-  "200": "skiffia-francesae",
-  "201": "xenotoca-eiseni",
-  "202": "xiphophorus-cortezi",
-  "203": "xiphophorus-hellerii",
-  "204": "xiphophorus-maculatus",
-  "205": "xiphophorus-montezumae",
-  "206": "xiphophorus-nezahualcoyotl",
-  "207": "xiphophorus-pygmaeus",
-  "208": "xiphophorus-variatus",
-  "209": "zoogoneticus-tequila",
-  "210": "betta-albimarginata",
-  "211": "betta-channoides",
-  "212": "betta-imbellis",
-  "213": "betta-macrostoma",
-  "214": "betta-mahachaiensis",
-  "215": "betta-pugnax",
-  "216": "betta-simplex",
-  "217": "betta-smaragdina",
-  "218": "betta-splendens",
-  "219": "betta-unimaculata",
-  "220": "ctenopoma-acutirostre",
-  "221": "helostoma-temminckii",
-  "222": "luciocephalus-pulcher",
-  "223": "macropodus-ocellatus",
-  "224": "macropodus-opercularis",
-  "225": "macropodus-spechti",
-  "226": "microctenopoma-ansorgii",
-  "227": "microctenopoma-fasciolatum",
-  "228": "osphronemus-goramy",
-  "229": "parosphromenus-deissneri",
-  "230": "parosphromenus-linkei",
-  "231": "parosphromenus-nagyi",
-  "232": "pseudosphromenus-cupanus",
-  "233": "pseudosphromenus-dayi",
-  "234": "sphaerichthys-osphromenoides",
-  "235": "sphaerichthys-selatanensis",
-  "236": "sphaerichthys-vaillanti",
-  "237": "trichogaster-chuna",
-  "238": "trichogaster-fasciata",
-  "239": "trichogaster-labiosa",
-  "240": "trichogaster-lalius",
-  "241": "trichopodus-leerii",
-  "242": "trichopodus-microlepis",
-  "243": "trichopodus-trichopterus",
-  "244": "trichopsis-pumila",
-  "245": "trichopsis-vittata",
-  "246": "alestopetersius-brichardi",
-  "247": "aphyocharax-anisitsi",
-  "248": "aphyocharax-paraguayensis",
-  "249": "arnoldichthys-spilopterus",
-  "250": "boehlkea-fredcochui",
-  "251": "ctenolucius-hujeta",
-  "252": "exodon-paradoxus",
-  "253": "gymnocorymbus-ternetzi",
-  "254": "hasemania-nana",
-  "255": "hemigrammus-bleheri",
-  "256": "hemigrammus-erythrozonus",
-  "257": "hemigrammus-ocellifer",
-  "258": "hydrocynus-vittatus",
-  "259": "hydrolycus-scomberoides",
-  "260": "hyphessobrycon-amandae",
-  "261": "hyphessobrycon-amapaensis",
-  "262": "hyphessobrycon-columbianus",
-  "263": "hyphessobrycon-eques",
-  "264": "hyphessobrycon-erythrostigma",
-  "265": "hyphessobrycon-flammeus",
-  "266": "hyphessobrycon-heliacus",
-  "267": "hyphessobrycon-herbertaxelrodi",
-  "268": "hyphessobrycon-megalopterus",
-  "269": "hyphessobrycon-pulchripinnis",
-  "270": "hyphessobrycon-rosaceus",
-  "271": "hyphessobrycon-sweglesi",
-  "272": "inpaichthys-kerri",
-  "273": "moenkhausia-pittieri",
-  "274": "moenkhausia-sanctaefilomenae",
-  "275": "nematobrycon-palmeri",
-  "276": "paracheirodon-axelrodi",
-  "277": "paracheirodon-innesi",
-  "278": "paracheirodon-simulans",
-  "279": "petitella-rhodostoma",
-  "280": "phenacogrammus-interruptus",
-  "281": "prionobrama-filigera",
-  "282": "pristella-maxillaris",
-  "283": "psalidodon-anisitsi",
-  "284": "thayeria-boehlkei",
-  "285": "boraras-brigittae",
-  "286": "boraras-maculatus",
-  "287": "boraras-merah",
-  "288": "boraras-urophthalmoides",
-  "289": "danio-aesculapii",
-  "290": "danio-choprae",
-  "291": "danio-erythromicron",
-  "292": "danio-margaritatus",
-  "293": "danio-rerio",
-  "294": "danio-rerio-var-frankei",
-  "295": "danio-tinwini",
-  "296": "devario-aequipinnatus",
-  "297": "devario-malabaricus",
-  "298": "laubuka-dadiburjori",
-  "299": "microdevario-kubotai",
-  "300": "rasbora-borapetensis",
-  "301": "rasbora-daniconius",
-  "302": "rasbora-einthovenii",
-  "303": "rasbora-trilineata",
-  "304": "trigonostigma-espei",
-  "305": "trigonostigma-hengeli",
-  "306": "trigonostigma-heteromorpha",
-  "307": "balantiocheilos-melanopterus",
-  "308": "barbodes-everetti",
-  "309": "barbodes-lateristriga",
-  "310": "barbodes-semifasciolatus",
-  "311": "barbonymus-schwanenfeldii",
-  "312": "crossocheilus-oblongus",
-  "313": "dawkinsia-arulius",
-  "314": "dawkinsia-filamentosa",
-  "315": "desmopuntius-hexazona",
-  "316": "desmopuntius-pentazona",
-  "317": "epalzeorhynchos-bicolor",
-  "318": "epalzeorhynchos-frenatum",
-  "319": "epalzeorhynchos-kalopterum",
-  "320": "haludaria-fasciata",
-  "321": "pethia-conchonius",
-  "322": "pethia-padamya",
-  "323": "puntigrus-tetrazona",
-  "324": "puntius-titteya",
-  "325": "sahyadria-denisonii",
-  "326": "tanichthys-albonubes",
-  "327": "tanichthys-albonubes-gold",
-  "328": "acantopsis-dialuzona",
-  "329": "ambastaia-sidthimunki",
-  "330": "botia-almorhae",
-  "331": "botia-kubotai",
-  "332": "botia-striata",
-  "333": "chromobotia-macracanthus",
-  "334": "gastromyzon-punctulatus",
-  "335": "misgurnus-anguillicaudatus",
-  "336": "pangio-kuhlii",
-  "337": "pangio-oblonga",
-  "338": "pangio-semicincta",
-  "339": "petruichthys-sp-rosy",
-  "340": "pseudogastromyzon-myersi",
-  "341": "sewellia-elongata",
-  "342": "sewellia-lineolata",
-  "343": "syncrossus-berdmorei",
-  "344": "syncrossus-hymenophysa",
-  "345": "yaoshania-pachychilus",
-  "346": "yasuhikotakia-modesta",
-  "347": "yasuhikotakia-morleti",
-  "348": "agamyxis-pectinifrons",
-  "349": "ancistrus-sp",
-  "350": "baryancistrus-xanthellus",
-  "351": "bunocephalus-coracoideus",
-  "352": "corydoras-adolfoi",
-  "353": "corydoras-aeneus",
-  "354": "corydoras-duplicareus",
-  "355": "corydoras-habrosus",
-  "356": "corydoras-hastatus",
-  "357": "corydoras-julii",
-  "358": "corydoras-paleatus",
-  "359": "corydoras-panda",
-  "360": "corydoras-pygmaeus",
-  "361": "corydoras-sterbai",
-  "362": "corydoras-trilineatus",
-  "363": "farlowella-acus",
-  "364": "hara-jerdoni",
-  "365": "hypancistrus-contradens",
-  "366": "hypancistrus-sp-l260",
-  "367": "hypancistrus-zebra",
-  "368": "kryptopterus-vitreolus",
-  "369": "microglanis-iheringi",
-  "370": "mystus-leucophasis",
-  "371": "otocinclus-affinis",
-  "372": "otocinclus-macrospilus",
-  "373": "panaqolus-maccus",
-  "374": "panaque-nigrolineatus",
-  "375": "phractocephalus-hemioliopterus",
-  "376": "pimelodus-pictus",
-  "377": "platydoras-armatulus",
-  "378": "pseudomystus-siamensis",
-  "379": "pseudoplatystoma-fasciatum",
-  "380": "rineloricaria-lanceolata",
-  "381": "synodontis-eupterus",
-  "382": "synodontis-multipunctatus",
-  "383": "synodontis-nigriventris",
-  "384": "synodontis-petricola",
-  "385": "aphyosemion-australe",
-  "386": "aphyosemion-bitaeniatum",
-  "387": "aphyosemion-bivittatum",
-  "388": "aphyosemion-gabunense",
-  "389": "aphyosemion-ogoense",
-  "390": "aphyosemion-striatum",
-  "391": "aplocheilus-lineatus",
-  "392": "aplocheilus-panchax",
-  "393": "austrofundulus-limnaeus",
-  "394": "austrolebias-nigripinnis",
-  "395": "epiplatys-annulatus",
-  "396": "epiplatys-dageti",
-  "397": "epiplatys-sexfasciatus",
-  "398": "fundulopanchax-cinnamomeus",
-  "399": "fundulopanchax-filamentosus",
-  "400": "fundulopanchax-gardneri",
-  "401": "fundulopanchax-nigerianus",
-  "402": "fundulopanchax-sjoestedti",
-  "403": "fundulopanchax-walkeri",
-  "404": "fundulus-chrysotus",
-  "405": "hypsolebias-constanciae",
-  "406": "jordanella-floridae",
-  "407": "kryptolebias-cylindraceus",
-  "408": "kryptolebias-marmoratus",
-  "409": "lucania-goodei",
-  "410": "nothobranchius-eggersi",
-  "411": "nothobranchius-furzeri",
-  "412": "nothobranchius-guentheri",
-  "413": "nothobranchius-kilomberoensis",
-  "414": "nothobranchius-korthausae",
-  "415": "nothobranchius-palmqvisti",
-  "416": "nothobranchius-rachovii",
-  "417": "oryzias-latipes",
-  "418": "oryzias-woworae",
-  "419": "poropanchax-normani",
-  "420": "procatopus-aberrans",
-  "421": "pterolebias-longipinnis",
-  "422": "bedotia-madagascariensis",
-  "423": "chilatherina-bleheri",
-  "424": "glossolepis-incisus",
-  "425": "iriatherina-werneri",
-  "426": "marosatherina-ladigesi",
-  "427": "melanotaenia-affinis",
-  "428": "melanotaenia-boesemani",
-  "429": "melanotaenia-fluviatilis",
-  "430": "melanotaenia-herbertaxelrodi",
-  "431": "melanotaenia-lacustris",
-  "432": "melanotaenia-parkinsoni",
-  "433": "melanotaenia-praecox",
-  "434": "melanotaenia-trifasciata",
-  "435": "pseudomugil-cyanodorsalis",
-  "436": "pseudomugil-furcatus",
-  "437": "pseudomugil-gertrudae",
-  "438": "pseudomugil-luminatus",
-  "439": "pseudomugil-signifer",
-  "440": "brachygobius-doriae",
-  "441": "brachygobius-xanthozonus",
-  "442": "chlamydogobius-eremius",
-  "443": "hypseleotris-compressa",
-  "444": "lentipes-armatus",
-  "445": "mogurnda-mogurnda",
-  "446": "oxyeleotris-marmorata",
-  "447": "periophthalmus-barbarus",
-  "448": "redigobius-balingi",
-  "449": "rhinogobius-duospilus",
-  "450": "rhinogobius-rubromaculatus",
-  "451": "rhinogobius-zhoui",
-  "452": "sicyopus-rubicundus",
-  "453": "sicyopus-zosterophorum",
-  "454": "stigmatogobius-sadanundio",
-  "455": "stiphodon-atropurpureus",
-  "456": "stiphodon-caeruleus",
-  "457": "stiphodon-ornatus",
-  "458": "stiphodon-percnopterygionus",
-  "459": "stiphodon-semoni",
-  "460": "tateurndina-ocellicauda",
-  "461": "ariopsis-seemanni",
-  "462": "dichotomyctere-nigroviridis",
-  "463": "dichotomyctere-ocellatus",
-  "464": "etroplus-maculatus",
-  "465": "etroplus-suratensis",
-  "466": "monodactylus-argenteus",
-  "467": "monodactylus-sebae",
-  "468": "scatophagus-argus",
-  "469": "toxotes-jaculatrix",
-  "470": "channa-andrao",
-  "471": "channa-argus",
-  "472": "channa-aurantimaculata",
-  "473": "channa-bankanensis",
-  "474": "channa-barca",
-  "475": "channa-bleheri",
-  "476": "channa-burmanica",
-  "477": "channa-gachua",
-  "478": "channa-limbata",
-  "479": "channa-lucius",
-  "480": "channa-marulioides",
-  "481": "channa-micropeltes",
-  "482": "channa-ornatipinnis",
-  "483": "channa-pleurophthalma",
-  "484": "channa-pulchra",
-  "485": "channa-stewartii",
-  "486": "channa-striata",
-  "487": "parachanna-africana",
-  "488": "parachanna-insignis",
-  "489": "parachanna-obscura",
-  "490": "apteronotus-albifrons",
-  "491": "apteronotus-leptorhynchus",
-  "492": "brienomyrus-brachyistius",
-  "493": "chitala-blanci",
-  "494": "chitala-ornata",
-  "495": "erpetoichthys-calabaricus",
-  "496": "gnathonemus-petersii",
-  "497": "gymnarchus-niloticus",
-  "498": "monocirrhus-polyacanthus",
-  "499": "osteoglossum-bicirrhosum",
-  "500": "osteoglossum-ferreirai",
-  "501": "pantodon-buchholzi",
-  "502": "polycentrus-schomburgkii",
-  "503": "polypterus-bichir-lapradei",
-  "504": "polypterus-delhezi",
-  "505": "polypterus-endlicherii",
-  "506": "polypterus-ornatipinnis",
-  "507": "polypterus-palmas",
-  "508": "polypterus-senegalus",
-  "509": "polypterus-weeksii",
-  "510": "protopterus-aethiopicus",
-  "511": "protopterus-annectens",
-  "512": "xenomystus-nigri",
-  "513": "atya-gabonensis",
-  "514": "atyopsis-moluccensis",
-  "515": "caridina-babaulti",
-  "516": "caridina-caerulea",
-  "517": "caridina-cantonensis",
-  "518": "caridina-cantonensis-taiwan-bee",
-  "519": "caridina-dennerli",
-  "520": "caridina-glaubrechti",
-  "521": "caridina-gracilirostris",
-  "522": "caridina-mariae",
-  "523": "caridina-multidentata",
-  "524": "caridina-pareparensis-parvidentata",
-  "525": "caridina-serrata",
-  "526": "caridina-serratirostris",
-  "527": "caridina-spinata",
-  "528": "caridina-striata",
-  "529": "caridina-woltereckae",
-  "530": "macrobrachium-assamense",
-  "531": "macrobrachium-dayanum",
-  "532": "macrobrachium-rosenbergii",
-  "533": "neocaridina-davidi",
-  "534": "neocaridina-denticulata",
-  "535": "palaemonetes-paludosus",
-  "536": "asolene-spixi",
-  "537": "brotia-herculea",
-  "538": "brotia-pagodula",
-  "539": "clea-helena",
-  "540": "clithon-corona",
-  "541": "filopaludina-martensi",
-  "542": "heterogen-japonica",
-  "543": "lymnaea-stagnalis",
-  "544": "melanoides-tuberculata",
-  "545": "neritina-pulligera",
-  "546": "neritina-sp",
-  "547": "physella-acuta",
-  "548": "planorbella-duryi",
-  "549": "pomacea-bridgesii",
-  "550": "pomacea-maculata",
-  "551": "thiara-scabra",
-  "552": "tylomelania-patriarchalis",
-  "553": "tylomelania-perfecta",
-  "554": "tylomelania-towutensis",
-  "555": "tylomelania-zemis",
-  "556": "vittina-natalensis",
-  "557": "vittina-waigiensis",
-  "558": "austropotamobius-pallipes",
-  "559": "cambarellus-diminutus",
-  "560": "cambarellus-montezumae",
-  "561": "cambarellus-patzcuarensis",
-  "562": "cambarellus-shufeldtii",
-  "563": "cambarellus-texanus",
-  "564": "cherax-alyciae",
-  "565": "cherax-boesemani",
-  "566": "cherax-cainii",
-  "567": "cherax-destructor",
-  "568": "cherax-holthuisi",
-  "569": "cherax-peknyi",
-  "570": "cherax-pulcher",
-  "571": "cherax-quadricarinatus",
-  "572": "cherax-snowden",
-  "573": "faxonius-rusticus",
-  "574": "faxonius-virilis",
-  "575": "pacifastacus-leniusculus",
-  "576": "procambarus-alleni",
-  "577": "procambarus-clarkii",
-  "578": "procambarus-virginalis",
-  "579": "amphiprion-ocellaris",
-  "580": "centropyge-bispinosa",
-  "581": "centropyge-loricula",
-  "582": "chelmon-rostratus",
-  "583": "chromis-viridis",
-  "584": "chrysiptera-hemicyanea",
-  "585": "chrysiptera-parasema",
-  "586": "chrysiptera-springeri",
-  "587": "cryptocentrus-cinctus",
-  "588": "ctenochaetus-strigosus",
-  "589": "ecsenius-bicolor",
-  "590": "ecsenius-midas",
-  "591": "ecsenius-stigmatura",
-  "592": "elacatinus-oceanops",
-  "593": "gramma-loreto",
-  "594": "halichoeres-chrysus",
-  "595": "halichoeres-melanurus",
-  "596": "nemateleotris-decora",
-  "597": "nemateleotris-magnifica",
-  "598": "neocirrhites-armatus",
-  "599": "oxycirrhites-typus",
-  "600": "paracanthurus-hepatus",
-  "601": "pseudocheilinus-hexataenia",
-  "602": "pseudochromis-fridmani",
-  "603": "pterapogon-kauderni",
-  "604": "siganus-unimaculatus",
-  "605": "siganus-vulpinus",
-  "606": "sphaeramia-nematoptera",
-  "607": "stonogobiops-yasha",
-  "608": "synchiropus-splendidus",
-  "609": "wetmorella-nigropinnata",
-  "610": "zebrasoma-flavescens",
-  "611": "zebrasoma-veliferum",
-  "612": "zebrasoma-xanthurum",
-  "613": "acropora-sp",
-  "614": "blastomussa-wellsi",
-  "615": "capnella-imbricata",
-  "616": "catalaphyllia-jardinei",
-  "617": "caulastrea-furcata",
-  "618": "dipsastraea-favus",
-  "619": "discosoma-nummiforme",
-  "620": "discosoma-sp",
-  "621": "duncanopsammia-axifuga",
-  "622": "echinophyllia-aspera",
-  "623": "euphyllia-glabrescens",
-  "624": "favites-pentagona",
-  "625": "fimbriaphyllia-ancora",
-  "626": "fimbriaphyllia-divisa",
-  "627": "fimbriaphyllia-paraancora",
-  "628": "fimbriaphyllia-paradivisa",
-  "629": "galaxea-fascicularis",
-  "630": "homophyllia-australis",
-  "631": "lobophyllia-hemprichii",
-  "632": "lobophytum-pauciflorum",
-  "633": "micromussa-lordhowensis",
-  "634": "montipora-capricornis",
-  "635": "montipora-digitata",
-  "636": "pachyclavularia-violacea",
-  "637": "plerogyra-sinuosa",
-  "638": "pocillopora-damicornis",
-  "639": "pterogorgia-anceps",
-  "640": "ricordea-florida",
-  "641": "sarcophyton-glaucum",
-  "642": "seriatopora-hystrix",
-  "643": "stylophora-pistillata",
-  "644": "trachyphyllia-geoffroyi",
-  "645": "xenia-umbellata",
-  "646": "zoanthus-sp",
-  "647": "anubias-barteri",
-  "648": "anubias-barteri-var-caladiifolia",
-  "649": "anubias-barteri-var-coffeifolia",
-  "650": "anubias-barteri-var-glabra",
-  "651": "anubias-nana",
-  "652": "anubias-barteri-var-nana-kirin",
-  "653": "anubias-barteri-var-nana-pinto",
-  "654": "anubias-gracilis",
-  "655": "anubias-hastifolia",
-  "656": "anubias-heterophylla",
-  "657": "bolbitis-heteroclita-difformis",
-  "658": "bolbitis-heudelotii",
-  "659": "bucephalandra-diabolica-kedagang",
-  "660": "bucephalandra-pygmaea",
-  "661": "bucephalandra-sp",
-  "662": "bucephalandra-sp-needle-leaf",
-  "663": "bucephalandra-sp-red",
-  "664": "hygrophila-pinnatifida",
-  "665": "lagenandra-meeboldii-red",
-  "666": "microsorum-pteropus",
-  "667": "microsorum-pteropus-narrow",
-  "668": "microsorum-pteropus-trident",
-  "669": "microsorum-pteropus-windelov",
-  "670": "alternanthera-reineckii-mini",
-  "671": "alternanthera-reineckii-pink",
-  "672": "ammannia-crassicaulis",
-  "673": "bacopa-australis",
-  "674": "bacopa-caroliniana",
-  "675": "cabomba-aquatica",
-  "676": "heteranthera-zosterifolia",
-  "677": "limnophila-hippuridoides",
-  "678": "limnophila-sessiliflora",
-  "679": "ludwigia-arcuata",
-  "680": "ludwigia-inclinata-var-verticillata-cuba",
-  "681": "ludwigia-palustris-super-red",
-  "682": "ludwigia-repens",
-  "683": "myriophyllum-mattogrossense",
-  "684": "pogostemon-erectus",
-  "685": "pogostemon-stellatus-octopus",
-  "686": "proserpinaca-palustris-cuba",
-  "687": "rotala-macrandra",
-  "688": "rotala-rotundifolia",
-  "689": "rotala-rotundifolia-green",
-  "690": "rotala-rotundifolia-hra",
-  "691": "rotala-wallichii",
-  "692": "blyxa-japonica",
-  "693": "cryptocoryne-parva",
-  "694": "elatine-hydropiper",
-  "695": "eleocharis-acicularis-mini",
-  "696": "eleocharis-parvula",
-  "697": "glossostigma-elatinoides",
-  "698": "gratiola-viscidula",
-  "699": "helanthium-tenellum",
-  "700": "helanthium-tenellum-green",
-  "701": "hemianthus-cuba",
-  "702": "hydrocotyle-tripartita-japan",
-  "703": "lilaeopsis-brasiliensis",
-  "704": "lobelia-cardinalis-mini",
-  "705": "marsilea-crenata",
-  "706": "marsilea-hirsuta",
-  "707": "micranthemum-monte-carlo",
-  "708": "micranthemum-umbrosum",
-  "709": "pogostemon-helferi",
-  "710": "ranunculus-inundatus",
-  "711": "sagittaria-subulata",
-  "712": "staurogyne-repens",
-  "713": "utricularia-graminifolia",
-  "714": "aponogeton-boivinianus",
-  "715": "aponogeton-madagascariensis",
-  "716": "aponogeton-ulvaceus",
-  "717": "barclaya-longifolia",
-  "718": "ceratopteris-thalictroides",
-  "719": "crinum-calamistratum",
-  "720": "crinum-thaianum",
-  "721": "cryptocoryne-beckettii-petchii",
-  "722": "cryptocoryne-crispatula",
-  "723": "cryptocoryne-nurii",
-  "724": "cryptocoryne-spiralis-red",
-  "725": "cryptocoryne-undulata",
-  "726": "cryptocoryne-usteriana",
-  "727": "cryptocoryne-wendtii",
-  "728": "echinodorus-ozelot",
-  "729": "echinodorus-red-flame",
-  "730": "echinodorus-reni",
-  "731": "echinodorus-cordifolius",
-  "732": "echinodorus-bleheri",
-  "733": "nymphaea-lotus-red",
-  "734": "samolus-valerandi",
-  "735": "aeschynomene-fluitans",
-  "736": "azolla-filiculoides",
-  "737": "ceratophyllum-demersum",
-  "738": "ceratopteris-cornuta",
-  "739": "hydrocharis-morsus-ranae",
-  "740": "hygroryza-aristata",
-  "741": "lemna-minor",
-  "742": "limnobium-laevigatum",
-  "743": "limnobium-spongia",
-  "744": "ludwigia-helminthorrhiza",
-  "745": "nymphoides-aquatica",
-  "746": "nymphoides-hydrophylla-taiwan",
-  "747": "phyllanthus-fluitans",
-  "748": "pistia-stratiotes",
-  "749": "riccia-fluitans",
-  "750": "salvinia-cucullata",
-  "751": "salvinia-minima",
-  "752": "salvinia-natans",
-  "753": "salvinia-oblongifolia",
-  "754": "spirodela-polyrhiza",
-  "755": "trapa-natans",
-  "756": "wolffia-arrhiza",
-  "757": "amblystegium-serpens",
-  "758": "callicostella-prabaktiana",
-  "759": "drepanocladus-aduncus",
-  "760": "fissidens-fontanus",
-  "761": "fissidens-nobilis",
-  "762": "fontinalis-antipyretica",
-  "763": "hyophila-involuta",
-  "764": "leptodictyum-riparium",
-  "765": "monosolenium-tenerum",
-  "766": "plagiomnium-affine",
-  "767": "riccardia-chamedryfolia",
-  "768": "taxiphyllum-alternans",
-  "769": "taxiphyllum-barbieri",
-  "770": "taxiphyllum-barbieri-bogor",
-  "771": "taxiphyllum-sp-flame",
-  "772": "taxiphyllum-sp-giant",
-  "773": "taxiphyllum-sp-peacock",
-  "774": "taxiphyllum-sp-spiky",
-  "775": "vesicularia-dubyana",
-  "776": "vesicularia-ferriei",
-  "777": "vesicularia-montagnei",
-  "778": "vesicularia-montagnei-mini-christmas",
-  "779": "ambystoma-mexicanum",
-  "780": "ambystoma-mexicanum-leucistic",
-  "781": "ambystoma-mexicanum-piebald",
-  "782": "ambystoma-mexicanum-golden-albino",
-  "783": "ambystoma-mexicanum-white-albino",
-  "784": "ambystoma-mexicanum-copper",
-  "785": "ambystoma-mexicanum-melanoid",
-  "786": "ambystoma-mexicanum-axanthic",
-  "787": "ambystoma-mexicanum-lavender",
-  "788": "ambystoma-mexicanum-gfp",
-  "789": "ambystoma-mexicanum-mosaic",
-  "790": "ambystoma-mexicanum-chimera",
-  "791": "hymenochirus-boettgeri",
-  "792": "xenopus-laevis",
-  "793": "cynops-orientalis",
-  "794": "pleurodeles-waltl",
-  "795": "typhlonectes-natans",
-  "796": "carinotetraodon-travancoricus",
-  "797": "colomesus-asellus",
-  "798": "parambassis-ranga",
-  "799": "badis-badis",
-  "800": "dario-dario",
-  "801": "macrognathus-siamensis",
-  "802": "mastacembelus-erythrotaenia",
-  "803": "elassoma-evergladei",
-  "804": "enneacanthus-chaetodon",
-  "805": "datnioides-microlepis",
-  "806": "indostomus-paradoxus",
-  "807": "nannostomus-beckfordi",
-  "808": "nannostomus-marginatus",
-  "809": "nannostomus-eques",
-  "810": "carnegiella-strigata",
-  "811": "gasteropelecus-sternicla",
-  "812": "anostomus-anostomus",
-  "813": "abramites-hypselonotus",
-  "814": "distichodus-sexfasciatus",
-  "815": "potamotrygon-motoro",
-  "816": "lepisosteus-oculatus",
-  "817": "xenopus-laevis-albino",
-  "818": "carassius-auratus",
-  "819": "tropheus-duboisi",
-  "820": "apistogramma-elizabethae",
-  "821": "ivanacara-adoketa",
-  "822": "teleocichla-centrarchus",
-  "823": "tetraodon-schoutedeni",
-  "824": "carinotetraodon-irrubesco",
-  "825": "etroplus-canarensis",
-  "826": "amphiprion-percula",
-  "827": "pelvicachromis-pulcher",
-  "828": "pelvicachromis-taeniatus",
-  "829": "pelvicachromis-kribensis",
-  "830": "hemichromis-guttatus",
-  "831": "mikrogeophagus-altispinosus",
-  "832": "heros-severus",
-  "833": "symphysodon-discus",
-  "834": "metriaclima-callainos",
-  "835": "aulonocara-maylandi",
-  "836": "nannacara-anomala",
-  "837": "dicrossus-maculatus",
-  "838": "laetacara-araguaiae",
-  "839": "apistogramma-trifasciata",
-  "840": "apistogramma-viejita",
-  "841": "neolamprologus-pulcher",
-  "842": "hemigrammus-pulcher",
-  "843": "moenkhausia-oligolepis",
-  "844": "nematobrycon-lacortei",
-  "845": "chilodus-punctatus",
-  "846": "nannostomus-trifasciatus",
-  "847": "nannostomus-mortenthaleri",
-  "848": "danio-albolineatus",
-  "849": "danio-kyathit",
-  "850": "danio-dangila",
-  "851": "sawbwa-resplendens",
-  "852": "rasbora-kalochroma",
-  "853": "pethia-gelius",
-  "854": "pethia-nigrofasciata",
-  "855": "pethia-stoliczkana",
-  "856": "desmopuntius-rhomboocellatus",
-  "857": "rhodeus-ocellatus",
-  "858": "botia-lohachata",
-  "859": "botia-rostrata",
-  "860": "botia-dario",
-  "861": "brochis-splendens",
-  "862": "corydoras-schwartzi",
-  "863": "corydoras-weitzmani",
-  "864": "corydoras-arcuatus",
-  "865": "corydoras-gossei",
-  "866": "betta-coccina",
-  "867": "dario-hysginon",
-  "868": "tetraodon-mbu",
-  "869": "tetraodon-lineatus",
-  "870": "dichotomyctere-fluviatilis",
-  "871": "pao-palembangensis",
-  "872": "channa-asiatica",
-  "873": "channa-maculata",
-  "874": "pseudocrenilabrus-multicolor",
-  "875": "pseudocrenilabrus-philander",
-  "876": "nanochromis-transvestitus",
-  "877": "steatocranus-casuarius",
-  "878": "hypselecara-temporalis",
-  "879": "hoplarchus-psittacus",
-  "880": "cichla-temensis",
-  "881": "cichla-kelberi",
-  "882": "satanoperca-lilith",
-  "883": "geophagus-steindachneri",
-  "884": "gymnogeophagus-balzanii",
-  "885": "mayaheros-urophthalmus",
-  "886": "cryptoheros-myrnae",
-  "887": "chalinochromis-brichardi",
-  "888": "lepidiolamprologus-attenuatus",
-  "889": "lamprichthys-tanganicanus",
-  "890": "copella-arnoldi",
-  "891": "hyphessobrycon-pyrrhonotus",
-  "892": "hyphessobrycon-socolofi",
-  "893": "carnegiella-marthae",
-  "894": "pygocentrus-nattereri",
-  "895": "serrasalmus-rhombeus",
-  "896": "metynnis-lippincottianus",
-  "897": "myloplus-rubripinnis",
-  "898": "piaractus-brachypomus",
-  "899": "corydoras-elegans",
-  "900": "brochis-robineae",
-  "901": "brochis-haraldschultzi",
-  "902": "dianema-urostriatum",
-  "903": "megalechis-thoracata",
-  "904": "leiarius-pictus",
-  "905": "sorubim-lima",
-  "906": "synodontis-angelicus",
-  "907": "synodontis-decorus",
-  "908": "synodontis-flavitaeniatus",
-  "909": "pangio-myersi",
-  "910": "lepomis-gibbosus",
-  "911": "mastacembelus-armatus",
-  "912": "macrognathus-aculeatus",
-  "913": "tetraodon-miurus",
-  "914": "garra-rufa",
-  "915": "tanichthys-micagemmae",
-  "916": "microrasbora-rubescens",
-  "917": "melanotaenia-splendida",
-  "918": "scatophagus-tetracanthus",
-  "919": "selenotoca-multifasciata",
-  "920": "potamotrygon-leopoldi",
-  "921": "scleropages-jardinii",
-  "922": "trichopodus-pectoralis",
-  "923": "marisa-cornuarietis",
-  "924": "pterophyllum-altum",
-  "925": "pterophyllum-leopoldi",
-  "926": "acanthicus-adonis",
-  "927": "ancistrus-dolichopterus",
-  "928": "baryancistrus-beggini",
-  "929": "hemiancistrus-subviridis",
-  "930": "hypancistrus-debilittera",
-  "931": "hypancistrus-inspector",
-  "932": "hypancistrus-seideli",
-  "933": "hypancistrus-sp-l333",
-  "934": "leporacanthicus-galaxias",
-  "935": "leporacanthicus-joselimai",
-  "936": "leporacanthicus-triactis",
-  "937": "panaqolus-albivermis",
-  "938": "panaque-armbrusteri",
-  "939": "panaque-cochliodon",
-  "940": "peckoltia-compta",
-  "941": "pseudacanthicus-leopardus",
-  "942": "pseudacanthicus-pirarara",
-  "943": "pterygoplichthys-gibbiceps",
-  "944": "pterygoplichthys-pardalis",
-  "945": "scobinancistrus-aureatus",
-  "946": "anatolichthys-anatoliae",
-  "947": "anatolichthys-danfordii",
-  "948": "anatolichthys-fontinalis",
-  "949": "anatolichthys-iconii",
-  "950": "anatolichthys-irregularis",
-  "951": "anatolichthys-maeandricus",
-  "952": "anatolichthys-marassantensis",
-  "953": "anatolichthys-meridionalis",
-  "954": "anatolichthys-saldae",
-  "955": "anatolichthys-splendens",
-  "956": "anatolichthys-sureyanus",
-  "957": "anatolichthys-transgrediens",
-  "958": "anatolichthys-villwocki",
-  "959": "aphanius-almiriensis",
-  "960": "aphanius-fasciatus",
-  "961": "kosswigichthys-asquamatus",
-  "962": "paraphanius-alexandri",
-  "963": "paraphanius-boulengeri",
-  "964": "paraphanius-mentoides",
-  "965": "paraphanius-orontis",
-  "966": "paraphanius-similis"
+  "1": "carassius-gibelio",
+  "2": "carassius-langsdorfii",
+  "3": "hypophthalmichthys-molitrix",
+  "4": "hypophthalmichthys-nobilis",
+  "5": "pseudorasbora-parva",
+  "6": "pterygoplichthys-disjunctivus-x-pardalis",
+  "7": "clarias-gariepinus",
+  "8": "clarias-sp",
+  "9": "coregonus-albula",
+  "10": "heteropneustes-fossilis",
+  "11": "oncorhynchus-mykiss",
+  "12": "salmo-trutta",
+  "13": "coptodon-zillii",
+  "14": "gambusia-holbrooki",
+  "15": "oreochromis-aureus",
+  "16": "planiliza-haematocheilus",
+  "17": "rhinogobius-sp",
+  "18": "cobitis-afifeae",
+  "19": "cobitis-aliyeae",
+  "20": "cobitis-anabelae",
+  "21": "cobitis-battalgilae",
+  "22": "cobitis-bilseli",
+  "23": "cobitis-dorademiri",
+  "24": "cobitis-elazigensis",
+  "25": "cobitis-emrei",
+  "26": "cobitis-erkakanae",
+  "27": "cobitis-evreni",
+  "28": "cobitis-fahireae",
+  "29": "cobitis-indus",
+  "30": "cobitis-joergbohleni",
+  "31": "cobitis-kellei",
+  "32": "cobitis-phrygica",
+  "33": "cobitis-pirii",
+  "34": "cobitis-pontica",
+  "35": "cobitis-puncticulata",
+  "36": "cobitis-saniae",
+  "37": "cobitis-satunini",
+  "38": "cobitis-simplicispina",
+  "39": "cobitis-sipahilerae",
+  "40": "cobitis-splendens",
+  "41": "cobitis-strumicae",
+  "42": "cobitis-troasensis",
+  "43": "cobitis-turcica",
+  "44": "sabanejewia-aurata",
+  "45": "oxynoemacheilus-amanos",
+  "46": "oxynoemacheilus-anatolicus",
+  "47": "oxynoemacheilus-angorae",
+  "48": "oxynoemacheilus-araxensis",
+  "49": "oxynoemacheilus-argyrogramma",
+  "50": "oxynoemacheilus-arsaniasus",
+  "51": "oxynoemacheilus-axylos",
+  "52": "oxynoemacheilus-banarescui",
+  "53": "oxynoemacheilus-bergianus",
+  "54": "oxynoemacheilus-brandtii",
+  "55": "oxynoemacheilus-cemali",
+  "56": "oxynoemacheilus-ceyhanensis",
+  "57": "oxynoemacheilus-chaboras",
+  "58": "oxynoemacheilus-ciceki",
+  "59": "oxynoemacheilus-cilicicus",
+  "60": "oxynoemacheilus-cyri",
+  "61": "oxynoemacheilus-eliasi",
+  "62": "oxynoemacheilus-elsae",
+  "63": "oxynoemacheilus-ercisianus",
+  "64": "oxynoemacheilus-eregliensis",
+  "65": "oxynoemacheilus-euphraticus",
+  "66": "oxynoemacheilus-evreni",
+  "67": "oxynoemacheilus-fatmae",
+  "68": "oxynoemacheilus-fatsaensis",
+  "69": "oxynoemacheilus-frenatus",
+  "70": "oxynoemacheilus-germencicus",
+  "71": "oxynoemacheilus-hamwii",
+  "72": "oxynoemacheilus-hazarensis",
+  "73": "oxynoemacheilus-isauricus",
+  "74": "oxynoemacheilus-kaynaki",
+  "75": "oxynoemacheilus-kentritensis",
+  "76": "oxynoemacheilus-kottelati",
+  "77": "oxynoemacheilus-marmaraensis",
+  "78": "oxynoemacheilus-marunensis",
+  "79": "oxynoemacheilus-mediterraneus",
+  "80": "oxynoemacheilus-muefiti",
+  "81": "oxynoemacheilus-namiri",
+  "82": "oxynoemacheilus-nasreddini",
+  "83": "oxynoemacheilus-paucilepis",
+  "84": "oxynoemacheilus-sarali",
+  "85": "oxynoemacheilus-sarus",
+  "86": "oxynoemacheilus-seyhanensis",
+  "87": "oxynoemacheilus-seyhanicola",
+  "88": "oxynoemacheilus-simavicus",
+  "89": "oxynoemacheilus-theophilii",
+  "90": "oxynoemacheilus-tigris",
+  "91": "oxynoemacheilus-veyselorum",
+  "92": "paracobitis-salihae",
+  "93": "paracobitis-zabgawraensis",
+  "94": "schistura-chrysicristinae",
+  "95": "seminemacheilus-ahmeti",
+  "96": "seminemacheilus-attalicus",
+  "97": "seminemacheilus-ekmekciae",
+  "98": "seminemacheilus-ispartensis",
+  "99": "seminemacheilus-lendlii",
+  "100": "seminemacheilus-tubae",
+  "101": "turcinoemacheilus-ekmekciae",
+  "102": "turcinoemacheilus-kosswigi",
+  "103": "turcinoemacheilus-minimus",
+  "104": "arabibarbus-grypus",
+  "105": "barbus-anatolicus",
+  "106": "barbus-cyclolepis",
+  "107": "barbus-cyri",
+  "108": "barbus-escherichii",
+  "109": "barbus-ida",
+  "110": "barbus-lacerta",
+  "111": "barbus-niluferensis",
+  "112": "barbus-pergamonensis",
+  "113": "barbus-rionicus",
+  "114": "barbus-tauricus",
+  "115": "barbus-xanthos",
+  "116": "capoeta-antalyensis",
+  "117": "capoeta-aydinensis",
+  "118": "capoeta-banarescui",
+  "119": "capoeta-barroisi",
+  "120": "capoeta-bergamae",
+  "121": "capoeta-caelestis",
+  "122": "capoeta-capoeta",
+  "123": "capoeta-damascina",
+  "124": "capoeta-erhani",
+  "125": "capoeta-kaput",
+  "126": "capoeta-oguzelii",
+  "127": "capoeta-pestai",
+  "128": "capoeta-sieboldii",
+  "129": "capoeta-tinca",
+  "130": "capoeta-trutta",
+  "131": "carasobarbus-chantrei",
+  "132": "carasobarbus-kosswigi",
+  "133": "carasobarbus-luteus",
+  "134": "carassius-carassius",
+  "135": "cyprinion-kais",
+  "136": "cyprinion-macrostomum",
+  "137": "cyprinus-carpio",
+  "138": "garra-caudomaculata",
+  "139": "garra-culiciphaga",
+  "140": "garra-kemali",
+  "141": "garra-klatti",
+  "142": "garra-orontesi",
+  "143": "garra-rezai",
+  "144": "garra-turcica",
+  "145": "garra-variabilis",
+  "146": "luciobarbus-capito",
+  "147": "luciobarbus-esocinus",
+  "148": "abramis-brama",
+  "149": "gobio-artvinicus",
+  "150": "gobio-baliki",
+  "151": "gobio-bulgaricus",
+  "152": "gobio-fahrettini",
+  "153": "gobio-gymnostethus",
+  "154": "gobio-hettitorum",
+  "155": "gobio-insuyanus",
+  "156": "gobio-intermedius",
+  "157": "gobio-kizilirmakensis",
+  "158": "gobio-kovatschevi",
+  "159": "gobio-maeandricus",
+  "160": "gobio-microlepidotus",
+  "161": "gobio-sakaryaensis",
+  "162": "luciobarbus-graecus",
+  "163": "luciobarbus-mursa",
+  "164": "luciobarbus-pectoralis",
+  "165": "luciobarbus-schejch",
+  "166": "luciobarbus-subquincunciatus",
+  "167": "rhodeus-amarus",
+  "168": "rhodeus-tugbae",
+  "169": "romanogobio-macropterus",
+  "170": "acanthobrama-centisquama",
+  "171": "acanthobrama-marmid",
+  "172": "acanthobrama-orontis",
+  "173": "acanthobrama-punctulata",
+  "174": "acanthobrama-thisbeae",
+  "175": "alburnoides-coskuncelebii",
+  "176": "alburnoides-diclensis",
+  "177": "alburnoides-eichwaldii",
+  "178": "alburnoides-emineae",
+  "179": "alburnoides-fasciatus",
+  "180": "alburnoides-freyhofi",
+  "181": "alburnoides-kosswigi",
+  "182": "alburnoides-kurui",
+  "183": "alburnoides-manyasensis",
+  "184": "alburnoides-petrubanarescui",
+  "185": "alburnoides-smyrnae",
+  "186": "alburnoides-turani",
+  "187": "alburnoides-tzanevi",
+  "188": "alburnoides-velioglui",
+  "189": "alburnus-adanensis",
+  "190": "alburnus-akili",
+  "191": "alburnus-alburnus",
+  "192": "alburnus-atropatenae",
+  "193": "alburnus-baliki",
+  "194": "alburnus-caeruleus",
+  "195": "alburnus-carianorum",
+  "196": "alburnus-demiri",
+  "197": "alburnus-derjugini",
+  "198": "alburnus-escherichii",
+  "199": "alburnus-filippii",
+  "200": "alburnus-goekhani",
+  "201": "alburnus-hohenackeri",
+  "202": "alburnus-kotschyi",
+  "203": "alburnus-kurui",
+  "204": "alburnus-magnificus",
+  "205": "alburnus-orontis",
+  "206": "alburnus-sellal",
+  "207": "alburnus-tarichi",
+  "208": "alburnus-timarensis",
+  "209": "blicca-bjoerkna",
+  "210": "chondrostoma-beysehirense",
+  "211": "chondrostoma-ceyhanense",
+  "212": "chondrostoma-colchicum",
+  "213": "chondrostoma-cyri",
+  "214": "chondrostoma-holmwoodii",
+  "215": "chondrostoma-kinzelbachi",
+  "216": "chondrostoma-meandrense",
+  "217": "chondrostoma-nasus",
+  "218": "chondrostoma-regium",
+  "219": "chondrostoma-toros",
+  "220": "chondrostoma-turnai",
+  "221": "chondrostoma-vardarense",
+  "222": "egirdira-nigra",
+  "223": "ladigesocypris-ghigii",
+  "224": "leucalburnus-satunini",
+  "225": "leucaspius-delineatus",
+  "226": "leuciscus-aspius",
+  "227": "leuciscus-vorax",
+  "228": "petroleuciscus-borysthenicus",
+  "229": "petroleuciscus-ninae",
+  "230": "petroleuciscus-smyrnaeus",
+  "231": "phoxinus-abanticus",
+  "232": "phoxinus-colchicus",
+  "233": "phoxinus-kottelati",
+  "234": "phoxinus-radeki",
+  "235": "phoxinus-strandjae",
+  "236": "pseudophoxinus-alii",
+  "237": "pseudophoxinus-anatolicus",
+  "238": "pseudophoxinus-antalyae",
+  "239": "pseudophoxinus-battalgilae",
+  "240": "pseudophoxinus-burduricus",
+  "241": "pseudophoxinus-cilicicus",
+  "242": "pseudophoxinus-crassus",
+  "243": "pseudophoxinus-elizavetae",
+  "244": "pseudophoxinus-evliyai",
+  "245": "pseudophoxinus-fahrettini",
+  "246": "pseudophoxinus-firati",
+  "247": "pseudophoxinus-handlirschi",
+  "248": "pseudophoxinus-hittitorum",
+  "249": "pseudophoxinus-iconii",
+  "250": "pseudophoxinus-libani",
+  "251": "pseudophoxinus-maeandri",
+  "252": "pseudophoxinus-maeandricus",
+  "253": "pseudophoxinus-mehmeti",
+  "254": "pseudophoxinus-ninae",
+  "255": "pseudophoxinus-turani",
+  "256": "pseudophoxinus-zekayi",
+  "257": "pseudophoxinus-zeregi",
+  "258": "rutilus-frisii",
+  "259": "rutilus-lacustris",
+  "260": "rutilus-rutilus",
+  "261": "scardinius-elmaliensis",
+  "262": "scardinius-erythrophthalmus",
+  "263": "squalius-agdamicus",
+  "264": "squalius-anatolicus",
+  "265": "squalius-aristotelis",
+  "266": "squalius-berak",
+  "267": "squalius-cappadocicus",
+  "268": "squalius-carinus",
+  "269": "squalius-cephalus",
+  "270": "squalius-cii",
+  "271": "squalius-fellowesii",
+  "272": "squalius-kosswigi",
+  "273": "squalius-kottelati",
+  "274": "squalius-lepidus",
+  "275": "squalius-orientalis",
+  "276": "squalius-orpheus",
+  "277": "squalius-pursakensis",
+  "278": "squalius-turcicus",
+  "279": "squalius-verepi",
+  "280": "acipenser-sturio",
+  "281": "alosa-agone",
+  "282": "alosa-immaculata",
+  "283": "alosa-maeotica",
+  "284": "alosa-tanaica",
+  "285": "anguilla-anguilla",
+  "286": "barilius-mesopotamicus",
+  "287": "clupeonella-cultriventris",
+  "288": "lampetra-lanceolata",
+  "289": "mystus-misrai",
+  "290": "mystus-pelusius",
+  "291": "petromyzon-marinus",
+  "292": "silurus-glanis",
+  "293": "silurus-triostegus",
+  "294": "sterletus-gueldenstaedtii",
+  "295": "sterletus-huso",
+  "296": "sterletus-nudiventris",
+  "297": "sterletus-persicus",
+  "298": "sterletus-stellatus",
+  "299": "tinca-tinca",
+  "300": "turcichondrostoma-fahirae",
+  "301": "vimba-vimba",
+  "302": "esox-lucius",
+  "303": "glyptothorax-armeniacus",
+  "304": "glyptothorax-cous",
+  "305": "glyptothorax-daemon",
+  "306": "glyptothorax-kurdistanicus",
+  "307": "glyptothorax-sardashtensis",
+  "308": "glyptothorax-steindachneri",
+  "309": "salmo-abanticus",
+  "310": "salmo-araxensis",
+  "311": "salmo-ardahanensis",
+  "312": "salmo-baliki",
+  "313": "salmo-brunoi",
+  "314": "salmo-chilo",
+  "315": "salmo-ekmekciae",
+  "316": "salmo-emireae",
+  "317": "salmo-euphrataeus",
+  "318": "salmo-fahrettini",
+  "319": "salmo-kottelati",
+  "320": "salmo-labecula",
+  "321": "salmo-labrax",
+  "322": "salmo-munzuricus",
+  "323": "salmo-murathani",
+  "324": "atherina-pontica",
+  "325": "babka-gymnotrachelus",
+  "326": "knipowitschia-byblisia",
+  "327": "knipowitschia-caucasica",
+  "328": "knipowitschia-caunosi",
+  "329": "knipowitschia-mermere",
+  "330": "knipowitschia-ricasolii",
+  "331": "mesogobius-batrachocephalus",
+  "332": "neogobius-fluviatilis",
+  "333": "neogobius-melanostomus",
+  "334": "ponticola-constructor",
+  "335": "ponticola-cyrius",
+  "336": "ponticola-rizensis",
+  "337": "proterorhinus-semilunaris",
+  "338": "salmo-okumusi",
+  "339": "salmo-opimus",
+  "340": "salmo-platycephalus",
+  "341": "salmo-rizeensis",
+  "342": "salmo-sengulae",
+  "343": "salmo-sp",
+  "344": "salmo-tigridis",
+  "345": "syngnathus-nigrolineatus",
+  "346": "chelon-auratus",
+  "347": "chelon-labrosus",
+  "348": "chelon-ramada",
+  "349": "chelon-saliens",
+  "350": "dicentrarchus-labrax",
+  "351": "gasterosteus-aculeatus",
+  "352": "gymnocephalus-cernua",
+  "353": "mastacembelus-simack",
+  "354": "mugil-cephalus",
+  "355": "perca-fluviatilis",
+  "356": "planiliza-abu",
+  "357": "platichthys-flesus",
+  "358": "salariopsis-burcuae",
+  "359": "salariopsis-fluviatilis",
+  "360": "salariopsis-renatorum",
+  "361": "sander-lucioperca",
+  "362": "aulonocara-baenschi",
+  "363": "aulonocara-baenschi",
+  "364": "aulonocara-baenschi",
+  "365": "aulonocara-baenschi",
+  "366": "aulonocara-baenschi",
+  "367": "aulonocara-baenschi",
+  "368": "aulonocara-jacobfreibergi",
+  "369": "aulonocara-jacobfreibergi",
+  "370": "aulonocara-jacobfreibergi",
+  "371": "aulonocara-jacobfreibergi",
+  "372": "aulonocara-jacobfreibergi",
+  "373": "aulonocara-jacobfreibergi",
+  "374": "aulonocara-jacobfreibergi",
+  "375": "aulonocara-jacobfreibergi",
+  "376": "aulonocara-jacobfreibergi",
+  "377": "aulonocara-jacobfreibergi",
+  "378": "aulonocara-jacobfreibergi",
+  "379": "aulonocara-jacobfreibergi",
+  "380": "aulonocara-jacobfreibergi",
+  "381": "aulonocara-jacobfreibergi",
+  "382": "aulonocara-stuartgranti",
+  "383": "aulonocara-stuartgranti",
+  "384": "aulonocara-stuartgranti",
+  "385": "aulonocara-stuartgranti",
+  "386": "aulonocara-stuartgranti",
+  "387": "aulonocara-stuartgranti",
+  "388": "aulonocara-stuartgranti",
+  "389": "aulonocara-stuartgranti",
+  "390": "aulonocara-stuartgranti",
+  "391": "aulonocara-stuartgranti",
+  "392": "aulonocara-stuartgranti",
+  "393": "aulonocara-stuartgranti",
+  "394": "aulonocara-stuartgranti",
+  "395": "chindongo-demasoni",
+  "396": "copadichromis-borleyi",
+  "397": "copadichromis-borleyi",
+  "398": "copadichromis-borleyi",
+  "399": "copadichromis-borleyi",
+  "400": "copadichromis-borleyi",
+  "401": "copadichromis-borleyi",
+  "402": "copadichromis-borleyi",
+  "403": "copadichromis-borleyi",
+  "404": "copadichromis-borleyi",
+  "405": "copadichromis-borleyi",
+  "406": "copadichromis-borleyi",
+  "407": "cynotilapia-afra",
+  "408": "cynotilapia-afra",
+  "409": "cynotilapia-afra",
+  "410": "cynotilapia-afra",
+  "411": "cynotilapia-afra",
+  "412": "cynotilapia-afra",
+  "413": "cynotilapia-afra",
+  "414": "cynotilapia-afra",
+  "415": "cynotilapia-afra",
+  "416": "cynotilapia-afra",
+  "417": "dimidiochromis-compressiceps",
+  "418": "iodotropheus-sprengerae",
+  "419": "iodotropheus-sprengerae",
+  "420": "iodotropheus-sprengerae",
+  "421": "labeotropheus-fuelleborni",
+  "422": "labeotropheus-trewavasae",
+  "423": "labeotropheus-trewavasae",
+  "424": "labeotropheus-trewavasae",
+  "425": "labeotropheus-trewavasae",
+  "426": "labeotropheus-trewavasae",
+  "427": "labeotropheus-trewavasae",
+  "428": "labeotropheus-trewavasae",
+  "429": "labeotropheus-trewavasae",
+  "430": "labeotropheus-trewavasae",
+  "431": "labeotropheus-trewavasae",
+  "432": "labeotropheus-trewavasae",
+  "433": "labeotropheus-trewavasae",
+  "434": "labeotropheus-trewavasae",
+  "435": "labidochromis-caeruleus",
+  "436": "labidochromis-caeruleus",
+  "437": "labidochromis-caeruleus",
+  "438": "labidochromis-caeruleus",
+  "439": "labidochromis-caeruleus",
+  "440": "labidochromis-chisumulae",
+  "441": "pseudotropheus-cyaneorhabdos",
+  "442": "pseudotropheus-johannii",
+  "443": "metriaclima-estherae",
+  "444": "metriaclima-estherae",
+  "445": "metriaclima-estherae",
+  "446": "metriaclima-estherae",
+  "447": "metriaclima-greshakei",
+  "448": "metriaclima-greshakei",
+  "449": "metriaclima-lombardoi",
+  "450": "metriaclima-lombardoi",
+  "451": "otopharynx-lithobates",
+  "452": "otopharynx-lithobates",
+  "453": "otopharynx-lithobates",
+  "454": "otopharynx-lithobates",
+  "455": "otopharynx-lithobates",
+  "456": "otopharynx-lithobates",
+  "457": "otopharynx-lithobates",
+  "458": "placidochromis-electra",
+  "459": "placidochromis-electra",
+  "460": "placidochromis-electra",
+  "461": "placidochromis-electra",
+  "462": "placidochromis-electra",
+  "463": "protomelas-taeniolatus",
+  "464": "protomelas-taeniolatus",
+  "465": "protomelas-taeniolatus",
+  "466": "pseudotropheus-acei",
+  "467": "pseudotropheus-acei",
+  "468": "pseudotropheus-elongatus",
+  "469": "pseudotropheus-elongatus",
+  "470": "pseudotropheus-elongatus",
+  "471": "pseudotropheus-socolofi",
+  "472": "pseudotropheus-socolofi",
+  "473": "pseudotropheus-tropheops",
+  "474": "sciaenochromis-fryeri",
+  "475": "sciaenochromis-fryeri",
+  "476": "metriaclima-callainos",
+  "477": "metriaclima-callainos",
+  "478": "altolamprologus-calvus",
+  "479": "altolamprologus-calvus",
+  "480": "altolamprologus-calvus",
+  "481": "altolamprologus-calvus",
+  "482": "altolamprologus-calvus",
+  "483": "altolamprologus-calvus",
+  "484": "callochromis-macrops",
+  "485": "cyathopharynx-furcifer",
+  "486": "cyathopharynx-furcifer",
+  "487": "cyathopharynx-furcifer",
+  "488": "cyathopharynx-furcifer",
+  "489": "cyathopharynx-furcifer",
+  "490": "cyathopharynx-furcifer",
+  "491": "cyathopharynx-furcifer",
+  "492": "cyathopharynx-furcifer",
+  "493": "cyathopharynx-furcifer",
+  "494": "cyathopharynx-furcifer",
+  "495": "cyathopharynx-furcifer",
+  "496": "cyathopharynx-furcifer",
+  "497": "cyathopharynx-furcifer",
+  "498": "cyathopharynx-furcifer",
+  "499": "cyathopharynx-furcifer",
+  "500": "cyathopharynx-furcifer",
+  "501": "cyphotilapia-frontosa",
+  "502": "cyphotilapia-frontosa",
+  "503": "cyphotilapia-frontosa",
+  "504": "cyphotilapia-frontosa",
+  "505": "cyphotilapia-frontosa",
+  "506": "cyphotilapia-frontosa",
+  "507": "cyprichromis-leptosoma",
+  "508": "cyprichromis-leptosoma",
+  "509": "cyprichromis-leptosoma",
+  "510": "cyprichromis-leptosoma",
+  "511": "cyprichromis-leptosoma",
+  "512": "cyprichromis-microlepidotus",
+  "513": "cyprichromis-microlepidotus",
+  "514": "cyprichromis-microlepidotus",
+  "515": "cyprichromis-microlepidotus",
+  "516": "cyprichromis-microlepidotus",
+  "517": "cyprichromis-microlepidotus",
+  "518": "cyprichromis-microlepidotus",
+  "519": "cyprichromis-pavo",
+  "520": "cyprichromis-pavo",
+  "521": "cyprichromis-pavo",
+  "522": "ectodus-descampsii",
+  "523": "eretmodus-cyanostictus",
+  "524": "eretmodus-cyanostictus",
+  "525": "eretmodus-cyanostictus",
+  "526": "eretmodus-cyanostictus",
+  "527": "eretmodus-cyanostictus",
+  "528": "eretmodus-cyanostictus",
+  "529": "eretmodus-cyanostictus",
+  "530": "eretmodus-cyanostictus",
+  "531": "eretmodus-cyanostictus",
+  "532": "eretmodus-cyanostictus",
+  "533": "eretmodus-cyanostictus",
+  "534": "julidochromis-dickfeldi",
+  "535": "julidochromis-marlieri",
+  "536": "julidochromis-marlieri",
+  "537": "julidochromis-marlieri",
+  "538": "julidochromis-marlieri",
+  "539": "julidochromis-ornatus",
+  "540": "julidochromis-ornatus",
+  "541": "julidochromis-ornatus",
+  "542": "julidochromis-ornatus",
+  "543": "julidochromis-ornatus",
+  "544": "julidochromis-regani",
+  "545": "julidochromis-regani",
+  "546": "julidochromis-regani",
+  "547": "julidochromis-regani",
+  "548": "julidochromis-regani",
+  "549": "julidochromis-regani",
+  "550": "julidochromis-regani",
+  "551": "julidochromis-regani",
+  "552": "julidochromis-regani",
+  "553": "julidochromis-regani",
+  "554": "julidochromis-regani",
+  "555": "julidochromis-regani",
+  "556": "julidochromis-regani",
+  "557": "julidochromis-transcriptus",
+  "558": "julidochromis-transcriptus",
+  "559": "julidochromis-transcriptus",
+  "560": "julidochromis-transcriptus",
+  "561": "neolamprologus-brevis",
+  "562": "neolamprologus-brevis",
+  "563": "neolamprologus-brevis",
+  "564": "neolamprologus-brevis",
+  "565": "neolamprologus-brevis",
+  "566": "neolamprologus-brevis",
+  "567": "neolamprologus-brichardi",
+  "568": "neolamprologus-brichardi",
+  "569": "neolamprologus-brichardi",
+  "570": "neolamprologus-brichardi",
+  "571": "neolamprologus-brichardi",
+  "572": "neolamprologus-brichardi",
+  "573": "neolamprologus-brichardi",
+  "574": "neolamprologus-brichardi",
+  "575": "neolamprologus-brichardi",
+  "576": "neolamprologus-caudopunctatus",
+  "577": "neolamprologus-caudopunctatus",
+  "578": "neolamprologus-caudopunctatus",
+  "579": "neolamprologus-caudopunctatus",
+  "580": "neolamprologus-caudopunctatus",
+  "581": "neolamprologus-cylindricus",
+  "582": "neolamprologus-cylindricus",
+  "583": "neolamprologus-cylindricus",
+  "584": "neolamprologus-leleupi",
+  "585": "neolamprologus-leleupi",
+  "586": "neolamprologus-leleupi",
+  "587": "neolamprologus-leleupi",
+  "588": "neolamprologus-leleupi",
+  "589": "neolamprologus-leleupi",
+  "590": "neolamprologus-leleupi",
+  "591": "neolamprologus-leleupi",
+  "592": "neolamprologus-leleupi",
+  "593": "neolamprologus-leleupi",
+  "594": "neolamprologus-leleupi",
+  "595": "neolamprologus-leleupi",
+  "596": "neolamprologus-leleupi",
+  "597": "neolamprologus-multifasciatus",
+  "598": "neolamprologus-multifasciatus",
+  "599": "neolamprologus-multifasciatus",
+  "600": "neolamprologus-ocellatus",
+  "601": "neolamprologus-ocellatus",
+  "602": "neolamprologus-ocellatus",
+  "603": "neolamprologus-ornatipinnis",
+  "604": "neolamprologus-similis",
+  "605": "neolamprologus-tretocephalus",
+  "606": "neolamprologus-tretocephalus",
+  "607": "ophthalmotilapia-nasuta",
+  "608": "ophthalmotilapia-nasuta",
+  "609": "ophthalmotilapia-nasuta",
+  "610": "ophthalmotilapia-nasuta",
+  "611": "ophthalmotilapia-nasuta",
+  "612": "ophthalmotilapia-nasuta",
+  "613": "ophthalmotilapia-nasuta",
+  "614": "ophthalmotilapia-nasuta",
+  "615": "ophthalmotilapia-ventralis",
+  "616": "ophthalmotilapia-ventralis",
+  "617": "ophthalmotilapia-ventralis",
+  "618": "ophthalmotilapia-ventralis",
+  "619": "ophthalmotilapia-ventralis",
+  "620": "ophthalmotilapia-ventralis",
+  "621": "ophthalmotilapia-ventralis",
+  "622": "ophthalmotilapia-ventralis",
+  "623": "ophthalmotilapia-ventralis",
+  "624": "ophthalmotilapia-ventralis",
+  "625": "ophthalmotilapia-ventralis",
+  "626": "ophthalmotilapia-ventralis",
+  "627": "ophthalmotilapia-ventralis",
+  "628": "ophthalmotilapia-ventralis",
+  "629": "ophthalmotilapia-ventralis",
+  "630": "ophthalmotilapia-ventralis",
+  "631": "ophthalmotilapia-ventralis",
+  "632": "ophthalmotilapia-ventralis",
+  "633": "paracyprichromis-brieni",
+  "634": "paracyprichromis-brieni",
+  "635": "paracyprichromis-brieni",
+  "636": "paracyprichromis-brieni",
+  "637": "paracyprichromis-brieni",
+  "638": "paracyprichromis-brieni",
+  "639": "paracyprichromis-nigripinnis",
+  "640": "paracyprichromis-nigripinnis",
+  "641": "paracyprichromis-nigripinnis",
+  "642": "paracyprichromis-nigripinnis",
+  "643": "petrochromis-famula",
+  "644": "petrochromis-trewavasae",
+  "645": "spathodus-erythrodon",
+  "646": "tanganicodus-irsacae",
+  "647": "tanganicodus-irsacae",
+  "648": "tanganicodus-irsacae",
+  "649": "tropheus-moorii",
+  "650": "tropheus-moorii",
+  "651": "tropheus-moorii",
+  "652": "tropheus-moorii",
+  "653": "tropheus-moorii",
+  "654": "tropheus-moorii",
+  "655": "xenotilapia-flavipinnis",
+  "656": "xenotilapia-flavipinnis",
+  "657": "xenotilapia-flavipinnis",
+  "658": "xenotilapia-flavipinnis",
+  "659": "xenotilapia-flavipinnis",
+  "660": "xenotilapia-ochrogenys",
+  "661": "xenotilapia-papilio",
+  "662": "xenotilapia-papilio",
+  "663": "tropheus-duboisi",
+  "664": "tropheus-duboisi",
+  "665": "acarichthys-heckelii",
+  "666": "andinoacara-pulcher",
+  "667": "andinoacara-pulcher",
+  "668": "andinoacara-rivulatus",
+  "669": "apistogramma-agassizii",
+  "670": "apistogramma-agassizii",
+  "671": "apistogramma-agassizii",
+  "672": "apistogramma-agassizii",
+  "673": "apistogramma-agassizii",
+  "674": "apistogramma-agassizii",
+  "675": "apistogramma-agassizii",
+  "676": "apistogramma-bitaeniata",
+  "677": "apistogramma-borellii",
+  "678": "apistogramma-borellii",
+  "679": "apistogramma-borellii",
+  "680": "apistogramma-cacatuoides",
+  "681": "apistogramma-cacatuoides",
+  "682": "apistogramma-cacatuoides",
+  "683": "apistogramma-cacatuoides",
+  "684": "apistogramma-cacatuoides",
+  "685": "apistogramma-macmasteri",
+  "686": "apistogramma-macmasteri",
+  "687": "apistogramma-mendezi",
+  "688": "astronotus-ocellatus",
+  "689": "astronotus-ocellatus",
+  "690": "astronotus-ocellatus",
+  "691": "astronotus-ocellatus",
+  "692": "astronotus-ocellatus",
+  "693": "astronotus-ocellatus",
+  "694": "biotodoma-cupido",
+  "695": "biotodoma-cupido",
+  "696": "cleithracara-maronii",
+  "697": "crenicichla-regani",
+  "698": "geophagus-altifrons",
+  "699": "geophagus-altifrons",
+  "700": "geophagus-altifrons",
+  "701": "geophagus-altifrons",
+  "702": "geophagus-altifrons",
+  "703": "geophagus-altifrons",
+  "704": "geophagus-altifrons",
+  "705": "geophagus-brasiliensis",
+  "706": "heros-efasciatus",
+  "707": "heros-efasciatus",
+  "708": "heros-efasciatus",
+  "709": "mikrogeophagus-ramirezi",
+  "710": "mikrogeophagus-ramirezi",
+  "711": "mikrogeophagus-ramirezi",
+  "712": "mikrogeophagus-ramirezi",
+  "713": "mikrogeophagus-ramirezi",
+  "714": "pterophyllum-scalare",
+  "715": "pterophyllum-scalare",
+  "716": "pterophyllum-scalare",
+  "717": "pterophyllum-scalare",
+  "718": "pterophyllum-scalare",
+  "719": "pterophyllum-scalare",
+  "720": "pterophyllum-scalare",
+  "721": "pterophyllum-scalare",
+  "722": "pterophyllum-scalare",
+  "723": "pterophyllum-scalare",
+  "724": "satanoperca-jurupari",
+  "725": "symphysodon-aequifasciatus",
+  "726": "symphysodon-aequifasciatus",
+  "727": "symphysodon-aequifasciatus",
+  "728": "symphysodon-aequifasciatus",
+  "729": "symphysodon-aequifasciatus",
+  "730": "symphysodon-aequifasciatus",
+  "731": "symphysodon-aequifasciatus",
+  "732": "symphysodon-aequifasciatus",
+  "733": "uaru-amphiacanthoides",
+  "734": "amatitlania-nigrofasciata",
+  "735": "amatitlania-nigrofasciata",
+  "736": "amphilophus-citrinellus",
+  "737": "amphilophus-trimaculatus",
+  "738": "herichthys-carpintis",
+  "739": "herichthys-carpintis",
+  "740": "rocio-octofasciata",
+  "741": "thorichthys-meeki",
+  "742": "pelvicachromis-pulcher",
+  "743": "pelvicachromis-taeniatus",
+  "744": "pelvicachromis-taeniatus",
+  "745": "pelvicachromis-taeniatus",
+  "746": "pelvicachromis-taeniatus",
+  "747": "pelvicachromis-taeniatus",
+  "748": "pelvicachromis-kribensis",
+  "749": "pelvicachromis-kribensis",
+  "750": "girardinus-metallicus",
+  "751": "micropoecilia-picta",
+  "752": "micropoecilia-picta",
+  "753": "poecilia-latipinna",
+  "754": "poecilia-latipinna",
+  "755": "poecilia-latipinna",
+  "756": "poecilia-latipinna",
+  "757": "poecilia-reticulata",
+  "758": "poecilia-reticulata",
+  "759": "poecilia-reticulata",
+  "760": "poecilia-reticulata",
+  "761": "poecilia-reticulata",
+  "762": "poecilia-reticulata",
+  "763": "poecilia-reticulata",
+  "764": "poecilia-reticulata",
+  "765": "poecilia-sphenops",
+  "766": "poecilia-sphenops",
+  "767": "poecilia-sphenops",
+  "768": "poecilia-sphenops",
+  "769": "poecilia-sphenops",
+  "770": "poecilia-wingei",
+  "771": "poecilia-wingei",
+  "772": "poecilia-wingei",
+  "773": "poecilia-wingei",
+  "774": "poecilia-wingei",
+  "775": "poecilia-wingei",
+  "776": "xenotoca-eiseni",
+  "777": "xiphophorus-cortezi",
+  "778": "xiphophorus-hellerii",
+  "779": "xiphophorus-hellerii",
+  "780": "xiphophorus-hellerii",
+  "781": "xiphophorus-hellerii",
+  "782": "xiphophorus-hellerii",
+  "783": "xiphophorus-hellerii",
+  "784": "xiphophorus-hellerii",
+  "785": "xiphophorus-hellerii",
+  "786": "xiphophorus-hellerii",
+  "787": "xiphophorus-hellerii",
+  "788": "xiphophorus-hellerii",
+  "789": "xiphophorus-hellerii",
+  "790": "xiphophorus-hellerii",
+  "791": "xiphophorus-maculatus",
+  "792": "xiphophorus-maculatus",
+  "793": "xiphophorus-maculatus",
+  "794": "xiphophorus-maculatus",
+  "795": "xiphophorus-maculatus",
+  "796": "xiphophorus-variatus",
+  "797": "xiphophorus-variatus",
+  "798": "xiphophorus-variatus",
+  "799": "xiphophorus-variatus",
+  "800": "xiphophorus-variatus",
+  "801": "xiphophorus-variatus",
+  "802": "xiphophorus-variatus",
+  "803": "xiphophorus-variatus",
+  "804": "betta-splendens",
+  "805": "betta-splendens",
+  "806": "betta-splendens",
+  "807": "betta-splendens",
+  "808": "betta-splendens",
+  "809": "betta-splendens",
+  "810": "betta-splendens",
+  "811": "betta-splendens",
+  "812": "betta-splendens",
+  "813": "betta-splendens",
+  "814": "betta-splendens",
+  "815": "helostoma-temminckii",
+  "816": "helostoma-temminckii",
+  "817": "macropodus-opercularis",
+  "818": "macropodus-opercularis",
+  "819": "macropodus-spechti",
+  "820": "osphronemus-goramy",
+  "821": "osphronemus-goramy",
+  "822": "trichogaster-chuna",
+  "823": "trichogaster-chuna",
+  "824": "trichogaster-labiosa",
+  "825": "trichogaster-labiosa",
+  "826": "trichogaster-lalius",
+  "827": "trichogaster-lalius",
+  "828": "trichogaster-lalius",
+  "829": "trichopodus-trichopterus",
+  "830": "trichopodus-trichopterus",
+  "831": "trichopodus-trichopterus",
+  "832": "trichopodus-trichopterus",
+  "833": "gymnocorymbus-ternetzi",
+  "834": "gymnocorymbus-ternetzi",
+  "835": "gymnocorymbus-ternetzi",
+  "836": "hemigrammus-erythrozonus",
+  "837": "hemigrammus-erythrozonus",
+  "838": "hyphessobrycon-eques",
+  "839": "hyphessobrycon-flammeus",
+  "840": "hyphessobrycon-pulchripinnis",
+  "841": "hyphessobrycon-sweglesi",
+  "842": "inpaichthys-kerri",
+  "843": "paracheirodon-axelrodi",
+  "844": "paracheirodon-innesi",
+  "845": "paracheirodon-innesi",
+  "846": "paracheirodon-innesi",
+  "847": "paracheirodon-innesi",
+  "848": "phenacogrammus-interruptus",
+  "849": "carnegiella-strigata",
+  "850": "gasteropelecus-sternicla",
+  "851": "danio-rerio",
+  "852": "danio-rerio",
+  "853": "danio-rerio",
+  "854": "danio-rerio",
+  "855": "danio-rerio",
+  "856": "trigonostigma-heteromorpha",
+  "857": "trigonostigma-heteromorpha",
+  "858": "danio-kyathit",
+  "859": "danio-kyathit",
+  "860": "epalzeorhynchos-frenatum",
+  "861": "pethia-conchonius",
+  "862": "pethia-conchonius",
+  "863": "puntigrus-tetrazona",
+  "864": "puntigrus-tetrazona",
+  "865": "puntigrus-tetrazona",
+  "866": "puntius-titteya",
+  "867": "puntius-titteya",
+  "868": "sahyadria-denisonii",
+  "869": "carassius-auratus",
+  "870": "carassius-auratus",
+  "871": "carassius-auratus",
+  "872": "carassius-auratus",
+  "873": "carassius-auratus",
+  "874": "carassius-auratus",
+  "875": "carassius-auratus",
+  "876": "carassius-auratus",
+  "877": "carassius-auratus",
+  "878": "carassius-auratus",
+  "879": "misgurnus-anguillicaudatus",
+  "880": "ancistrus-sp",
+  "881": "ancistrus-sp",
+  "882": "ancistrus-sp",
+  "883": "ancistrus-sp",
+  "884": "baryancistrus-xanthellus",
+  "885": "baryancistrus-xanthellus",
+  "886": "baryancistrus-xanthellus",
+  "887": "corydoras-aeneus",
+  "888": "corydoras-aeneus",
+  "889": "corydoras-aeneus",
+  "890": "corydoras-paleatus",
+  "891": "corydoras-paleatus",
+  "892": "corydoras-trilineatus",
+  "893": "hypancistrus-contradens",
+  "894": "rineloricaria-lanceolata",
+  "895": "pseudacanthicus-leopardus",
+  "896": "aphyosemion-australe",
+  "897": "aphyosemion-australe",
+  "898": "aphyosemion-bitaeniatum",
+  "899": "aphyosemion-bitaeniatum",
+  "900": "aphyosemion-bivittatum",
+  "901": "aplocheilus-lineatus",
+  "902": "aplocheilus-lineatus",
+  "903": "fundulopanchax-filamentosus",
+  "904": "fundulopanchax-gardneri",
+  "905": "fundulopanchax-gardneri",
+  "906": "fundulopanchax-gardneri",
+  "907": "fundulopanchax-gardneri",
+  "908": "fundulopanchax-gardneri",
+  "909": "fundulopanchax-gardneri",
+  "910": "fundulopanchax-gardneri",
+  "911": "fundulopanchax-gardneri",
+  "912": "fundulopanchax-gardneri",
+  "913": "fundulopanchax-sjoestedti",
+  "914": "nothobranchius-eggersi",
+  "915": "nothobranchius-furzeri",
+  "916": "nothobranchius-furzeri",
+  "917": "nothobranchius-rachovii",
+  "918": "oryzias-latipes",
+  "919": "oryzias-latipes",
+  "920": "oryzias-latipes",
+  "921": "oryzias-latipes",
+  "922": "oryzias-latipes",
+  "923": "melanotaenia-trifasciata",
+  "924": "melanotaenia-trifasciata",
+  "925": "melanotaenia-trifasciata",
+  "926": "melanotaenia-trifasciata",
+  "927": "melanotaenia-trifasciata",
+  "928": "melanotaenia-trifasciata",
+  "929": "melanotaenia-trifasciata",
+  "930": "melanotaenia-trifasciata",
+  "931": "melanotaenia-trifasciata",
+  "932": "melanotaenia-trifasciata",
+  "933": "pseudomugil-gertrudae",
+  "934": "pseudomugil-signifer",
+  "935": "scatophagus-argus",
+  "936": "channa-asiatica",
+  "937": "apteronotus-albifrons",
+  "938": "apteronotus-leptorhynchus",
+  "939": "osteoglossum-bicirrhosum",
+  "940": "ambystoma-mexicanum",
+  "941": "hymenochirus-boettgeri",
+  "942": "xenopus-laevis",
+  "943": "caridina-cantonensis",
+  "944": "caridina-cantonensis",
+  "945": "caridina-cantonensis",
+  "946": "caridina-mariae",
+  "947": "neocaridina-davidi",
+  "948": "neocaridina-davidi",
+  "949": "neocaridina-davidi",
+  "950": "neocaridina-davidi",
+  "951": "neocaridina-davidi",
+  "952": "neocaridina-davidi",
+  "953": "neocaridina-davidi",
+  "954": "neocaridina-davidi",
+  "955": "cherax-alyciae",
+  "956": "cherax-peknyi",
+  "957": "cherax-snowden",
+  "958": "procambarus-alleni",
+  "959": "procambarus-clarkii",
+  "960": "procambarus-clarkii",
+  "961": "procambarus-clarkii",
+  "962": "amphiprion-ocellaris",
+  "963": "amphiprion-ocellaris",
+  "964": "amphiprion-ocellaris",
+  "965": "amphiprion-ocellaris",
+  "966": "amphiprion-ocellaris",
+  "967": "amphiprion-ocellaris",
+  "968": "amphiprion-percula",
+  "969": "amphiprion-percula",
+  "970": "amphiprion-percula"
  },
  "makale": {
   "M1": "beta-baligi-fanusta-yasar-mi-kucuk-kabin-ardindaki-buyuk-yanlis",
@@ -1051,69 +1055,2441 @@
   "M80": "banggai-cardinalfish-babasinin-agzinda-buyuyen-denize-larva-sacmayan-deniz-baligi"
  },
  "formlar": {
-  "38": [
-   "altolamprologus-compressiceps",
-   "Sumbu Shell"
+  "362": [
+   "aulonocara-baenschi",
+   "Usisya"
   ],
-  "160": [
-   "rocio-octofasciata",
-   "Electric Blue"
+  "363": [
+   "aulonocara-baenschi",
+   "Nkhomo Reef"
   ],
-  "327": [
-   "tanichthys-albonubes",
+  "364": [
+   "aulonocara-baenschi",
+   "Benga"
+  ],
+  "365": [
+   "aulonocara-baenschi",
+   "Maleri Adaları"
+  ],
+  "366": [
+   "aulonocara-baenschi",
+   "Chipoka"
+  ],
+  "367": [
+   "aulonocara-baenschi",
+   "Red-Orange"
+  ],
+  "368": [
+   "aulonocara-jacobfreibergi",
+   "Otter Point"
+  ],
+  "369": [
+   "aulonocara-jacobfreibergi",
+   "Undu Reef"
+  ],
+  "370": [
+   "aulonocara-jacobfreibergi",
+   "Cape Maclear"
+  ],
+  "371": [
+   "aulonocara-jacobfreibergi",
+   "Mumbo"
+  ],
+  "372": [
+   "aulonocara-jacobfreibergi",
+   "Domwe"
+  ],
+  "373": [
+   "aulonocara-jacobfreibergi",
+   "Monkey Bay"
+  ],
+  "374": [
+   "aulonocara-jacobfreibergi",
+   "Makokola Reef"
+  ],
+  "375": [
+   "aulonocara-jacobfreibergi",
+   "Chinyankhwazi"
+  ],
+  "376": [
+   "aulonocara-jacobfreibergi",
+   "Chinyamwezi"
+  ],
+  "377": [
+   "aulonocara-jacobfreibergi",
+   "Mpanga Rocks"
+  ],
+  "378": [
+   "aulonocara-jacobfreibergi",
+   "Namalenje"
+  ],
+  "379": [
+   "aulonocara-jacobfreibergi",
+   "Mphandikucha"
+  ],
+  "380": [
+   "aulonocara-jacobfreibergi",
+   "Eureka"
+  ],
+  "381": [
+   "aulonocara-jacobfreibergi",
+   "Albino"
+  ],
+  "382": [
+   "aulonocara-stuartgranti",
+   "Ngara"
+  ],
+  "383": [
+   "aulonocara-stuartgranti",
+   "Maulana"
+  ],
+  "384": [
+   "aulonocara-stuartgranti",
+   "Chitimba Bay"
+  ],
+  "385": [
+   "aulonocara-stuartgranti",
+   "Chilumba"
+  ],
+  "386": [
+   "aulonocara-stuartgranti",
+   "Usisya"
+  ],
+  "387": [
+   "aulonocara-stuartgranti",
+   "Undu Reef"
+  ],
+  "388": [
+   "aulonocara-stuartgranti",
+   "Mbowe Island"
+  ],
+  "389": [
+   "aulonocara-stuartgranti",
+   "Hai Reef"
+  ],
+  "390": [
+   "aulonocara-stuartgranti",
+   "Cobue"
+  ],
+  "391": [
+   "aulonocara-stuartgranti",
+   "OB Peacock"
+  ],
+  "392": [
+   "aulonocara-stuartgranti",
+   "Dragon Blood"
+  ],
+  "393": [
+   "aulonocara-stuartgranti",
+   "Strawberry"
+  ],
+  "394": [
+   "aulonocara-stuartgranti",
+   "Rubin Red"
+  ],
+  "395": [
+   "chindongo-demasoni",
+   "Pombo Rocks"
+  ],
+  "396": [
+   "copadichromis-borleyi",
+   "Kadango"
+  ],
+  "397": [
+   "copadichromis-borleyi",
+   "Nkhata Bay"
+  ],
+  "398": [
+   "copadichromis-borleyi",
+   "Mpanga Rocks"
+  ],
+  "399": [
+   "copadichromis-borleyi",
+   "Mbenji Adası"
+  ],
+  "400": [
+   "copadichromis-borleyi",
+   "Ipembi Rocks"
+  ],
+  "401": [
+   "copadichromis-borleyi",
+   "Tchulutcha Reef"
+  ],
+  "402": [
+   "copadichromis-borleyi",
+   "Crocodile Rocks"
+  ],
+  "403": [
+   "copadichromis-borleyi",
+   "Cape Ngombo"
+  ],
+  "404": [
+   "copadichromis-borleyi",
+   "Nkhungu Reef"
+  ],
+  "405": [
+   "copadichromis-borleyi",
+   "Tawain Reef"
+  ],
+  "406": [
+   "copadichromis-borleyi",
+   "Kırmızı / sarı yüzgeçli formlar"
+  ],
+  "407": [
+   "cynotilapia-afra",
+   "Cobue"
+  ],
+  "408": [
+   "cynotilapia-afra",
+   "Jalo Reef"
+  ],
+  "409": [
+   "cynotilapia-afra",
+   "Lupingu"
+  ],
+  "410": [
+   "cynotilapia-afra",
+   "Likoma"
+  ],
+  "411": [
+   "cynotilapia-afra",
+   "Nkhata Bay"
+  ],
+  "412": [
+   "cynotilapia-afra",
+   "Mbenji"
+  ],
+  "413": [
+   "cynotilapia-afra",
+   "Chitande"
+  ],
+  "414": [
+   "cynotilapia-afra",
+   "Minos Reef"
+  ],
+  "415": [
+   "cynotilapia-afra",
+   "Metangula"
+  ],
+  "416": [
+   "cynotilapia-afra",
+   "Ndumbi"
+  ],
+  "417": [
+   "dimidiochromis-compressiceps",
+   "Albino"
+  ],
+  "418": [
+   "iodotropheus-sprengerae",
+   "Boadzulu"
+  ],
+  "419": [
+   "iodotropheus-sprengerae",
+   "Chinyankwazi"
+  ],
+  "420": [
+   "iodotropheus-sprengerae",
+   "Chinyamwezi"
+  ],
+  "421": [
+   "labeotropheus-fuelleborni",
+   "OB / Marmalade Cat"
+  ],
+  "422": [
+   "labeotropheus-trewavasae",
+   "Thumbi West"
+  ],
+  "423": [
+   "labeotropheus-trewavasae",
+   "Masinje Rocks"
+  ],
+  "424": [
+   "labeotropheus-trewavasae",
+   "Maleri"
+  ],
+  "425": [
+   "labeotropheus-trewavasae",
+   "Namalenje"
+  ],
+  "426": [
+   "labeotropheus-trewavasae",
+   "Mumbo"
+  ],
+  "427": [
+   "labeotropheus-trewavasae",
+   "Nankoma"
+  ],
+  "428": [
+   "labeotropheus-trewavasae",
+   "Zimbabwe Rock"
+  ],
+  "429": [
+   "labeotropheus-trewavasae",
+   "Boadzulu"
+  ],
+  "430": [
+   "labeotropheus-trewavasae",
+   "Nakantenga"
+  ],
+  "431": [
+   "labeotropheus-trewavasae",
+   "Lion's Cove – Chitande"
+  ],
+  "432": [
+   "labeotropheus-trewavasae",
+   "Chirombo Point – Nkhata Bay"
+  ],
+  "433": [
+   "labeotropheus-trewavasae",
+   "Red Top"
+  ],
+  "434": [
+   "labeotropheus-trewavasae",
+   "OB / Marmalade Cat"
+  ],
+  "435": [
+   "labidochromis-caeruleus",
+   "Yellow (Mbowe Adası)"
+  ],
+  "436": [
+   "labidochromis-caeruleus",
+   "Nkhata Bay"
+  ],
+  "437": [
+   "labidochromis-caeruleus",
+   "Lundo Adası"
+  ],
+  "438": [
+   "labidochromis-caeruleus",
+   "Cape Kaiser"
+  ],
+  "439": [
+   "labidochromis-caeruleus",
+   "White"
+  ],
+  "440": [
+   "labidochromis-chisumulae",
+   "Chisumulu Adası"
+  ],
+  "441": [
+   "pseudotropheus-cyaneorhabdos",
+   "Likoma Adası"
+  ],
+  "442": [
+   "pseudotropheus-johannii",
+   "Masinje Rocks – Cape Ngombo"
+  ],
+  "443": [
+   "metriaclima-estherae",
+   "Minos Reef"
+  ],
+  "444": [
+   "metriaclima-estherae",
+   "Metangula"
+  ],
+  "445": [
+   "metriaclima-estherae",
+   "Gome"
+  ],
+  "446": [
+   "metriaclima-estherae",
+   "OB (Marmalade Cat)"
+  ],
+  "447": [
+   "metriaclima-greshakei",
+   "Makokola"
+  ],
+  "448": [
+   "metriaclima-greshakei",
+   "Albino"
+  ],
+  "449": [
+   "metriaclima-lombardoi",
+   "Mbenji Adaları"
+  ],
+  "450": [
+   "metriaclima-lombardoi",
+   "Nkhomo Reef"
+  ],
+  "451": [
+   "otopharynx-lithobates",
+   "Zimbabwe Rock"
+  ],
+  "452": [
+   "otopharynx-lithobates",
+   "Domwe – Monkey Bay"
+  ],
+  "453": [
+   "otopharynx-lithobates",
+   "Thumbi East"
+  ],
+  "454": [
+   "otopharynx-lithobates",
+   "Thumbi West"
+  ],
+  "455": [
+   "otopharynx-lithobates",
+   "Mumbo"
+  ],
+  "456": [
+   "otopharynx-lithobates",
+   "Chinyamwezi"
+  ],
+  "457": [
+   "otopharynx-lithobates",
+   "Aristochromis sp. 'Red Top'"
+  ],
+  "458": [
+   "placidochromis-electra",
+   "Likoma Adası"
+  ],
+  "459": [
+   "placidochromis-electra",
+   "Mara Point"
+  ],
+  "460": [
+   "placidochromis-electra",
+   "Chiwindi – Lumbaulo"
+  ],
+  "461": [
+   "placidochromis-electra",
+   "Lumessi"
+  ],
+  "462": [
+   "placidochromis-electra",
+   "Deep Water Hap"
+  ],
+  "463": [
+   "protomelas-taeniolatus",
+   "Senga Point"
+  ],
+  "464": [
+   "protomelas-taeniolatus",
+   "Namalenje"
+  ],
+  "465": [
+   "protomelas-taeniolatus",
+   "Boadzulu"
+  ],
+  "466": [
+   "pseudotropheus-acei",
+   "Msuli (Yellow Tail)"
+  ],
+  "467": [
+   "pseudotropheus-acei",
+   "Ngara (White Tail)"
+  ],
+  "468": [
+   "pseudotropheus-elongatus",
+   "Mbamba Bay"
+  ],
+  "469": [
+   "pseudotropheus-elongatus",
+   "Nkhata Bay"
+  ],
+  "470": [
+   "pseudotropheus-elongatus",
+   "Mpanga"
+  ],
+  "471": [
+   "pseudotropheus-socolofi",
+   "Cobue – Tumbi Point"
+  ],
+  "472": [
+   "pseudotropheus-socolofi",
+   "Albino"
+  ],
+  "473": [
+   "pseudotropheus-tropheops",
+   "Alt türler ve renk formları"
+  ],
+  "474": [
+   "sciaenochromis-fryeri",
+   "Iceberg"
+  ],
+  "475": [
+   "sciaenochromis-fryeri",
+   "Electric Blue Hap"
+  ],
+  "476": [
+   "metriaclima-callainos",
+   "Nkhata Bay"
+  ],
+  "477": [
+   "metriaclima-callainos",
+   "White"
+  ],
+  "478": [
+   "altolamprologus-calvus",
+   "Kapampa"
+  ],
+  "479": [
+   "altolamprologus-calvus",
+   "Nkamba Bay"
+  ],
+  "480": [
+   "altolamprologus-calvus",
+   "Mtoto"
+  ],
+  "481": [
+   "altolamprologus-calvus",
+   "Black"
+  ],
+  "482": [
+   "altolamprologus-calvus",
+   "White"
+  ],
+  "483": [
+   "altolamprologus-calvus",
+   "Yellow"
+  ],
+  "484": [
+   "callochromis-macrops",
+   "Ndole Bay"
+  ],
+  "485": [
+   "cyathopharynx-furcifer",
+   "Cape Mpimbwe"
+  ],
+  "486": [
+   "cyathopharynx-furcifer",
+   "Cape Nangu"
+  ],
+  "487": [
+   "cyathopharynx-furcifer",
+   "Chilanga"
+  ],
+  "488": [
+   "cyathopharynx-furcifer",
+   "Chimba"
+  ],
+  "489": [
+   "cyathopharynx-furcifer",
+   "Isanga Bay"
+  ],
+  "490": [
+   "cyathopharynx-furcifer",
+   "Kalambo Lodge"
+  ],
+  "491": [
+   "cyathopharynx-furcifer",
+   "Kamazile Bay"
+  ],
+  "492": [
+   "cyathopharynx-furcifer",
+   "Kasanga"
+  ],
+  "493": [
+   "cyathopharynx-furcifer",
+   "Kisimba Rocks"
+  ],
+  "494": [
+   "cyathopharynx-furcifer",
+   "Lyamembe"
+  ],
+  "495": [
+   "cyathopharynx-furcifer",
+   "Mbita Island"
+  ],
+  "496": [
+   "cyathopharynx-furcifer",
+   "Moliro"
+  ],
+  "497": [
+   "cyathopharynx-furcifer",
+   "Mvuna Island"
+  ],
+  "498": [
+   "cyathopharynx-furcifer",
+   "Sibwesa"
+  ],
+  "499": [
+   "cyathopharynx-furcifer",
+   "Wampembe"
+  ],
+  "500": [
+   "cyathopharynx-furcifer",
+   "Furcifer North"
+  ],
+  "501": [
+   "cyphotilapia-frontosa",
+   "Burundi"
+  ],
+  "502": [
+   "cyphotilapia-frontosa",
+   "Kigoma"
+  ],
+  "503": [
+   "cyphotilapia-frontosa",
+   "Mawimbi"
+  ],
+  "504": [
+   "cyphotilapia-frontosa",
+   "Blue Zaire (Moba, Kapampa, Mikula)"
+  ],
+  "505": [
+   "cyphotilapia-frontosa",
+   "Black Widow"
+  ],
+  "506": [
+   "cyphotilapia-frontosa",
+   "Dark Blue Horizon"
+  ],
+  "507": [
+   "cyprichromis-leptosoma",
+   "Mpulungu"
+  ],
+  "508": [
+   "cyprichromis-leptosoma",
+   "Mpimbwe"
+  ],
+  "509": [
+   "cyprichromis-leptosoma",
+   "Kigoma"
+  ],
+  "510": [
+   "cyprichromis-leptosoma",
+   "Kitumba"
+  ],
+  "511": [
+   "cyprichromis-leptosoma",
+   "Jumbo"
+  ],
+  "512": [
+   "cyprichromis-microlepidotus",
+   "Luagala Point"
+  ],
+  "513": [
+   "cyprichromis-microlepidotus",
+   "Karilani Island"
+  ],
+  "514": [
+   "cyprichromis-microlepidotus",
+   "Muguruka"
+  ],
+  "515": [
+   "cyprichromis-microlepidotus",
+   "Kalundu"
+  ],
+  "516": [
+   "cyprichromis-microlepidotus",
+   "Mukindu"
+  ],
+  "517": [
+   "cyprichromis-microlepidotus",
+   "Bilila (Kavala) Island"
+  ],
+  "518": [
+   "cyprichromis-microlepidotus",
+   "Milima Island (Kasai)"
+  ],
+  "519": [
+   "cyprichromis-pavo",
+   "Cape Chaitika"
+  ],
+  "520": [
+   "cyprichromis-pavo",
+   "Cape Nangu"
+  ],
+  "521": [
+   "cyprichromis-pavo",
+   "Kambwimba"
+  ],
+  "522": [
+   "ectodus-descampsii",
+   "Mvuna Island"
+  ],
+  "523": [
+   "eretmodus-cyanostictus",
+   "Kipili"
+  ],
+  "524": [
+   "eretmodus-cyanostictus",
+   "Kibige Island"
+  ],
+  "525": [
+   "eretmodus-cyanostictus",
+   "Mbita Island"
+  ],
+  "526": [
+   "eretmodus-cyanostictus",
+   "Nzwema"
+  ],
+  "527": [
+   "eretmodus-cyanostictus",
+   "Taala (Lusembwa) Point"
+  ],
+  "528": [
+   "eretmodus-cyanostictus",
+   "Maleza (Mamalesa) Island"
+  ],
+  "529": [
+   "eretmodus-cyanostictus",
+   "Moba"
+  ],
+  "530": [
+   "eretmodus-cyanostictus",
+   "Kavala"
+  ],
+  "531": [
+   "eretmodus-cyanostictus",
+   "Makombe"
+  ],
+  "532": [
+   "eretmodus-cyanostictus",
+   "Kigoma"
+  ],
+  "533": [
+   "eretmodus-cyanostictus",
+   "Eretmodus marksmithi"
+  ],
+  "534": [
+   "julidochromis-dickfeldi",
+   "Moliro"
+  ],
+  "535": [
+   "julidochromis-marlieri",
+   "Bemba"
+  ],
+  "536": [
+   "julidochromis-marlieri",
+   "Uvira"
+  ],
+  "537": [
+   "julidochromis-marlieri",
+   "Kibige Island"
+  ],
+  "538": [
+   "julidochromis-marlieri",
+   "Marlieri Kasanga"
+  ],
+  "539": [
+   "julidochromis-ornatus",
+   "Chituta Bay"
+  ],
+  "540": [
+   "julidochromis-ornatus",
+   "Mutondwe (Crocodile) Island"
+  ],
+  "541": [
+   "julidochromis-ornatus",
+   "Kasakalawe"
+  ],
+  "542": [
+   "julidochromis-ornatus",
+   "Ornatus Kapampa"
+  ],
+  "543": [
+   "julidochromis-ornatus",
+   "Ornatus Uvira"
+  ],
+  "544": [
+   "julidochromis-regani",
+   "Nyanza-Lac"
+  ],
+  "545": [
+   "julidochromis-regani",
+   "Kigoma"
+  ],
+  "546": [
+   "julidochromis-regani",
+   "Bujumbura"
+  ],
+  "547": [
+   "julidochromis-regani",
+   "Bulu Point"
+  ],
+  "548": [
+   "julidochromis-regani",
+   "Malagarasi"
+  ],
+  "549": [
+   "julidochromis-regani",
+   "Magambo"
+  ],
+  "550": [
+   "julidochromis-regani",
+   "Kekese"
+  ],
+  "551": [
+   "julidochromis-regani",
+   "Samazi"
+  ],
+  "552": [
+   "julidochromis-regani",
+   "Chimba"
+  ],
+  "553": [
+   "julidochromis-regani",
+   "Cape Chaitika"
+  ],
+  "554": [
+   "julidochromis-regani",
+   "Sumbu"
+  ],
+  "555": [
+   "julidochromis-regani",
+   "Jakobsen's Beach"
+  ],
+  "556": [
+   "julidochromis-regani",
+   "Mboko Island"
+  ],
+  "557": [
+   "julidochromis-transcriptus",
+   "Kissi"
+  ],
+  "558": [
+   "julidochromis-transcriptus",
+   "Transcriptus Kalemie"
+  ],
+  "559": [
+   "julidochromis-transcriptus",
+   "Transcriptus Tanzania"
+  ],
+  "560": [
+   "julidochromis-transcriptus",
+   "Kombe (Gombi)"
+  ],
+  "561": [
+   "neolamprologus-brevis",
+   "Ikola"
+  ],
+  "562": [
+   "neolamprologus-brevis",
+   "Cape Bangwe"
+  ],
+  "563": [
+   "neolamprologus-brevis",
+   "Cape Mpimbwe"
+  ],
+  "564": [
+   "neolamprologus-brevis",
+   "Katete"
+  ],
+  "565": [
+   "neolamprologus-brevis",
+   "Cape Kabogo"
+  ],
+  "566": [
+   "neolamprologus-brevis",
+   "Bilila (Kavala) Island"
+  ],
+  "567": [
+   "neolamprologus-brichardi",
+   "Namansi"
+  ],
+  "568": [
+   "neolamprologus-brichardi",
+   "Singa Island"
+  ],
+  "569": [
+   "neolamprologus-brichardi",
+   "Lwilwi Island"
+  ],
+  "570": [
+   "neolamprologus-brichardi",
+   "Milima Island"
+  ],
+  "571": [
+   "neolamprologus-brichardi",
+   "Bilila (Kavala) Island"
+  ],
+  "572": [
+   "neolamprologus-brichardi",
+   "Izinga Island"
+  ],
+  "573": [
+   "neolamprologus-brichardi",
+   "Tundu (Kala Bay)"
+  ],
+  "574": [
+   "neolamprologus-brichardi",
+   "Lwasase Bay"
+  ],
+  "575": [
+   "neolamprologus-brichardi",
+   "Ninde"
+  ],
+  "576": [
+   "neolamprologus-caudopunctatus",
+   "Chiloelo Point"
+  ],
+  "577": [
+   "neolamprologus-caudopunctatus",
+   "Kapampa"
+  ],
+  "578": [
+   "neolamprologus-caudopunctatus",
+   "Kitawe"
+  ],
+  "579": [
+   "neolamprologus-caudopunctatus",
+   "Maleza (Mamalesa) Island"
+  ],
+  "580": [
+   "neolamprologus-caudopunctatus",
+   "Caudopunctatus Kipili"
+  ],
+  "581": [
+   "neolamprologus-cylindricus",
+   "Kasola Island"
+  ],
+  "582": [
+   "neolamprologus-cylindricus",
+   "Mvuna Island"
+  ],
+  "583": [
+   "neolamprologus-cylindricus",
+   "Izinga Island"
+  ],
+  "584": [
+   "neolamprologus-leleupi",
+   "Kitumba"
+  ],
+  "585": [
+   "neolamprologus-leleupi",
+   "Cape Caramba"
+  ],
+  "586": [
+   "neolamprologus-leleupi",
+   "Milima Island"
+  ],
+  "587": [
+   "neolamprologus-leleupi",
+   "Talama"
+  ],
+  "588": [
+   "neolamprologus-leleupi",
+   "Kawasindi Island"
+  ],
+  "589": [
+   "neolamprologus-leleupi",
+   "Uvira"
+  ],
+  "590": [
+   "neolamprologus-leleupi",
+   "Luhanga"
+  ],
+  "591": [
+   "neolamprologus-leleupi",
+   "Bilila (Kavala) Island"
+  ],
+  "592": [
+   "neolamprologus-leleupi",
+   "Cape Tembwe"
+  ],
+  "593": [
+   "neolamprologus-leleupi",
+   "Wimbi"
+  ],
+  "594": [
+   "neolamprologus-leleupi",
+   "Kilima"
+  ],
+  "595": [
+   "neolamprologus-leleupi",
+   "Black Throat"
+  ],
+  "596": [
+   "neolamprologus-leleupi",
+   "Leleupi Blue Chin"
+  ],
+  "597": [
+   "neolamprologus-multifasciatus",
+   "Mpando Point"
+  ],
+  "598": [
+   "neolamprologus-multifasciatus",
+   "Kasola Island"
+  ],
+  "599": [
+   "neolamprologus-multifasciatus",
+   "Mbita Island"
+  ],
+  "600": [
+   "neolamprologus-ocellatus",
+   "Lwilwi Island"
+  ],
+  "601": [
+   "neolamprologus-ocellatus",
+   "Katete"
+  ],
+  "602": [
+   "neolamprologus-ocellatus",
    "Gold"
   ],
-  "294": [
+  "603": [
+   "neolamprologus-ornatipinnis",
+   "Ornatipinnis Zambia"
+  ],
+  "604": [
+   "neolamprologus-similis",
+   "Cape Kabogo"
+  ],
+  "605": [
+   "neolamprologus-tretocephalus",
+   "Cape Tembwe"
+  ],
+  "606": [
+   "neolamprologus-tretocephalus",
+   "Katonga"
+  ],
+  "607": [
+   "ophthalmotilapia-nasuta",
+   "Cape Kachese"
+  ],
+  "608": [
+   "ophthalmotilapia-nasuta",
+   "Resha"
+  ],
+  "609": [
+   "ophthalmotilapia-nasuta",
+   "Kalepa Island"
+  ],
+  "610": [
+   "ophthalmotilapia-nasuta",
+   "Milima Island"
+  ],
+  "611": [
+   "ophthalmotilapia-nasuta",
+   "Katete"
+  ],
+  "612": [
+   "ophthalmotilapia-nasuta",
+   "Cape Kabogo"
+  ],
+  "613": [
+   "ophthalmotilapia-nasuta",
+   "Mukosa"
+  ],
+  "614": [
+   "ophthalmotilapia-nasuta",
+   "Paranasuta"
+  ],
+  "615": [
+   "ophthalmotilapia-ventralis",
+   "Cape Chaitika"
+  ],
+  "616": [
+   "ophthalmotilapia-ventralis",
+   "Chimba"
+  ],
+  "617": [
+   "ophthalmotilapia-ventralis",
+   "Chituta Bay"
+  ],
+  "618": [
+   "ophthalmotilapia-ventralis",
+   "Isanga Bay"
+  ],
+  "619": [
+   "ophthalmotilapia-ventralis",
+   "Kambwimba"
+  ],
+  "620": [
+   "ophthalmotilapia-ventralis",
+   "Kantalamba"
+  ],
+  "621": [
+   "ophthalmotilapia-ventralis",
+   "Kasakalawe"
+  ],
+  "622": [
+   "ophthalmotilapia-ventralis",
+   "Kasanga"
+  ],
+  "623": [
+   "ophthalmotilapia-ventralis",
+   "Katete"
+  ],
+  "624": [
+   "ophthalmotilapia-ventralis",
+   "Kombe"
+  ],
+  "625": [
+   "ophthalmotilapia-ventralis",
+   "Mbita Island"
+  ],
+  "626": [
+   "ophthalmotilapia-ventralis",
+   "Moliro"
+  ],
+  "627": [
+   "ophthalmotilapia-ventralis",
+   "Ndole Bay"
+  ],
+  "628": [
+   "ophthalmotilapia-ventralis",
+   "Nzwema"
+  ],
+  "629": [
+   "ophthalmotilapia-ventralis",
+   "Tongwa"
+  ],
+  "630": [
+   "ophthalmotilapia-ventralis",
+   "Kapere"
+  ],
+  "631": [
+   "ophthalmotilapia-ventralis",
+   "Ventralis Yellow Tanzania"
+  ],
+  "632": [
+   "ophthalmotilapia-ventralis",
+   "Whitecap"
+  ],
+  "633": [
+   "paracyprichromis-brieni",
+   "Kantalamba"
+  ],
+  "634": [
+   "paracyprichromis-brieni",
+   "Cape Nangu"
+  ],
+  "635": [
+   "paracyprichromis-brieni",
+   "Mboko Island"
+  ],
+  "636": [
+   "paracyprichromis-brieni",
+   "Kapampa"
+  ],
+  "637": [
+   "paracyprichromis-brieni",
+   "Nkondwe Island"
+  ],
+  "638": [
+   "paracyprichromis-brieni",
+   "Kitumba (Velifer)"
+  ],
+  "639": [
+   "paracyprichromis-nigripinnis",
+   "Chituta Bay"
+  ],
+  "640": [
+   "paracyprichromis-nigripinnis",
+   "Kibige Island"
+  ],
+  "641": [
+   "paracyprichromis-nigripinnis",
+   "Jakobsen's Beach"
+  ],
+  "642": [
+   "paracyprichromis-nigripinnis",
+   "Blue Neon"
+  ],
+  "643": [
+   "petrochromis-famula",
+   "Cape Kabogo"
+  ],
+  "644": [
+   "petrochromis-trewavasae",
+   "Moliro"
+  ],
+  "645": [
+   "spathodus-erythrodon",
+   "Erythrodon North"
+  ],
+  "646": [
+   "tanganicodus-irsacae",
+   "Kekese"
+  ],
+  "647": [
+   "tanganicodus-irsacae",
+   "Bulu Point"
+  ],
+  "648": [
+   "tanganicodus-irsacae",
+   "Ikola"
+  ],
+  "649": [
+   "tropheus-moorii",
+   "Kasakalawe"
+  ],
+  "650": [
+   "tropheus-moorii",
+   "Kasanga"
+  ],
+  "651": [
+   "tropheus-moorii",
+   "Chisanza"
+  ],
+  "652": [
+   "tropheus-moorii",
+   "Golden Kalambo"
+  ],
+  "653": [
+   "tropheus-moorii",
+   "Lufubu"
+  ],
+  "654": [
+   "tropheus-moorii",
+   "Ilangi"
+  ],
+  "655": [
+   "xenotilapia-flavipinnis",
+   "Makola"
+  ],
+  "656": [
+   "xenotilapia-flavipinnis",
+   "Ulwile Island"
+  ],
+  "657": [
+   "xenotilapia-flavipinnis",
+   "Cape Nangu"
+  ],
+  "658": [
+   "xenotilapia-flavipinnis",
+   "Rumonge"
+  ],
+  "659": [
+   "xenotilapia-flavipinnis",
+   "Lyamembe"
+  ],
+  "660": [
+   "xenotilapia-ochrogenys",
+   "Burundi"
+  ],
+  "661": [
+   "xenotilapia-papilio",
+   "Kanoni"
+  ],
+  "662": [
+   "xenotilapia-papilio",
+   "Sunflower"
+  ],
+  "663": [
+   "tropheus-duboisi",
+   "Maswa"
+  ],
+  "664": [
+   "tropheus-duboisi",
+   "Kigoma"
+  ],
+  "665": [
+   "acarichthys-heckelii",
+   "Albino"
+  ],
+  "666": [
+   "andinoacara-pulcher",
+   "Electric Blue Acara"
+  ],
+  "667": [
+   "andinoacara-pulcher",
+   "Neon Blue"
+  ],
+  "668": [
+   "andinoacara-rivulatus",
+   "Silver Saum"
+  ],
+  "669": [
+   "apistogramma-agassizii",
+   "Alenquer"
+  ],
+  "670": [
+   "apistogramma-agassizii",
+   "Tefé"
+  ],
+  "671": [
+   "apistogramma-agassizii",
+   "Putumayo"
+  ],
+  "672": [
+   "apistogramma-agassizii",
+   "Fire Red"
+  ],
+  "673": [
+   "apistogramma-agassizii",
+   "Double Red"
+  ],
+  "674": [
+   "apistogramma-agassizii",
+   "Blue Flame"
+  ],
+  "675": [
+   "apistogramma-agassizii",
+   "Flamenco"
+  ],
+  "676": [
+   "apistogramma-bitaeniata",
+   "Putumayo"
+  ],
+  "677": [
+   "apistogramma-borellii",
+   "Yellow"
+  ],
+  "678": [
+   "apistogramma-borellii",
+   "Blue"
+  ],
+  "679": [
+   "apistogramma-borellii",
+   "Opal"
+  ],
+  "680": [
+   "apistogramma-cacatuoides",
+   "Double Red"
+  ],
+  "681": [
+   "apistogramma-cacatuoides",
+   "Triple Red"
+  ],
+  "682": [
+   "apistogramma-cacatuoides",
+   "Orange Flash"
+  ],
+  "683": [
+   "apistogramma-cacatuoides",
+   "Gold"
+  ],
+  "684": [
+   "apistogramma-cacatuoides",
+   "Mega Orange"
+  ],
+  "685": [
+   "apistogramma-macmasteri",
+   "Tame"
+  ],
+  "686": [
+   "apistogramma-macmasteri",
+   "Red Shoulder"
+  ],
+  "687": [
+   "apistogramma-mendezi",
+   "Santa Isabel"
+  ],
+  "688": [
+   "astronotus-ocellatus",
+   "Tiger"
+  ],
+  "689": [
+   "astronotus-ocellatus",
+   "Red"
+  ],
+  "690": [
+   "astronotus-ocellatus",
+   "Albino"
+  ],
+  "691": [
+   "astronotus-ocellatus",
+   "Lutino"
+  ],
+  "692": [
+   "astronotus-ocellatus",
+   "Long Fin"
+  ],
+  "693": [
+   "astronotus-ocellatus",
+   "Lemon"
+  ],
+  "694": [
+   "biotodoma-cupido",
+   "Coari"
+  ],
+  "695": [
+   "biotodoma-cupido",
+   "Peru"
+  ],
+  "696": [
+   "cleithracara-maronii",
+   "Kourou"
+  ],
+  "697": [
+   "crenicichla-regani",
+   "Alenquer"
+  ],
+  "698": [
+   "geophagus-altifrons",
+   "Xingu"
+  ],
+  "699": [
+   "geophagus-altifrons",
+   "Tapajós"
+  ],
+  "700": [
+   "geophagus-altifrons",
+   "Rio Negro"
+  ],
+  "701": [
+   "geophagus-altifrons",
+   "Curuá-Una"
+  ],
+  "702": [
+   "geophagus-altifrons",
+   "Alenquer"
+  ],
+  "703": [
+   "geophagus-altifrons",
+   "Rio Araguari"
+  ],
+  "704": [
+   "geophagus-altifrons",
+   "Tocantins"
+  ],
+  "705": [
+   "geophagus-brasiliensis",
+   "Uruguay"
+  ],
+  "706": [
+   "heros-efasciatus",
+   "Gold"
+  ],
+  "707": [
+   "heros-efasciatus",
+   "Red Spotted Gold"
+  ],
+  "708": [
+   "heros-efasciatus",
+   "Red Shoulder"
+  ],
+  "709": [
+   "mikrogeophagus-ramirezi",
+   "German Blue"
+  ],
+  "710": [
+   "mikrogeophagus-ramirezi",
+   "Electric Blue"
+  ],
+  "711": [
+   "mikrogeophagus-ramirezi",
+   "Gold"
+  ],
+  "712": [
+   "mikrogeophagus-ramirezi",
+   "Balloon"
+  ],
+  "713": [
+   "mikrogeophagus-ramirezi",
+   "Black"
+  ],
+  "714": [
+   "pterophyllum-scalare",
+   "Santa Isabel"
+  ],
+  "715": [
+   "pterophyllum-scalare",
+   "Rio Xingu"
+  ],
+  "716": [
+   "pterophyllum-scalare",
+   "Marble"
+  ],
+  "717": [
+   "pterophyllum-scalare",
+   "Koi"
+  ],
+  "718": [
+   "pterophyllum-scalare",
+   "Zebra"
+  ],
+  "719": [
+   "pterophyllum-scalare",
+   "Platinum"
+  ],
+  "720": [
+   "pterophyllum-scalare",
+   "Black"
+  ],
+  "721": [
+   "pterophyllum-scalare",
+   "Gold"
+  ],
+  "722": [
+   "pterophyllum-scalare",
+   "Leopard"
+  ],
+  "723": [
+   "pterophyllum-scalare",
+   "Veil (Tül)"
+  ],
+  "724": [
+   "satanoperca-jurupari",
+   "Tocantins"
+  ],
+  "725": [
+   "symphysodon-aequifasciatus",
+   "Royal Green Tefé"
+  ],
+  "726": [
+   "symphysodon-aequifasciatus",
+   "Pigeon Blood"
+  ],
+  "727": [
+   "symphysodon-aequifasciatus",
+   "Blue Diamond"
+  ],
+  "728": [
+   "symphysodon-aequifasciatus",
+   "Red Turquoise"
+  ],
+  "729": [
+   "symphysodon-aequifasciatus",
+   "Leopard"
+  ],
+  "730": [
+   "symphysodon-aequifasciatus",
+   "Marlboro Red"
+  ],
+  "731": [
+   "symphysodon-aequifasciatus",
+   "Snakeskin"
+  ],
+  "732": [
+   "symphysodon-aequifasciatus",
+   "Yabani (wild)"
+  ],
+  "733": [
+   "uaru-amphiacanthoides",
+   "Santarém"
+  ],
+  "734": [
+   "amatitlania-nigrofasciata",
+   "Pink (Albino)"
+  ],
+  "735": [
+   "amatitlania-nigrofasciata",
+   "Marble"
+  ],
+  "736": [
+   "amphilophus-citrinellus",
+   "Altın (gold) morf"
+  ],
+  "737": [
+   "amphilophus-trimaculatus",
+   "Flowerhorn ile ilişki"
+  ],
+  "738": [
+   "herichthys-carpintis",
+   "Electric Blue Texas"
+  ],
+  "739": [
+   "herichthys-carpintis",
+   "Red Texas"
+  ],
+  "740": [
+   "rocio-octofasciata",
+   "Chiapas"
+  ],
+  "741": [
+   "thorichthys-meeki",
+   "Rio Candelaria"
+  ],
+  "742": [
+   "pelvicachromis-pulcher",
+   "Albino"
+  ],
+  "743": [
+   "pelvicachromis-taeniatus",
+   "Moliwe"
+  ],
+  "744": [
+   "pelvicachromis-taeniatus",
+   "Nyete"
+  ],
+  "745": [
+   "pelvicachromis-taeniatus",
+   "Wouri"
+  ],
+  "746": [
+   "pelvicachromis-taeniatus",
+   "Lokoundje"
+  ],
+  "747": [
+   "pelvicachromis-taeniatus",
+   "Dehane"
+  ],
+  "748": [
+   "pelvicachromis-kribensis",
+   "Kienke"
+  ],
+  "749": [
+   "pelvicachromis-kribensis",
+   "Lobe"
+  ],
+  "750": [
+   "girardinus-metallicus",
+   "Black Belly"
+  ],
+  "751": [
+   "micropoecilia-picta",
+   "Trinidad"
+  ],
+  "752": [
+   "micropoecilia-picta",
+   "Red Surinam"
+  ],
+  "753": [
+   "poecilia-latipinna",
+   "Black"
+  ],
+  "754": [
+   "poecilia-latipinna",
+   "Gold"
+  ],
+  "755": [
+   "poecilia-latipinna",
+   "Dalmatian"
+  ],
+  "756": [
+   "poecilia-latipinna",
+   "Silver"
+  ],
+  "757": [
+   "poecilia-reticulata",
+   "Full Red"
+  ],
+  "758": [
+   "poecilia-reticulata",
+   "Moscow"
+  ],
+  "759": [
+   "poecilia-reticulata",
+   "Tuxedo"
+  ],
+  "760": [
+   "poecilia-reticulata",
+   "Cobra"
+  ],
+  "761": [
+   "poecilia-reticulata",
+   "Snakeskin"
+  ],
+  "762": [
+   "poecilia-reticulata",
+   "Koi"
+  ],
+  "763": [
+   "poecilia-reticulata",
+   "Albino"
+  ],
+  "764": [
+   "poecilia-reticulata",
+   "Platinum"
+  ],
+  "765": [
+   "poecilia-sphenops",
+   "Black"
+  ],
+  "766": [
+   "poecilia-sphenops",
+   "Dalmatian"
+  ],
+  "767": [
+   "poecilia-sphenops",
+   "Balloon"
+  ],
+  "768": [
+   "poecilia-sphenops",
+   "Lyretail"
+  ],
+  "769": [
+   "poecilia-sphenops",
+   "Gold"
+  ],
+  "770": [
+   "poecilia-wingei",
+   "Laguna de los Patos (Cumaná)"
+  ],
+  "771": [
+   "poecilia-wingei",
+   "Campoma (El Tigre)"
+  ],
+  "772": [
+   "poecilia-wingei",
+   "Black Bar"
+  ],
+  "773": [
+   "poecilia-wingei",
+   "Blue Star"
+  ],
+  "774": [
+   "poecilia-wingei",
+   "Japan Blue"
+  ],
+  "775": [
+   "poecilia-wingei",
+   "Tiger"
+  ],
+  "776": [
+   "xenotoca-eiseni",
+   "San Marcos"
+  ],
+  "777": [
+   "xiphophorus-cortezi",
+   "Rio Axtla"
+  ],
+  "778": [
+   "xiphophorus-hellerii",
+   "Jalapa"
+  ],
+  "779": [
+   "xiphophorus-hellerii",
+   "Rio Atoyac"
+  ],
+  "780": [
+   "xiphophorus-hellerii",
+   "Yucatán"
+  ],
+  "781": [
+   "xiphophorus-hellerii",
+   "Red"
+  ],
+  "782": [
+   "xiphophorus-hellerii",
+   "Red Wag"
+  ],
+  "783": [
+   "xiphophorus-hellerii",
+   "Tuxedo"
+  ],
+  "784": [
+   "xiphophorus-hellerii",
+   "Lyretail"
+  ],
+  "785": [
+   "xiphophorus-hellerii",
+   "Pineapple"
+  ],
+  "786": [
+   "xiphophorus-hellerii",
+   "Marigold"
+  ],
+  "787": [
+   "xiphophorus-hellerii",
+   "Tiger"
+  ],
+  "788": [
+   "xiphophorus-hellerii",
+   "Kohaku"
+  ],
+  "789": [
+   "xiphophorus-hellerii",
+   "Marlboro"
+  ],
+  "790": [
+   "xiphophorus-hellerii",
+   "Berlin"
+  ],
+  "791": [
+   "xiphophorus-maculatus",
+   "Mickey Mouse"
+  ],
+  "792": [
+   "xiphophorus-maculatus",
+   "Red Wag"
+  ],
+  "793": [
+   "xiphophorus-maculatus",
+   "Sunset"
+  ],
+  "794": [
+   "xiphophorus-maculatus",
+   "Blue"
+  ],
+  "795": [
+   "xiphophorus-maculatus",
+   "Tuxedo"
+  ],
+  "796": [
+   "xiphophorus-variatus",
+   "Rio Coacuilco"
+  ],
+  "797": [
+   "xiphophorus-variatus",
+   "La Laguna"
+  ],
+  "798": [
+   "xiphophorus-variatus",
+   "Rio Nautla"
+  ],
+  "799": [
+   "xiphophorus-variatus",
+   "Rio Pantepec"
+  ],
+  "800": [
+   "xiphophorus-variatus",
+   "Sunset"
+  ],
+  "801": [
+   "xiphophorus-variatus",
+   "Marigold"
+  ],
+  "802": [
+   "xiphophorus-variatus",
+   "Hifin"
+  ],
+  "803": [
+   "xiphophorus-variatus",
+   "Hawaii"
+  ],
+  "804": [
+   "betta-splendens",
+   "Halfmoon"
+  ],
+  "805": [
+   "betta-splendens",
+   "Plakat"
+  ],
+  "806": [
+   "betta-splendens",
+   "Crowntail"
+  ],
+  "807": [
+   "betta-splendens",
+   "Double Tail"
+  ],
+  "808": [
+   "betta-splendens",
+   "Veiltail"
+  ],
+  "809": [
+   "betta-splendens",
+   "Koi"
+  ],
+  "810": [
+   "betta-splendens",
+   "Black Samurai"
+  ],
+  "811": [
+   "betta-splendens",
+   "Mustard Gas"
+  ],
+  "812": [
+   "betta-splendens",
+   "Hellboy"
+  ],
+  "813": [
+   "betta-splendens",
+   "Elephant Ear"
+  ],
+  "814": [
+   "betta-splendens",
+   "Candy"
+  ],
+  "815": [
+   "helostoma-temminckii",
+   "Pink"
+  ],
+  "816": [
+   "helostoma-temminckii",
+   "Green"
+  ],
+  "817": [
+   "macropodus-opercularis",
+   "Blue"
+  ],
+  "818": [
+   "macropodus-opercularis",
+   "Albino"
+  ],
+  "819": [
+   "macropodus-spechti",
+   "Royal Blue"
+  ],
+  "820": [
+   "osphronemus-goramy",
+   "Albino"
+  ],
+  "821": [
+   "osphronemus-goramy",
+   "Gold"
+  ],
+  "822": [
+   "trichogaster-chuna",
+   "Gold / Honey Red"
+  ],
+  "823": [
+   "trichogaster-chuna",
+   "Fire"
+  ],
+  "824": [
+   "trichogaster-labiosa",
+   "Ruby Red"
+  ],
+  "825": [
+   "trichogaster-labiosa",
+   "Orange"
+  ],
+  "826": [
+   "trichogaster-lalius",
+   "Neon Blue"
+  ],
+  "827": [
+   "trichogaster-lalius",
+   "Flame (Red)"
+  ],
+  "828": [
+   "trichogaster-lalius",
+   "Cobalt Blue"
+  ],
+  "829": [
+   "trichopodus-trichopterus",
+   "Gold"
+  ],
+  "830": [
+   "trichopodus-trichopterus",
+   "Opaline"
+  ],
+  "831": [
+   "trichopodus-trichopterus",
+   "Platinum"
+  ],
+  "832": [
+   "trichopodus-trichopterus",
+   "Blue (Three Spot)"
+  ],
+  "833": [
+   "gymnocorymbus-ternetzi",
+   "White Skirt"
+  ],
+  "834": [
+   "gymnocorymbus-ternetzi",
+   "Long Fin"
+  ],
+  "835": [
+   "gymnocorymbus-ternetzi",
+   "GloFish"
+  ],
+  "836": [
+   "hemigrammus-erythrozonus",
+   "Albino"
+  ],
+  "837": [
+   "hemigrammus-erythrozonus",
+   "Gold"
+  ],
+  "838": [
+   "hyphessobrycon-eques",
+   "Long Fin"
+  ],
+  "839": [
+   "hyphessobrycon-flammeus",
+   "Gold"
+  ],
+  "840": [
+   "hyphessobrycon-pulchripinnis",
+   "Bolivia Orange"
+  ],
+  "841": [
+   "hyphessobrycon-sweglesi",
+   "Albino"
+  ],
+  "842": [
+   "inpaichthys-kerri",
+   "Super Blue"
+  ],
+  "843": [
+   "paracheirodon-axelrodi",
+   "Gold"
+  ],
+  "844": [
+   "paracheirodon-innesi",
+   "Diamond Head"
+  ],
+  "845": [
+   "paracheirodon-innesi",
+   "Gold"
+  ],
+  "846": [
+   "paracheirodon-innesi",
+   "Long Fin"
+  ],
+  "847": [
+   "paracheirodon-innesi",
+   "Albino"
+  ],
+  "848": [
+   "phenacogrammus-interruptus",
+   "Albino"
+  ],
+  "849": [
+   "carnegiella-strigata",
+   "vesca"
+  ],
+  "850": [
+   "gasteropelecus-sternicla",
+   "Albino"
+  ],
+  "851": [
    "danio-rerio",
    "Leopard"
   ],
-  "780": [
-   "ambystoma-mexicanum",
-   "Leucistic"
+  "852": [
+   "danio-rerio",
+   "Long Fin"
   ],
-  "781": [
-   "ambystoma-mexicanum",
-   "Piebald"
+  "853": [
+   "danio-rerio",
+   "Gold"
   ],
-  "782": [
-   "ambystoma-mexicanum",
-   "Golden Albino"
-  ],
-  "783": [
-   "ambystoma-mexicanum",
-   "White Albino"
-  ],
-  "784": [
-   "ambystoma-mexicanum",
-   "Copper"
-  ],
-  "785": [
-   "ambystoma-mexicanum",
-   "Melanoid"
-  ],
-  "786": [
-   "ambystoma-mexicanum",
-   "Axanthic"
-  ],
-  "787": [
-   "ambystoma-mexicanum",
-   "Lavender"
-  ],
-  "788": [
-   "ambystoma-mexicanum",
-   "GFP"
-  ],
-  "789": [
-   "ambystoma-mexicanum",
-   "Mosaic"
-  ],
-  "790": [
-   "ambystoma-mexicanum",
-   "Chimera"
-  ],
-  "817": [
-   "xenopus-laevis",
+  "854": [
+   "danio-rerio",
    "Albino"
+  ],
+  "855": [
+   "danio-rerio",
+   "GloFish"
+  ],
+  "856": [
+   "trigonostigma-heteromorpha",
+   "Blue"
+  ],
+  "857": [
+   "trigonostigma-heteromorpha",
+   "Gold"
+  ],
+  "858": [
+   "danio-kyathit",
+   "Spotted"
+  ],
+  "859": [
+   "danio-kyathit",
+   "Striped"
+  ],
+  "860": [
+   "epalzeorhynchos-frenatum",
+   "Albino"
+  ],
+  "861": [
+   "pethia-conchonius",
+   "Long Fin"
+  ],
+  "862": [
+   "pethia-conchonius",
+   "Neon"
+  ],
+  "863": [
+   "puntigrus-tetrazona",
+   "Green (Moss)"
+  ],
+  "864": [
+   "puntigrus-tetrazona",
+   "Albino"
+  ],
+  "865": [
+   "puntigrus-tetrazona",
+   "Long Fin"
+  ],
+  "866": [
+   "puntius-titteya",
+   "Super Red"
+  ],
+  "867": [
+   "puntius-titteya",
+   "Long Fin"
+  ],
+  "868": [
+   "sahyadria-denisonii",
+   "Gold"
+  ],
+  "869": [
+   "carassius-auratus",
+   "Comet"
+  ],
+  "870": [
+   "carassius-auratus",
+   "Shubunkin"
+  ],
+  "871": [
+   "carassius-auratus",
+   "Oranda"
+  ],
+  "872": [
+   "carassius-auratus",
+   "Ranchu"
+  ],
+  "873": [
+   "carassius-auratus",
+   "Lionhead"
+  ],
+  "874": [
+   "carassius-auratus",
+   "Ryukin"
+  ],
+  "875": [
+   "carassius-auratus",
+   "Telescope"
+  ],
+  "876": [
+   "carassius-auratus",
+   "Bubble Eye"
+  ],
+  "877": [
+   "carassius-auratus",
+   "Pearlscale"
+  ],
+  "878": [
+   "carassius-auratus",
+   "Celestial Eye"
+  ],
+  "879": [
+   "misgurnus-anguillicaudatus",
+   "Gold"
+  ],
+  "880": [
+   "ancistrus-sp",
+   "Albino"
+  ],
+  "881": [
+   "ancistrus-sp",
+   "Long Fin"
+  ],
+  "882": [
+   "ancistrus-sp",
+   "Super Red / Orange"
+  ],
+  "883": [
+   "ancistrus-sp",
+   "Calico"
+  ],
+  "884": [
+   "baryancistrus-xanthellus",
+   "L018"
+  ],
+  "885": [
+   "baryancistrus-xanthellus",
+   "L081"
+  ],
+  "886": [
+   "baryancistrus-xanthellus",
+   "L177"
+  ],
+  "887": [
+   "corydoras-aeneus",
+   "Cuiabá"
+  ],
+  "888": [
+   "corydoras-aeneus",
+   "Puerto Maldonado"
+  ],
+  "889": [
+   "corydoras-aeneus",
+   "Albino"
+  ],
+  "890": [
+   "corydoras-paleatus",
+   "Albino"
+  ],
+  "891": [
+   "corydoras-paleatus",
+   "Long Fin"
+  ],
+  "892": [
+   "corydoras-trilineatus",
+   "Albino"
+  ],
+  "893": [
+   "hypancistrus-contradens",
+   "L201"
+  ],
+  "894": [
+   "rineloricaria-lanceolata",
+   "Albino"
+  ],
+  "895": [
+   "pseudacanthicus-leopardus",
+   "LDA7"
+  ],
+  "896": [
+   "aphyosemion-australe",
+   "Gold"
+  ],
+  "897": [
+   "aphyosemion-australe",
+   "Chocolate"
+  ],
+  "898": [
+   "aphyosemion-bitaeniatum",
+   "Ijebu Ode"
+  ],
+  "899": [
+   "aphyosemion-bitaeniatum",
+   "Lagos"
+  ],
+  "900": [
+   "aphyosemion-bivittatum",
+   "Funge"
+  ],
+  "901": [
+   "aplocheilus-lineatus",
+   "Gold"
+  ],
+  "902": [
+   "aplocheilus-lineatus",
+   "Red"
+  ],
+  "903": [
+   "fundulopanchax-filamentosus",
+   "Ijebu Ode"
+  ],
+  "904": [
+   "fundulopanchax-gardneri",
+   "Akure"
+  ],
+  "905": [
+   "fundulopanchax-gardneri",
+   "Nsukka"
+  ],
+  "906": [
+   "fundulopanchax-gardneri",
+   "Makurdi"
+  ],
+  "907": [
+   "fundulopanchax-gardneri",
+   "Enugu"
+  ],
+  "908": [
+   "fundulopanchax-gardneri",
+   "Okwoga"
+  ],
+  "909": [
+   "fundulopanchax-gardneri",
+   "Udi Mountain"
+  ],
+  "910": [
+   "fundulopanchax-gardneri",
+   "Gold"
+  ],
+  "911": [
+   "fundulopanchax-gardneri",
+   "Albino"
+  ],
+  "912": [
+   "fundulopanchax-gardneri",
+   "Alt türler"
+  ],
+  "913": [
+   "fundulopanchax-sjoestedti",
+   "USA Blue"
+  ],
+  "914": [
+   "nothobranchius-eggersi",
+   "Kubiti-Utete"
+  ],
+  "915": [
+   "nothobranchius-furzeri",
+   "GRZ"
+  ],
+  "916": [
+   "nothobranchius-furzeri",
+   "MZM-0410"
+  ],
+  "917": [
+   "nothobranchius-rachovii",
+   "Beira 98"
+  ],
+  "918": [
+   "oryzias-latipes",
+   "Himedaka (Orange)"
+  ],
+  "919": [
+   "oryzias-latipes",
+   "Miyuki"
+  ],
+  "920": [
+   "oryzias-latipes",
+   "Yokihi"
+  ],
+  "921": [
+   "oryzias-latipes",
+   "Black"
+  ],
+  "922": [
+   "oryzias-latipes",
+   "Platinum"
+  ],
+  "923": [
+   "melanotaenia-trifasciata",
+   "Goyder River"
+  ],
+  "924": [
+   "melanotaenia-trifasciata",
+   "Giddy River"
+  ],
+  "925": [
+   "melanotaenia-trifasciata",
+   "Wonga Creek"
+  ],
+  "926": [
+   "melanotaenia-trifasciata",
+   "Melville Island"
+  ],
+  "927": [
+   "melanotaenia-trifasciata",
+   "Yirrkala"
+  ],
+  "928": [
+   "melanotaenia-trifasciata",
+   "Burster Creek"
+  ],
+  "929": [
+   "melanotaenia-trifasciata",
+   "Running Creek"
+  ],
+  "930": [
+   "melanotaenia-trifasciata",
+   "Pappan Creek"
+  ],
+  "931": [
+   "melanotaenia-trifasciata",
+   "Wenlock River"
+  ],
+  "932": [
+   "melanotaenia-trifasciata",
+   "Claudie River"
+  ],
+  "933": [
+   "pseudomugil-gertrudae",
+   "Aru II"
+  ],
+  "934": [
+   "pseudomugil-signifer",
+   "Gap Creek"
+  ],
+  "935": [
+   "scatophagus-argus",
+   "Red Scat"
+  ],
+  "936": [
+   "channa-asiatica",
+   "Platinum"
+  ],
+  "937": [
+   "apteronotus-albifrons",
+   "White"
+  ],
+  "938": [
+   "apteronotus-leptorhynchus",
+   "Gold"
+  ],
+  "939": [
+   "osteoglossum-bicirrhosum",
+   "Platinum"
+  ],
+  "940": [
+   "ambystoma-mexicanum",
+   "Wild Type"
+  ],
+  "941": [
+   "hymenochirus-boettgeri",
+   "Gold Albino"
+  ],
+  "942": [
+   "xenopus-laevis",
+   "Wild Type"
+  ],
+  "943": [
+   "caridina-cantonensis",
+   "Crystal Red"
+  ],
+  "944": [
+   "caridina-cantonensis",
+   "Crystal Black"
+  ],
+  "945": [
+   "caridina-cantonensis",
+   "Golden / Snow White"
+  ],
+  "946": [
+   "caridina-mariae",
+   "Blue Tiger"
+  ],
+  "947": [
+   "neocaridina-davidi",
+   "Red Cherry"
+  ],
+  "948": [
+   "neocaridina-davidi",
+   "Bloody Mary"
+  ],
+  "949": [
+   "neocaridina-davidi",
+   "Blue Dream"
+  ],
+  "950": [
+   "neocaridina-davidi",
+   "Yellow"
+  ],
+  "951": [
+   "neocaridina-davidi",
+   "Orange"
+  ],
+  "952": [
+   "neocaridina-davidi",
+   "Black Rose"
+  ],
+  "953": [
+   "neocaridina-davidi",
+   "Green Jade"
+  ],
+  "954": [
+   "neocaridina-davidi",
+   "Chocolate"
+  ],
+  "955": [
+   "cherax-alyciae",
+   "Blue Kong"
+  ],
+  "956": [
+   "cherax-peknyi",
+   "Super Blue"
+  ],
+  "957": [
+   "cherax-snowden",
+   "Irianto Red"
+  ],
+  "958": [
+   "procambarus-alleni",
+   "Electric Blue"
+  ],
+  "959": [
+   "procambarus-clarkii",
+   "Blue"
+  ],
+  "960": [
+   "procambarus-clarkii",
+   "White (Ghost)"
+  ],
+  "961": [
+   "procambarus-clarkii",
+   "Orange"
+  ],
+  "962": [
+   "amphiprion-ocellaris",
+   "Black (Darwin)"
+  ],
+  "963": [
+   "amphiprion-ocellaris",
+   "Snowflake"
+  ],
+  "964": [
+   "amphiprion-ocellaris",
+   "Picasso"
+  ],
+  "965": [
+   "amphiprion-ocellaris",
+   "Platinum"
+  ],
+  "966": [
+   "amphiprion-ocellaris",
+   "Naked"
+  ],
+  "967": [
+   "amphiprion-ocellaris",
+   "Misbar"
+  ],
+  "968": [
+   "amphiprion-percula",
+   "Picasso"
+  ],
+  "969": [
+   "amphiprion-percula",
+   "Black Onyx"
+  ],
+  "970": [
+   "amphiprion-percula",
+   "Platinum"
   ]
  }
 }

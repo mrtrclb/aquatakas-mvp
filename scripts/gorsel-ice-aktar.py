@@ -3,10 +3,11 @@
 
 Kullanım:  python3 scripts/gorsel-ice-aktar.py <görsel-klasörü> [cikti.sql]
 
-Klasördeki dosyalar şu adlarla gelir (bkz. aquagram_gorsel_listesi.xlsx):
+Klasördeki dosyalar şu adlarla gelir (bkz. aquagram_gorsel_listesi_eksik.xlsx):
   15_1.jpg, 15_2.webp ...   → 15 numaralı tür
   M61_1.png, M61_2.jpg ...  → 61 numaralı makale
-Numara → slug eşlemesi scripts/gorsel-numaralari.json dosyasındadır.
+Numara → slug eşlemesi scripts/gorsel-numaralari.json dosyasındadır; lokalite/varyete
+numaraları 'formlar' altında, görselleri species_forms kaydına gider.
 
 Her görsel EXIF yönüne göre döndürülür, uzun kenarı en fazla 1600 px olacak şekilde
 küçültülür, meta verisi atılır ve webp olarak public/media/tur|makale/<slug>-<sıra>.webp
@@ -28,13 +29,17 @@ QUALITY = 80
 NAME = re.compile(r"^(M?)(\d+)_(\d+)\.(jpe?g|png|webp|avif)$", re.I)
 
 
+def _slug(text):
+    table = str.maketrans("çğıöşüâîûÇĞİÖŞÜ", "cgiosuaiuCGIOSU")
+    return re.sub(r"[^a-z0-9]+", "-", text.translate(table).lower()).strip("-")
+
+
 def main():
     src = Path(sys.argv[1])
     out_sql = Path(sys.argv[2]) if len(sys.argv) > 2 else None
     nums = json.loads((ROOT / "scripts/gorsel-numaralari.json").read_text())
     found = {"tur": {}, "makale": {}}
     skipped = []
-    key_of = {}
     for file in sorted(p for p in src.rglob("*") if p.is_file()):
         m = NAME.match(file.name)
         if not m:
@@ -46,14 +51,16 @@ def main():
         if not slug:
             skipped.append((file.name, "numara listede yok"))
             continue
-        found[kind].setdefault(slug, []).append((int(m.group(3)), file))
-        key_of[(kind, slug)] = key
+        found[kind].setdefault(key, []).append((int(m.group(3)), file))
 
     sql = []
     for kind, items in found.items():
         folder = ROOT / "public/media" / kind
         folder.mkdir(parents=True, exist_ok=True)
-        for slug, files in items.items():
+        for key, files in items.items():
+            slug = nums[kind][key]
+            moved = nums.get("formlar", {}).get(key) if kind == "tur" else None
+            base = slug + "-" + _slug(moved[1]) if moved else slug
             urls = []
             for order, file in sorted(files):
                 with Image.open(file) as im:
@@ -61,13 +68,13 @@ def main():
                     alpha = im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info)
                     im = im.convert("RGBA" if alpha else "RGB")
                     im.thumbnail((MAX_EDGE, MAX_EDGE), Image.LANCZOS)
-                    target = folder / f"{slug}-{order}.webp"
+                    target = folder / f"{base}-{order}.webp"
                     im.save(target, "WEBP", quality=QUALITY, method=6)
-                urls.append(f"{SITE}/media/{kind}/{slug}-{order}.webp")
+                urls.append(f"{SITE}/media/{kind}/{base}-{order}.webp")
             arr = "array[" + ",".join("'" + u + "'" for u in urls) + "]::text[]"
-            moved = nums.get("formlar", {}).get(key_of[(kind, slug)]) if kind == "tur" else None
             if moved:
-                sql.append(f"update public.species_forms set images = {arr} where name = '{moved[1]}' and species_id = (select id from public.species where slug = '{moved[0]}');")
+                name = moved[1].replace("'", "''")
+                sql.append(f"update public.species_forms set images = {arr} where name = '{name}' and species_id = (select id from public.species where slug = '{moved[0]}');")
             elif kind == "tur":
                 sql.append(f"update public.species set images = {arr} where slug = '{slug}';")
             else:
@@ -76,7 +83,7 @@ def main():
     text = "\n".join(sql) + "\n"
     if out_sql:
         out_sql.write_text(text)
-    print(f"türler: {len(found['tur'])}, makaleler: {len(found['makale'])}, görsel: {sum(len(v) for d in found.values() for v in d.values())}")
+    print(f"tür/form: {len(found['tur'])}, makaleler: {len(found['makale'])}, görsel: {sum(len(v) for d in found.values() for v in d.values())}")
     for name, why in skipped:
         print(f"ATLANDI: {name} ({why})")
 

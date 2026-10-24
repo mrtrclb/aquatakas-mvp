@@ -1151,7 +1151,7 @@ function NameNoteInfo({ note }) {
 }
 
 // Tür sayfası paylaşımı: mesaj olarak gönder, bağlantıyı kopyala, WhatsApp
-function SpeciesShareButton({ species, ctx }) {
+function SpeciesShareButton({ species, ctx, onDark = false }) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const ref = useRef(null);
@@ -1170,7 +1170,7 @@ function SpeciesShareButton({ species, ctx }) {
   const item = "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50";
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Paylaş" aria-haspopup="menu" aria-expanded={open}><Share2 size={19} /></button>
+      <button type="button" onClick={() => setOpen((value) => !value)} className={"rounded-full p-2 " + (onDark ? "bg-white/20 text-white backdrop-blur hover:bg-white/30" : "text-slate-600 hover:bg-slate-100")} title="Paylaş" aria-haspopup="menu" aria-expanded={open}><Share2 size={19} /></button>
       {open && (
         <div role="menu" className="absolute right-0 top-11 z-30 w-60 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
           <button type="button" role="menuitem" onClick={() => { setOpen(false); if (ctx.isMember) setSending(true); else ctx.onAuth(); }} className={item}><Send size={16} className="text-cyan-800" /> Mesaj olarak gönder</button>
@@ -1292,6 +1292,40 @@ function SendSpeciesModal({ species, url, ctx, onClose }) {
   );
 }
 
+// Tür sayfasının üst şeridi: kategorinin kapak görseli varsa onun üzerinde, yoksa sade beyaz şerit
+function SpeciesTopBar({ category, species, kb, ctx }) {
+  const covers = useCategoryCovers();
+  const cover = covers[category.id];
+  const [failed, setFailed] = useState(false);
+  const showImage = cover && !failed;
+  if (!showImage) {
+    return (
+      <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
+        <button onClick={() => kb.openCategory(category.id)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Geri"><ArrowLeft size={19} /></button>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">{category.protected && <><CategoryEmoji category={category} /> </>}{category.name}</p>
+          <h2 className="truncate text-lg font-black leading-tight">{species.name}</h2>
+        </div>
+        <SpeciesShareButton species={species} ctx={ctx} />
+      </div>
+    );
+  }
+  return (
+    <div className="sticky top-[60px] z-20 overflow-hidden border-b border-slate-200 bg-slate-900 lg:top-[72px]" data-testid="species-cover-bar">
+      <img src={cover} alt="" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/55 to-slate-950/20" />
+      <div className="relative flex min-h-[68px] items-center gap-3 px-3 py-2.5">
+        <button onClick={() => kb.openCategory(category.id)} className="rounded-full bg-white/20 p-2 text-white backdrop-blur hover:bg-white/30" title="Geri"><ArrowLeft size={19} /></button>
+        <div className="min-w-0 flex-1 text-white [text-shadow:0_1px_6px_rgba(0,0,0,.4)]">
+          <p className="truncate text-[12px] font-black uppercase tracking-wide text-white/80">{category.protected && <><CategoryEmoji category={category} /> </>}{category.name}</p>
+          <h2 className="truncate text-lg font-black leading-tight">{species.name}</h2>
+        </div>
+        <SpeciesShareButton species={species} ctx={ctx} onDark />
+      </div>
+    </div>
+  );
+}
+
 export function SpeciesPage(props) {
   if (categoryById(props.species.category).protected) return <TrSpeciesPage {...props} />;
   return <RegularSpeciesPage {...props} />;
@@ -1313,14 +1347,7 @@ function RegularSpeciesPage({ species, kb, ctx, listings, posts }) {
 
   return (
     <div>
-      <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
-        <button onClick={() => kb.openCategory(category.id)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Geri"><ArrowLeft size={19} /></button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400">{category.name}</p>
-          <h2 className="truncate text-lg font-black leading-tight">{species.name}</h2>
-        </div>
-        <SpeciesShareButton species={species} ctx={ctx} />
-      </div>
+      <SpeciesTopBar category={category} species={species} kb={kb} ctx={ctx} />
 
       {ctx.adsFor && ctx.adsFor("species").length > 0 && (
         <div className="px-4 pt-4 [&>div]:mb-0">
@@ -1697,14 +1724,7 @@ function TrSpeciesPage({ species, kb, ctx }) {
   const btn = "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-black ring-1 transition ";
   return (
     <div>
-      <div className="sticky top-[60px] z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur lg:top-[72px]">
-        <button onClick={() => kb.openCategory(category.id)} className="rounded-full p-2 text-slate-600 hover:bg-slate-100" title="Geri"><ArrowLeft size={19} /></button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[12px] font-black uppercase tracking-wide text-slate-400"><CategoryEmoji category={category} /> {category.name}</p>
-          <h2 className="truncate text-lg font-black leading-tight">{species.name}</h2>
-        </div>
-        <SpeciesShareButton species={species} ctx={ctx} />
-      </div>
+      <SpeciesTopBar category={category} species={species} kb={kb} ctx={ctx} />
 
       {ctx.adsFor && ctx.adsFor("species").length > 0 && (
         <div className="px-4 pt-4 [&>div]:mb-0">

@@ -20,6 +20,7 @@ import { VerificationCard } from "./verification.jsx";
 import { AccountSecurity, DeleteAccountDialog } from "./account-security.jsx";
 import { trackVisit } from "./lib/visits";
 import { absoluteUrl, navigate, onRoute, routePath, upgradeLegacyHash } from "./lib/router";
+import { catalogSnapshot, parseProductRoute as parseProductPath, useCatalog } from "./lib/products";
 import { ListingDetailAside } from "./listing-aside.jsx";
 import { ReviewModal, ReviewStrip, ReviewSummary, ReviewList, useProfileReviews } from "./reviews.jsx";
 import {
@@ -69,7 +70,8 @@ import {
   Home,
   LogOut,
   BookOpen,
-  Menu
+  Menu,
+  Package
 } from "lucide-react";
 import {
   ComposerModal,
@@ -97,6 +99,8 @@ import { useArticles } from "./lib/articles";
 
 // Seyrek kullanılan bölümler ayrı parçalar halinde, açıldıklarında indirilir
 const AdsManagerPage = lazy(() => import("./ads-manager.jsx"));
+const ProductsMain = lazy(() => import("./products.jsx").then((mod) => ({ default: mod.ProductsMain })));
+const ProductsAside = lazy(() => import("./products.jsx").then((mod) => ({ default: mod.ProductsAside })));
 const OnboardingModal = lazy(() => import("./onboarding.jsx").then((mod) => ({ default: mod.OnboardingModal })));
 import { SEED_FAVORITES, SEED_KEEPING, SEED_SPECIES_COMMENTS, SPECIES, isProtectedSpecies, speciesBySlug, withoutProtected } from "./species.js";
 import { GroupIcon } from "./lib/group-icon.jsx";
@@ -422,6 +426,8 @@ export default function AquagramApp() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [demoFollowedTags, setFollowedTags] = useState([]);
   const [kbRoute, setKbRoute] = useState(null);
+  const [prodRoute, setProdRoute] = useState(null); // /urunler, /urun/<ad>, /marka/<ad>, /markalar
+  const [prodSearch, setProdSearch] = useState("");
   const articlesDb = useArticles(); // { section } | { category } | { slug } | { mine }
   const [kbSearch, setKbSearch] = useState("");
   const [kbKeeping, setKbKeeping] = useState(() => ({ ...SEED_KEEPING }));
@@ -570,6 +576,7 @@ export default function AquagramApp() {
       const kbSection = path.match(/^\/bilgi(?:\/b\/([^/]+))?$/);
       const kbCategory = path.match(/^\/bilgi\/k\/([^/]+)$/);
       const species = path.match(/^\/tur\/([^/]+)$/);
+      setProdRoute(parseProductPath(path));
       const article = path.match(/^\/makale\/([^/]+)$/);
       setKbRoute(
         species ? { slug: species[1] }
@@ -698,6 +705,7 @@ export default function AquagramApp() {
   }, [toast]);
 
   function clearPostHash() {
+    setProdRoute(null);
     setPostSlug(null);
     setGroupSlug(null);
     setCommunityPage(null);
@@ -1027,7 +1035,7 @@ export default function AquagramApp() {
       requireLogin();
       return;
     }
-    setComposerOpts(opts && opts.species ? opts : null);
+    setComposerOpts(opts && (opts.species || opts.product) ? opts : null);
     setComposerGroupId(typeof groupId === "string" ? groupId : null);
     setComposerOpen(true);
   }
@@ -1071,6 +1079,9 @@ export default function AquagramApp() {
           group_id: group ? group.dbId || null : null,
           kind: post.kind || "post",
           species_slugs: post.speciesSlugs || [],
+          product_slugs: post.productSlugs || [],
+          rated_product: post.ratedProduct || null,
+          rating: post.rating || null,
           poll_ends_at: post.poll ? new Date(post.poll.endsAt).toISOString() : null
         })
         .select()
@@ -1469,24 +1480,38 @@ export default function AquagramApp() {
   const currentGroup = groupSlug ? groups.find((group) => group.slug === groupSlug) : null;
   const groupMode = Boolean(groupSlug) && !postMode;
   const kbMode = Boolean(kbRoute) && !postMode;
+  const prodMode = Boolean(prodRoute) && !postMode;
   const currentSpecies = kbMode && kbRoute.slug ? speciesBySlug(kbRoute.slug) : null;
   // Ayrı sayfadan bir türün lokalitesine/varyetesine taşınan eski tür adresleri
   const speciesRedirect = kbMode && kbRoute.slug && !currentSpecies ? kbDb.redirects[kbRoute.slug] : null;
   useEffect(() => {
     if (speciesRedirect) navigate("/tur/" + speciesRedirect.slug, { replace: true });
   }, [speciesRedirect]); // eslint-disable-line react-hooks/exhaustive-deps
-  const hashMode = postMode || groupMode || Boolean(communityPage) || kbMode;
+  const hashMode = postMode || groupMode || Boolean(communityPage) || kbMode || prodMode;
   const effectiveMemberPage = isMember && !hashMode ? memberPage : null;
   const accountMode = Boolean(effectiveMemberPage) && effectiveMemberPage !== "posts";
   const userListingsMode = Boolean(viewUser) && !hashMode;
   const detailMode = Boolean(selectedListing) && !hashMode;
-  const communityMode = (hashMode && !kbMode) || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
+  const communityMode = (hashMode && !kbMode && !prodMode) || (!selectedListing && !viewUser && (Boolean(postsUser) || communityOpen || effectiveMemberPage === "posts"));
   const currentUser = users[currentUserId];
   const currentPost = postSlug ? posts.find((post) => post.slug === postSlug) : null;
 
   // Sayfa başlığı ve açıklaması: tarayıcı sekmesi, arama motorları ve yer imleri için
   const currentArticleMeta = kbMode && kbRoute.article ? articlesDb.list.find((item) => item.slug === kbRoute.article) : null;
-  const pageTitle = currentArticleMeta
+  useCatalog(prodMode);
+  const catalogNow = catalogSnapshot();
+  const currentProduct = prodMode && prodRoute.product ? catalogNow.productsBySlug[prodRoute.product] : null;
+  const currentBrand = prodMode && prodRoute.brand ? catalogNow.brandsBySlug[prodRoute.brand] : null;
+  const currentProdCategory = prodMode && prodRoute.category ? catalogNow.categories.find((row) => row.id === prodRoute.category) : null;
+  const pageTitle = currentProduct
+    ? currentProduct.name + " yorumları ve özellikleri — Aquagram Ürünler"
+    : currentBrand
+      ? currentBrand.name + " akvaryum ürünleri — Aquagram"
+      : currentProdCategory
+        ? "Akvaryum " + currentProdCategory.name.toLocaleLowerCase("tr") + " — kullanıcı yorumları | Aquagram"
+        : prodMode
+          ? (prodRoute.brands ? "Akvaryum markaları — Aquagram" : "Akvaryum ürünleri ve kullanıcı yorumları — Aquagram")
+          : currentArticleMeta
     ? currentArticleMeta.title + " — Aquagram Makaleler"
     : kbMode && kbRoute.articles
       ? "Akvaryum makaleleri — Aquagram Bilgi Bankası"
@@ -1501,7 +1526,11 @@ export default function AquagramApp() {
           : kbMode
             ? "Akvaryum Bilgi Bankası: tür bakım rehberi — Aquagram"
             : "Aquagram — Akvaryum hobicilerinin buluşma noktası";
-  const pageDescription = currentArticleMeta
+  const pageDescription = currentBrand
+    ? (currentBrand.desc || "").slice(0, 155)
+    : prodMode && !currentProduct
+      ? "Akvaryum filtreleri, yemleri, testleri ve daha fazlası: hobicilerin puanları, deneyimleri ve inceleme videoları."
+      : currentArticleMeta
     ? currentArticleMeta.excerpt.slice(0, 155)
     : currentSpecies
     ? (currentSpecies.desc || "").slice(0, 155)
@@ -1513,8 +1542,8 @@ export default function AquagramApp() {
           ? postSnippet(currentPost).slice(0, 155)
           : "Akvaryum hobicileri için ilan, takas ve topluluk platformu: canlı, bitki, ekipman ilanları; hobicilerle soru-cevap ve tür bakım rehberi.";
   // Ziyaret sayacı (bölüm bazında, kişisel veri yok)
-  const visitSection = currentSpecies ? "species" : kbMode ? "kb" : selectedListing ? "listing" : listingsOpen ? "listings" : currentPost ? "post" : currentGroup ? "group" : memberPage ? "account" : communityOpen || communityPage ? "community" : "home";
-  const visitKey = visitSection + ":" + (currentSpecies ? currentSpecies.slug : selectedListing ? selectedListing.id : currentPost ? currentPost.slug : currentGroup ? currentGroup.slug : memberPage || communityPage || (kbRoute && (kbRoute.article || (kbRoute.articles && "makaleler") || kbRoute.category || kbRoute.section)) || "");
+  const visitSection = currentProduct ? "product" : prodMode ? "products" : currentSpecies ? "species" : kbMode ? "kb" : selectedListing ? "listing" : listingsOpen ? "listings" : currentPost ? "post" : currentGroup ? "group" : memberPage ? "account" : communityOpen || communityPage ? "community" : "home";
+  const visitKey = visitSection + ":" + (currentProduct ? currentProduct.slug : prodMode ? (prodRoute.brand || prodRoute.category || (prodRoute.brands && "markalar") || "") : currentSpecies ? currentSpecies.slug : selectedListing ? selectedListing.id : currentPost ? currentPost.slug : currentGroup ? currentGroup.slug : memberPage || communityPage || (kbRoute && (kbRoute.article || (kbRoute.articles && "makaleler") || kbRoute.category || kbRoute.section)) || "");
   useEffect(() => {
     trackVisit(visitSection, visitKey);
   }, [visitKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1539,10 +1568,10 @@ export default function AquagramApp() {
   const asideView = postMode ? "post" : groupMode ? "group" : communityPage || (communityOpen && !postsUser && !effectiveMemberPage ? "feed" : "other");
   const joinedGroups = isMember ? groups.filter((group) => group.memberIds.includes(currentUserId)) : [];
   // Ana sayfa: İlanlar + İçerikler karışık akış; "İlanlar"/"İçerikler" seçimi hatırlanır ve o görünüme döner
-  const homeMode = !communityMode && !kbMode && !accountMode && !userListingsMode && !detailMode && !listingsOpen && !effectiveMemberPage;
+  const homeMode = !communityMode && !kbMode && !prodMode && !accountMode && !userListingsMode && !detailMode && !listingsOpen && !effectiveMemberPage;
   const homeView = homeMode ? (homeFilter === "listings" ? "listings" : homeFilter === "posts" ? "posts" : "mixed") : null;
-  const showListingFilters = !accountMode && !userListingsMode && !communityMode && !kbMode && homeView !== "mixed" && homeView !== "posts";
-  const navActive = kbMode ? "kb" : communityMode ? "community" : homeMode ? "home" : listingsOpen && !accountMode && !effectiveMemberPage && !userListingsMode ? "listings" : null;
+  const showListingFilters = !accountMode && !userListingsMode && !communityMode && !kbMode && !prodMode && homeView !== "mixed" && homeView !== "posts";
+  const navActive = prodMode ? "products" : kbMode ? "kb" : communityMode ? "community" : homeMode ? "home" : listingsOpen && !accountMode && !effectiveMemberPage && !userListingsMode ? "listings" : null;
   const homeTopBar = (
     <HomeTopBar
       filter={homeFilter}
@@ -1585,7 +1614,10 @@ export default function AquagramApp() {
             </div>
           </aside>
   );
-  const leftAside = kbMode ? (
+  const prodUi = { search: prodSearch, setSearch: setProdSearch };
+  const leftAside = prodMode ? (
+    <Suspense fallback={null}><ProductsAside route={prodRoute} ui={prodUi} /></Suspense>
+  ) : kbMode ? (
     <KbAside kb={kb} ctx={communityCtx} route={{ ...kbRoute, species: currentSpecies }} />
   ) : communityMode ? (
     <CommunityAside ctx={communityCtx} view={asideView} group={groupMode ? currentGroup : null} search={communitySearch} tags={asideTags} groups={groups} />
@@ -1615,7 +1647,7 @@ export default function AquagramApp() {
   const drawerExtras = kbMode ? <KbWidgets kb={kb} posts={posts} listings={listings} /> : null;
   const isListingFilterPanel = leftAside === listingFilterAside;
 
-  const navItems = [["home", "Ana sayfa", Home, goHome], ["listings", "İlanlar", Tag, openListingsPage], ["community", "Topluluk", Users, openCommunity], ["kb", "Bilgi Bankası", BookOpen, kb.openHome]];
+  const navItems = [["home", "Ana sayfa", Home, goHome], ["listings", "İlanlar", Tag, openListingsPage], ["community", "Topluluk", Users, openCommunity], ["kb", "Bilgi Bankası", BookOpen, kb.openHome], ["products", "Ürünler", Package, () => { setProdSearch(""); openHashPage("/urunler"); }]];
 
   return (
     <div className="min-h-screen bg-white pb-[calc(64px+env(safe-area-inset-bottom))] text-slate-950 lg:pb-0">
@@ -1759,7 +1791,11 @@ export default function AquagramApp() {
         {leftAside && <div className="hidden lg:block">{leftAside}</div>}
 
         <section className={"min-w-0 bg-white " + (accountMode || userListingsMode ? "border-x border-slate-200" : "lg:border-r border-slate-200")}>
-  {kbMode ? (
+  {prodMode ? (
+  <Suspense fallback={<div className="p-10 text-center text-sm font-bold text-slate-400">Yükleniyor…</div>}>
+    <ProductsMain route={prodRoute} ui={prodUi} ctx={communityCtx} posts={posts} listings={listings} />
+  </Suspense>
+) : kbMode ? (
   kbRoute.slug ? (
     currentSpecies ? (
       <SpeciesPage key={currentSpecies.slug} species={currentSpecies} kb={kb} ctx={communityCtx} listings={listings} posts={posts} />
@@ -2096,7 +2132,9 @@ export default function AquagramApp() {
           groups={joinedGroups}
           defaultGroupId={composerGroupId && joinedGroups.some((group) => group.id === composerGroupId) ? composerGroupId : null}
           defaultKind={composerOpts && composerOpts.kind === "question" ? "question" : "post"}
-          pinnedSpecies={composerOpts ? composerOpts.species : null}
+          pinnedSpecies={composerOpts ? composerOpts.species || null : null}
+          pinnedProduct={composerOpts ? composerOpts.product || null : null}
+          rateProduct={Boolean(composerOpts && composerOpts.rate)}
           onClose={() => setComposerOpen(false)}
           onPublish={publishPost}
         />
@@ -2135,8 +2173,8 @@ export default function AquagramApp() {
       )}
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center">
-          {[navItems[0], navItems[1], null, navItems[2], navItems[3]].map((item, index) => {
+        <div className="mx-auto grid h-16 max-w-lg grid-cols-6 items-center">
+          {[navItems[0], navItems[1], null, navItems[2], navItems[3], navItems[4]].map((item, index) => {
             if (!item) {
               return (
                 <div key="share" className="flex justify-center">
@@ -2151,7 +2189,7 @@ export default function AquagramApp() {
             return (
               <button key={key} onClick={onClick} className={"flex flex-col items-center gap-0.5 py-1 text-[12px] font-black " + (active ? "text-cyan-950" : "text-slate-400")}>
                 <Icon size={22} strokeWidth={active ? 2.4 : 2} />
-                <span className="max-w-full truncate px-0.5">{key === "kb" ? "Bilgi" : label}</span>
+                <span className="max-w-full truncate px-0.5">{key === "kb" ? "Bilgi" : key === "home" ? "Ana" : label}</span>
               </button>
             );
           })}

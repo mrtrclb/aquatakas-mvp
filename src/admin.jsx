@@ -19,6 +19,7 @@ import {
   Mail,
   Megaphone,
   Menu,
+  Package,
   Pin,
   Plus,
   RotateCcw,
@@ -39,6 +40,7 @@ import { shrinkImage } from "./lib/listings";
 import { loadCategoryCovers } from "./lib/settings";
 import { KB_CATEGORIES } from "./species.js";
 import { forgetArticle, slugifyTr } from "./lib/articles";
+import { ProductsAdminSection } from "./admin-products.jsx";
 
 /* ------------------------------------------------------------------ */
 /* Sabitler                                                            */
@@ -54,7 +56,8 @@ export const PERMISSIONS = [
   ["ads", "Öne çıkarma ve reklam"],
   ["settings", "Ayarlar"],
   ["contact", "İletişim mesajları"],
-  ["messages", "Ekip mesajları"]
+  ["messages", "Ekip mesajları"],
+  ["products", "Ürünler ve markalar"]
 ];
 
 // Her yetkinin tam olarak neye izin verdiği (Ekip ve yetkiler sayfasında gösterilir)
@@ -68,6 +71,7 @@ export const PERMISSION_HELP = {
   ads: "İlan öne çıkarma ve reklam başvurularını görür, onaylar ya da gerekçeyle reddeder.",
   settings: "Duyuru bandını, topluluk kurallarını, yasaklı kelimeleri ve öne çıkarma/reklam fiyatlarını değiştirir; disk ve e-posta kullanımını görür.",
   contact: "Bize ulaşın formundan gelen mesajları (gönderenin adı ve e-posta adresi dahil) okur, yanıtlandı ya da kapatıldı olarak işaretler.",
+  products: "Ürün ve marka ekler, düzenler, yayından kaldırır; üyelerin marka/ürün ekleme, markayı sahiplenme ve video önerilerini onaylar ya da reddeder.",
   messages: "\"Aquagram Ekibi\" adıyla üyelere mesaj gönderir: tüm PRO üyelere ya da seçtiği üyelere. İletişim mesajları yetkisiyle birlikte verilirse formdan yazan üyelere site içinden yanıt da verebilir."
 };
 
@@ -85,6 +89,7 @@ const SECTIONS = [
   { id: "etiketler", label: "Etiketler", icon: Hash, perm: "tags" },
   { id: "gruplar", label: "Gruplar", icon: UsersRound, perm: "groups" },
   { id: "turler", label: "Türler", icon: Fish, perm: "species", stat: "species_suggestions_pending" },
+  { id: "urunler", label: "Ürünler", icon: Package, perm: "products", stat: "catalog_pending" },
   { id: "ayarlar", label: "Ayarlar", icon: Settings, perm: "settings" },
   { id: "ekip", label: "Ekip ve yetkiler", icon: ShieldCheck, perm: "super" },
   { id: "kayit", label: "İşlem kaydı", icon: History, perm: null }
@@ -477,6 +482,7 @@ export default function AdminApp() {
     etiketler: TagsSection,
     gruplar: GroupsSection,
     turler: SpeciesSection,
+    urunler: ProductsAdminSection,
     ayarlar: SettingsSection,
     ekip: StaffSection,
     kayit: AuditSection
@@ -551,6 +557,7 @@ function DashboardSection() {
     ["Öne çıkarma başvurusu", stats && stats.features_pending, "Onay bekliyor", "one-cikarma", "ads", true],
     ["Reklam başvurusu", stats && stats.ads_pending, "Onay bekliyor", "reklamlar", "ads", true],
     ["Tür / lokalite önerisi", stats && stats.species_suggestions_pending, "Onay bekliyor", "turler", "species", true],
+    ["Ürün / marka başvurusu", stats && stats.catalog_pending, "Onay bekliyor", "urunler", "products", true],
     ["Mavi tik talebi", stats && stats.verifications_pending, "Onay bekliyor", "kullanicilar", "users", true],
     ["Askıdaki üye", stats && stats.suspended_users, "Şu an askıda", "kullanicilar", "users"],
     ["PRO üye", stats && stats.pro_active, "Son 30 gün alım: " + (stats ? stats.pro_30d || 0 : "…"), "pro", "users"]
@@ -575,7 +582,7 @@ function DashboardSection() {
   );
 }
 
-const SECTION_LABELS = { home: "Ana sayfa", listings: "İlan listesi", listing: "İlan detayı", community: "Topluluk", post: "Paylaşım", group: "Gruplar", kb: "Bilgi Bankası", species: "Tür sayfaları", account: "Üye sayfaları", other: "Diğer" };
+const SECTION_LABELS = { home: "Ana sayfa", listings: "İlan listesi", listing: "İlan detayı", community: "Topluluk", post: "Paylaşım", group: "Gruplar", kb: "Bilgi Bankası", species: "Tür sayfaları", products: "Ürünler", product: "Ürün sayfaları", account: "Üye sayfaları", other: "Diğer" };
 
 function istanbulDay(offset = 0) {
   const date = new Date(Date.now() + offset * 86400000);
@@ -1198,7 +1205,7 @@ function FeaturesSection() {
 /* Reklamlar                                                           */
 /* ------------------------------------------------------------------ */
 
-const PLACEMENT_LABELS = { feed: "Akış içi", sidebar: "Yan sütun", detail: "İlan detayı", post: "Paylaşım detayı", species: "Tür sayfası", article: "Makale", notification: "Bildirim" };
+const PLACEMENT_LABELS = { feed: "Akış içi", sidebar: "Yan sütun", detail: "İlan detayı", post: "Paylaşım detayı", species: "Tür sayfası", article: "Makale", product: "Ürün sayfası", notification: "Bildirim" };
 
 function AdsSection() {
   const { act, ask } = useAdmin();
@@ -3578,3 +3585,5 @@ function AuditSection() {
     </Section>
   );
 }
+
+export { Badge, Btn, Card, Empty, LoadState, Person, Section, Tabs, fmtDate, must, profilesByIds, useAdmin, useLoad, PAYMENT_LABELS };

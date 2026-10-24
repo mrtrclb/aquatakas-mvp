@@ -30,6 +30,8 @@ import { CategoryEmoji } from "./components/tr-flag.jsx";
 import { LinkPreviewCard, URL_RE, firstUrl } from "./link-preview.jsx";
 import { ProBadge } from "./pro.jsx";
 import { GroupIcon } from "./lib/group-icon.jsx";
+import { OfficialBrandBadge, ProductChips, ProductPicker, StarInput, Stars, officialBrandFor } from "./product-bits.jsx";
+import { detectProducts, productBySlug } from "./lib/products";
 
 /* ------------------------------------------------------------------ */
 /* Yardımcılar                                                         */
@@ -697,6 +699,17 @@ export function SpeciesChips({ slugs, ctx, className = "mt-2.5" }) {
   );
 }
 
+// Değerlendirme paylaşımında yıldız satırı
+function RatedLine({ post }) {
+  const product = productBySlug(post.ratedProduct);
+  return (
+    <div className="mt-1 flex items-center gap-2 text-[13px] font-bold text-slate-500">
+      <Stars value={post.rating} size={15} />
+      <span>{product ? product.name + " değerlendirmesi" : "Ürün değerlendirmesi"}</span>
+    </div>
+  );
+}
+
 export function PostCard({ post, ctx, detail = false, hideGroup = false, eager = false }) {
   const [lightbox, setLightbox] = useState(null);
   const user = ctx.users[post.userId];
@@ -752,6 +765,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false, eager =
           <MoreMenu items={menuItems} />
         </div>
 
+        {post.rating ? <RatedLine post={post} /> : null}
         {post.text && (
           <p className={"mt-1 whitespace-pre-wrap break-words leading-relaxed text-slate-900 " + (detail ? "text-[18px] sm:text-[20px]" : "text-[16px] sm:text-[18px]")}>
             <RichText text={post.text} onTag={ctx.onSearch} />
@@ -763,6 +777,7 @@ export function PostCard({ post, ctx, detail = false, hideGroup = false, eager =
         {!post.video && !(post.images && post.images.length) && firstUrl(post.text) && <LinkPreviewCard url={firstUrl(post.text)} />}
         <PollBlock post={post} ctx={ctx} />
         <SpeciesChips slugs={post.speciesSlugs} ctx={ctx} />
+        <ProductChips slugs={post.productSlugs} rating={post.rating} ratedProduct={post.ratedProduct} className={post.speciesSlugs && post.speciesSlugs.length ? "mt-1.5" : "mt-2.5"} />
 
         {detail && <div className="mt-3 text-sm text-slate-500">{fullDate(post.createdAt)}</div>}
 
@@ -1143,7 +1158,8 @@ export function CommunityFeed({ posts, members, ctx, search = "", embedded = fal
   );
 }
 
-function CommentItem({ comment, postId, ctx }) {
+function CommentItem({ comment, postId, productSlugs, ctx }) {
+  const officialBrand = officialBrandFor(comment.userId, productSlugs);
   const [lightbox, setLightbox] = useState(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.text || "");
@@ -1174,6 +1190,7 @@ function CommentItem({ comment, postId, ctx }) {
           <button type="button" onClick={() => ctx.onProfile(user)} className="font-black text-slate-900 hover:underline"><UserName user={user} /></button>
           <span className="text-slate-400">· {timeAgo(comment.createdAt)}</span>
           {comment.editedAt && <span className="text-xs text-slate-400" title={fullDate(comment.editedAt)}>· düzenlendi</span>}
+          {officialBrand && <OfficialBrandBadge brand={officialBrand} />}
           {!editing && <MoreMenu items={menuItems} size={17} />}
         </div>
         {editing ? (
@@ -1429,7 +1446,7 @@ export function PostDetailPage({ post, ctx, onBack }) {
               ))}
             </div>
           </div>
-          {comments.map((comment) => <CommentItem key={comment.id} comment={comment} postId={post.id} ctx={ctx} />)}
+          {comments.map((comment) => <CommentItem key={comment.id} comment={comment} postId={post.id} productSlugs={post.productSlugs} ctx={ctx} />)}
         </>
       )}
     </div>
@@ -1636,8 +1653,11 @@ function ToolButton({ icon: Icon, label, onClick, disabled, active, compact = fa
   );
 }
 
-export function ComposerModal({ user, userId, groups = [], defaultGroupId = null, defaultKind = "post", pinnedSpecies = null, onClose, onPublish }) {
+export function ComposerModal({ user, userId, groups = [], defaultGroupId = null, defaultKind = "post", pinnedSpecies = null, pinnedProduct = null, rateProduct = false, onClose, onPublish }) {
   const [text, setText] = useState("");
+  const [rating, setRating] = useState(0);
+  const [removedProducts, setRemovedProducts] = useState([]);
+  const [addedProducts, setAddedProducts] = useState([]);
   const [previewUrl, setPreviewUrl] = useState(null);
   useEffect(() => {
     const timer = setTimeout(() => setPreviewUrl(firstUrl(text)), 600);
@@ -1676,7 +1696,11 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
   const pinnedOn = Boolean(pinnedSpecies) && !removedSpecies.includes(pinnedSpecies.slug);
   const pinnedTag = pinnedOn && !textSpecies.includes(pinnedSpecies.slug) ? speciesTag(pinnedSpecies) : null;
   const detectedSpecies = Array.from(new Set([...(pinnedOn ? [pinnedSpecies.slug] : []), ...textSpecies])).filter((slug) => !removedSpecies.includes(slug));
-  const canPublish = text.length <= MAX_TEXT && (pollOn ? Boolean(trimmed) && filledOptions.length >= 2 : Boolean(trimmed) || hasMedia);
+  // Ürünler: sayfasından açıldıysa sabit, metinde geçenler otomatik, aramayla eklenenler
+  const rating_on = Boolean(rateProduct && pinnedProduct);
+  const detectedProducts = Array.from(new Set([...(pinnedProduct ? [pinnedProduct.slug] : []), ...addedProducts, ...detectProducts(text + " " + pollText)]))
+    .filter((slug) => !removedProducts.includes(slug) || (rating_on && slug === pinnedProduct.slug));
+  const canPublish = text.length <= MAX_TEXT && (rating_on ? rating > 0 && trimmed.length >= 10 : pollOn ? Boolean(trimmed) && filledOptions.length >= 2 : Boolean(trimmed) || hasMedia);
 
   function addImages(event) {
     const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
@@ -1740,6 +1764,9 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
       groupId,
       kind: pollOn ? "post" : kind,
       speciesSlugs: detectedSpecies,
+      productSlugs: detectedProducts,
+      ratedProduct: rating_on ? pinnedProduct.slug : null,
+      rating: rating_on ? rating : null,
       text: finalText,
       images: images.map((image) => image.url),
       video,
@@ -1806,12 +1833,18 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
                 </div>
               )}
             </div>
+            {rating_on && (
+              <div className="mt-2 rounded-2xl bg-amber-50/70 p-3 ring-1 ring-amber-100" data-testid="rating-panel">
+                <div className="text-[12px] font-black text-amber-900">{pinnedProduct.name} için puanın</div>
+                <StarInput value={rating} onChange={setRating} />
+              </div>
+            )}
             <textarea
               autoFocus
               value={text}
               onChange={(event) => setText(event.target.value)}
               rows={pollOn || hasMedia ? 3 : 5}
-              placeholder={pollOn ? "Anket sorunu yaz" : kind === "question" ? "Sorunu yaz: tank hacmi, su değerleri ve belirtileri eklemeyi unutma" : "Akvaryumunda neler oluyor?"}
+              placeholder={rating_on ? "Deneyimini anlat: ne kadar süredir kullanıyorsun, neyi beğendin, neyi beğenmedin?" : pollOn ? "Anket sorunu yaz" : kind === "question" ? "Sorunu yaz: tank hacmi, su değerleri ve belirtileri eklemeyi unutma" : "Akvaryumunda neler oluyor?"}
               className="w-full resize-none bg-transparent py-2 text-lg leading-relaxed outline-none placeholder:text-slate-400"
             />
 
@@ -1921,6 +1954,24 @@ export function ComposerModal({ user, userId, groups = [], defaultGroupId = null
                 {pinnedTag && <div className="mt-1.5 text-[12px] font-semibold text-emerald-700" data-testid="auto-tag-hint">Paylaşırken <b>{pinnedTag}</b> etiketi otomatik eklenecek.</div>}
               </div>
             )}
+
+            <div className="mb-3 rounded-2xl bg-sky-50/60 p-2.5 ring-1 ring-sky-100" data-testid="composer-products">
+              <div className="mb-1.5 text-[12px] font-black text-sky-900">{detectedProducts.length ? "Bu paylaşım şu ürün sayfalarında da görünecek:" : "Bir üründen mi bahsediyorsun?"}</div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {detectedProducts.map((slug) => {
+                  const item = productBySlug(slug) || (pinnedProduct && pinnedProduct.slug === slug ? pinnedProduct : null);
+                  if (!item) return null;
+                  const locked = rating_on && slug === pinnedProduct.slug;
+                  return (
+                    <span key={slug} className="inline-flex items-center gap-1 rounded-full bg-white py-0.5 pl-2 pr-1 text-xs font-black text-sky-900 ring-1 ring-sky-200">
+                      📦 {item.name}
+                      {!locked && <button type="button" onClick={() => { setRemovedProducts((prev) => [...prev, slug]); setAddedProducts((prev) => prev.filter((value) => value !== slug)); }} title="Bu ürünü çıkar" className="rounded-full p-0.5 hover:bg-sky-100"><X size={11} /></button>}
+                    </span>
+                  );
+                })}
+                <ProductPicker selected={detectedProducts} onAdd={(slug) => { setAddedProducts((prev) => [...prev, slug]); setRemovedProducts((prev) => prev.filter((value) => value !== slug)); }} />
+              </div>
+            </div>
 
             {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</p>}
           </div>

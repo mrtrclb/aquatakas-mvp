@@ -1,0 +1,76 @@
+{
+ "ok": [
+  "marka/eheim",
+  "marka/jbl",
+  "urun/eheim-classic-350-1",
+  "urun/eheim-classic-350-2",
+  "urun/eheim-classic-350-3",
+  "urun/fluval-307-1",
+  "urun/fluval-307-2",
+  "urun/fluval-307-3",
+  "urun/seachem-prime-1",
+  "urun/seachem-stability-1",
+  "urun/seachem-stability-2",
+  "urun/seachem-stability-3",
+  "urun/tropica-premium-nutrition-1",
+  "urun/tropica-premium-nutrition-2",
+  "urun/tropica-premium-nutrition-3",
+  "urun/tropica-aquarium-soil-1",
+  "urun/tropica-aquarium-soil-2",
+  "urun/tropica-aquarium-soil-3",
+  "urun/api-freshwater-master-test-kit-1",
+  "urun/tetramin-flakes-1",
+  "urun/tetramin-flakes-2",
+  "urun/tetramin-flakes-3"
+ ],
+ "skipped": [],
+ "failed": [
+  {
+   "out": "marka/seachem",
+   "url": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Seachem.jpg"
+   ],
+   "error": "HTTP Error 410: Gone"
+  },
+  {
+   "out": "marka/tropica",
+   "url": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Tropica.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/TROPICA.jpg"
+   ],
+   "error": "HTTP Error 410: Gone"
+  },
+  {
+   "out": "marka/fluval",
+   "url": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Fluval.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/FLUVAL.jpg"
+   ],
+   "error": "HTTP Error 410: Gone"
+  },
+  {
+   "out": "marka/api",
+   "url": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/API.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/Api.jpg"
+   ],
+   "error": "HTTP Error 410: Gone"
+  },
+  {
+   "out": "marka/tetra",
+   "url": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Tetra.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/TETRA.jpg"
+   ],
+   "error": "HTTP Error 410: Gone"
+  },
+  {
+   "out": "marka/aquael",
+   "url": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Aquael.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/AQUAEL.jpg"
+   ],
+   "error": "HTTP Error 410: Gone"
+  }
+ ]
+}

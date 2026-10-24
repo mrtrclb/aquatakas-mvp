@@ -1,0 +1,38 @@
+name: Katalog görsellerini indir
+
+# scripts/katalog/gorseller.json değişince listedeki görselleri indirir, WebP'ye çevirir,
+# public/media/urun ve public/media/marka altına yazar ve aynı dala geri gönderir.
+on:
+  push:
+    paths:
+      - scripts/katalog/gorseller.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: katalog-gorselleri-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  indir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pillow kur
+        run: pip install pillow
+      - name: Görselleri indir
+        run: python3 scripts/katalog-gorsel-indir.py
+      - name: Gönder
+        run: |
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add public/media scripts/katalog/indirme-raporu.json
+          if git diff --cached --quiet; then echo "Yeni görsel yok"; exit 0; fi
+          git commit -m "Katalog görselleri indirildi"
+          git push

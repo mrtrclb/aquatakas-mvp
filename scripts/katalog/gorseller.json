@@ -1,0 +1,138 @@
+[
+ {
+  "url": [
+   "https://eheim.com/media/be/75/40/1706017978/eheim_logo.png",
+   "https://www.aquasabi.com/bilder/hersteller/normal/EHEIM.jpg",
+   "https://www.aquasabi.com/bilder/hersteller/normal/Eheim.jpg"
+  ],
+  "out": "marka/eheim"
+ },
+ {
+  "url": [
+   "https://www.aquasabi.com/bilder/hersteller/normal/JBL.jpg",
+   "https://www.jbl.de/images/logos/logo.png"
+  ],
+  "out": "marka/jbl"
+ },
+ {
+  "url": [
+   "https://www.aquasabi.com/bilder/hersteller/normal/Seachem.jpg"
+  ],
+  "out": "marka/seachem"
+ },
+ {
+  "url": [
+   "https://www.aquasabi.com/bilder/hersteller/normal/Tropica.jpg",
+   "https://www.aquasabi.com/bilder/hersteller/normal/TROPICA.jpg"
+  ],
+  "out": "marka/tropica"
+ },
+ {
+  "url": [
+   "https://www.aquasabi.com/bilder/hersteller/normal/Fluval.jpg",
+   "https://www.aquasabi.com/bilder/hersteller/normal/FLUVAL.jpg"
+  ],
+  "out": "marka/fluval"
+ },
+ {
+  "url": [
+   "https://www.aquasabi.com/bilder/hersteller/normal/API.jpg",
+   "https://www.aquasabi.com/bilder/hersteller/normal/Api.jpg"
+  ],
+  "out": "marka/api"
+ },
+ {
+  "url": [
+   "https://www.aquasabi.com/bilder/hersteller/normal/Tetra.jpg",
+   "https://www.aquasabi.com/bilder/hersteller/normal/TETRA.jpg"
+  ],
+  "out": "marka/tetra"
+ },
+ {
+  "url": [
+   "https://www.aquasabi.com/bilder/hersteller/normal/Aquael.jpg",
+   "https://www.aquasabi.com/bilder/hersteller/normal/AQUAEL.jpg"
+  ],
+  "out": "marka/aquael"
+ },
+ {
+  "url": "https://eheim.com/media/21/21/99/1720626508/18011703014301942.jpg",
+  "out": "urun/eheim-classic-350-1"
+ },
+ {
+  "url": "https://eheim.com/media/73/6b/0d/1720626500/12040408045201942.jpg",
+  "out": "urun/eheim-classic-350-2"
+ },
+ {
+  "url": "https://eheim.com/media/1f/2e/b8/1720626410/16070709071701942.jpg",
+  "out": "urun/eheim-classic-350-3"
+ },
+ {
+  "url": "https://s7d2.scene7.com/is/image/PetSmart/5290154?wid=1000&hei=1000",
+  "out": "urun/fluval-307-1"
+ },
+ {
+  "url": "https://s7d2.scene7.com/is/image/PetSmart/5290154_alt1?wid=1000&hei=1000",
+  "out": "urun/fluval-307-2"
+ },
+ {
+  "url": "https://s7d2.scene7.com/is/image/PetSmart/5290154_alt2?wid=1000&hei=1000",
+  "out": "urun/fluval-307-3"
+ },
+ {
+  "url": "https://media2.cdn.bulkreefsupply.com/media/catalog/product/cache/c8225047e3f199b6e75c4a7f9e30955e/2/3/232239-seachem-prime-100ml-fr_1.jpg",
+  "out": "urun/seachem-prime-1"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/16642/lg/seachem-stability.jpg",
+  "out": "urun/seachem-stability-1"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/16644/md/seachem-stability-250-ml.jpg",
+  "out": "urun/seachem-stability-2"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/16645/md/seachem-stability-500-ml.jpg",
+  "out": "urun/seachem-stability-3"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/3310/lg/tropica-premium-nutrition.jpg",
+  "out": "urun/tropica-premium-nutrition-1"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/3311/md/tropica-premium-nutrition-300-ml.jpg",
+  "out": "urun/tropica-premium-nutrition-2"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/26996/md/tropica-premium-nutrition-750-ml.jpg",
+  "out": "urun/tropica-premium-nutrition-3"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/4932/lg/tropica-aquarium-soil.jpg",
+  "out": "urun/tropica-aquarium-soil-1"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/4933/md/tropica-aquarium-soil-3-l.jpg",
+  "out": "urun/tropica-aquarium-soil-2"
+ },
+ {
+  "url": "https://www.aquasabi.com/media/image/product/4934/md/tropica-aquarium-soil-9-l.jpg",
+  "out": "urun/tropica-aquarium-soil-3"
+ },
+ {
+  "url": "https://cdn11.bigcommerce.com/s-15h88fcyw7/products/2902/images/21111/61tt9EA86lL._AC_SL1200___56737.1708615012.386.513.jpg?c=1",
+  "out": "urun/api-freshwater-master-test-kit-1"
+ },
+ {
+  "url": "https://cdn.shopify.com/s/files/1/0376/6478/4520/files/100000152429-tetramin-flakes-fish-food-1.jpg?v=1783566274",
+  "out": "urun/tetramin-flakes-1"
+ },
+ {
+  "url": "https://checkout.petstock.com.au/cdn/shop/files/100000152430-tetramin-flakes-fish-food-1.jpg?v=1783566331&width=1946",
+  "out": "urun/tetramin-flakes-2"
+ },
+ {
+  "url": "https://checkout.petstock.com.au/cdn/shop/files/100000152429-tetramin-flakes-fish-food-2.jpg?v=1783566290&width=1946",
+  "out": "urun/tetramin-flakes-3"
+ }
+]

@@ -1,0 +1,433 @@
+{
+ "brands": [
+  {
+   "slug": "eheim",
+   "name": "EHEIM",
+   "country": "Almanya",
+   "website": "eheim.com",
+   "keywords": [],
+   "description": "1949'dan beri akvaryum teknolojisi üreten Alman firması. Dış filtreleri (classic ve professionel serileri), ısıtıcıları ve hava motorlarıyla tanınır; özellikle classic serisi dış filtreler, sade yapısı ve uzun ömrüyle hobide kendini kanıtlamış bir klasik sayılır.",
+   "logo": [
+    "https://eheim.com/media/be/75/40/1706017978/eheim_logo.png",
+    "https://www.aquasabi.com/bilder/hersteller/normal/EHEIM.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/Eheim.jpg"
+   ]
+  },
+  {
+   "slug": "jbl",
+   "name": "JBL",
+   "country": "Almanya",
+   "website": "jbl.de",
+   "keywords": [],
+   "description": "1960'tan beri akvaryum ve teraryum ürünleri geliştiren Alman marka. Yemlerden su testlerine, filtrelerden bitki gübrelerine kadar geniş bir yelpazesi vardır; ProAquaTest su testleri ve CristalProfi dış filtreleri en bilinen ürünleri arasındadır.",
+   "logo": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/JBL.jpg",
+    "https://www.jbl.de/images/logos/logo.png"
+   ]
+  },
+  {
+   "slug": "seachem",
+   "name": "Seachem",
+   "country": "ABD",
+   "website": "seachem.com",
+   "keywords": [],
+   "description": "Su düzenleyicileri, bakteri kültürleri, bitki gübreleri ve filtre malzemeleriyle bilinen Amerikan firması. Prime, Stability ve Matrix gibi ürünleri hem tatlı su hem deniz akvaryumlarında yaygın olarak kullanılır.",
+   "logo": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Seachem.jpg"
+   ]
+  },
+  {
+   "slug": "tropica",
+   "name": "Tropica",
+   "country": "Danimarka",
+   "website": "tropica.com",
+   "keywords": [],
+   "description": "Akvaryum bitkisi üretimiyle tanınan Danimarkalı firma. Doku kültürü ve saksı bitkilerinin yanı sıra bitkili akvaryumlar için bitki toprağı ve sıvı gübre serileri de üretir.",
+   "logo": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Tropica.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/TROPICA.jpg"
+   ]
+  },
+  {
+   "slug": "fluval",
+   "name": "Fluval",
+   "country": "Kanada",
+   "website": "fluvalaquatics.com",
+   "keywords": [],
+   "description": "Kanadalı Hagen grubunun akvaryum markası. Dış filtreleri (07 serisi ve FX serisi), askı filtreleri, LED aydınlatmaları ve Stratum bitki toprağıyla bilinir.",
+   "logo": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Fluval.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/FLUVAL.jpg"
+   ]
+  },
+  {
+   "slug": "api",
+   "name": "API",
+   "country": "ABD",
+   "website": "apifishcare.com",
+   "keywords": [
+    "api fishcare"
+   ],
+   "description": "Mars Fishcare çatısı altındaki Amerikan akvaryum markası. Freshwater Master Test Kit başta olmak üzere damla testleri, su düzenleyicileri ve tedavi ürünleriyle tanınır.",
+   "logo": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/API.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/Api.jpg"
+   ]
+  },
+  {
+   "slug": "tetra",
+   "name": "Tetra",
+   "country": "Almanya",
+   "website": "tetra.net",
+   "keywords": [],
+   "description": "1955'te pul yemi TetraMin ile kurulan Alman marka. Pul ve granül yemlerin yanı sıra su düzenleyicileri, test şeritleri, filtreler ve hava motorları üretir.",
+   "logo": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Tetra.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/TETRA.jpg"
+   ]
+  },
+  {
+   "slug": "aquael",
+   "name": "Aquael",
+   "country": "Polonya",
+   "website": "aquael.pl",
+   "keywords": [],
+   "description": "Polonyalı akvaryum ekipmanı üreticisi. Ultramax dış filtreleri, iç filtreleri, ısıtıcıları ve akvaryum setleriyle Avrupa'da yaygındır.",
+   "logo": [
+    "https://www.aquasabi.com/bilder/hersteller/normal/Aquael.jpg",
+    "https://www.aquasabi.com/bilder/hersteller/normal/AQUAEL.jpg"
+   ]
+  }
+ ],
+ "products": [
+  {
+   "slug": "eheim-classic-350",
+   "brand": "eheim",
+   "category": "filtreler",
+   "name": "EHEIM classic 350",
+   "model": "2215",
+   "keywords": [
+    "eheim 2215",
+    "classic 350",
+    "eheim 350",
+    "eheim classic 2215"
+   ],
+   "description": "Yıllardır üretilen, sade ve dayanıklı yapısıyla bilinen dış filtre. Tek hazneli gövdeye malzeme katmanlar hâlinde yerleştirilir; hareketli parçası yalnızca pompa pervanesi olduğu için arıza riski düşüktür. Sessiz çalışır ve 120–350 litre arası akvaryumlar için uygundur. Kurulum ve ilk çalıştırma için hortumların su ile doldurulması (sifonlama) gerekir.",
+   "facts": [
+    [
+     "Akvaryum hacmi",
+     "120–350 l"
+    ],
+    [
+     "Pompa debisi",
+     "~620 l/sa"
+    ],
+    [
+     "Basma yüksekliği",
+     "1,8 m"
+    ],
+    [
+     "Filtre hacmi",
+     "4 l"
+    ],
+    [
+     "Güç",
+     "15 W"
+    ],
+    [
+     "Boyut",
+     "Ø 18,5 × 37 cm"
+    ],
+    [
+     "Hortum çapı",
+     "12/16 mm"
+    ],
+    [
+     "Tatlı / tuzlu su",
+     "Her ikisi"
+    ]
+   ],
+   "images": [
+    "https://eheim.com/media/21/21/99/1720626508/18011703014301942.jpg",
+    "https://eheim.com/media/73/6b/0d/1720626500/12040408045201942.jpg",
+    "https://eheim.com/media/1f/2e/b8/1720626410/16070709071701942.jpg"
+   ]
+  },
+  {
+   "slug": "fluval-307",
+   "brand": "fluval",
+   "category": "filtreler",
+   "name": "Fluval 307",
+   "model": "307",
+   "keywords": [
+    "fluval 307"
+   ],
+   "description": "Orta boy akvaryumlar için dikey ön filtreli dış filtre. Malzeme sepetleri ayrı çıkarıldığı için temizliği pratiktir; çalıştırma kolu sayesinde sifonlama elle yapılabilir. 90–330 litre arası tanklar için önerilir.",
+   "facts": [
+    [
+     "Akvaryum hacmi",
+     "90–330 l"
+    ],
+    [
+     "Pompa debisi",
+     "~1150 l/sa"
+    ],
+    [
+     "Gerçek akış (hortumlu)",
+     "~780 l/sa"
+    ],
+    [
+     "Malzeme hacmi",
+     "3,1 l"
+    ],
+    [
+     "Güç",
+     "15 W (230 V)"
+    ],
+    [
+     "Basma yüksekliği",
+     "1,75 m"
+    ],
+    [
+     "Boyut",
+     "24 × 18 × 42 cm"
+    ]
+   ],
+   "images": [
+    "https://s7d2.scene7.com/is/image/PetSmart/5290154?wid=1000&hei=1000",
+    "https://s7d2.scene7.com/is/image/PetSmart/5290154_alt1?wid=1000&hei=1000",
+    "https://s7d2.scene7.com/is/image/PetSmart/5290154_alt2?wid=1000&hei=1000"
+   ]
+  },
+  {
+   "slug": "seachem-prime",
+   "brand": "seachem",
+   "category": "su-duzenleyiciler",
+   "name": "Seachem Prime",
+   "model": "",
+   "keywords": [
+    "seachem prime"
+   ],
+   "description": "Çok konsantre su düzenleyici. Musluk suyundaki klor ve kloramini giderir; amonyak, nitrit ve nitratı geçici olarak bağlayıp zararsız hâle getirir, böylece biyolojik filtrenin bu maddeleri işlemesine zaman tanır. pH değerini değiştirmez; tatlı ve tuzlu suda kullanılabilir. Kullanırken hafif kükürt kokusu normaldir.",
+   "facts": [
+    [
+     "Doz",
+     "5 ml / 200 l"
+    ],
+    [
+     "Klor / kloramin",
+     "Giderir"
+    ],
+    [
+     "Amonyak / nitrit",
+     "Geçici olarak bağlar"
+    ],
+    [
+     "pH etkisi",
+     "Yok"
+    ],
+    [
+     "Tatlı / tuzlu su",
+     "Her ikisi"
+    ],
+    [
+     "Ambalaj",
+     "100 / 250 / 500 ml"
+    ]
+   ],
+   "images": [
+    "https://media2.cdn.bulkreefsupply.com/media/catalog/product/cache/c8225047e3f199b6e75c4a7f9e30955e/2/3/232239-seachem-prime-100ml-fr_1.jpg"
+   ]
+  },
+  {
+   "slug": "seachem-stability",
+   "brand": "seachem",
+   "category": "su-duzenleyiciler",
+   "name": "Seachem Stability",
+   "model": "",
+   "keywords": [
+    "seachem stability"
+   ],
+   "description": "Yeni kurulan akvaryumda biyolojik filtrenin oturmasını hızlandıran bakteri kültürü. Aerobik, anaerobik ve fakültatif bakteri karışımı içerir. İlk gün yüksek doz, ardından bir hafta boyunca günlük bakım dozu uygulanır; su değişimlerinde, yeni balık eklerken ya da ilaç kullanımı sonrasında da kullanılabilir. Kullanmadan önce UV ve ozon kapatılmalı, şişe çalkalanmalıdır.",
+   "facts": [
+    [
+     "İlk doz (yeni tank)",
+     "5 ml / 40 l"
+    ],
+    [
+     "İlk 7 gün",
+     "Günde 5 ml / 80 l"
+    ],
+    [
+     "Bakım",
+     "5 ml / 80 l"
+    ],
+    [
+     "İçerik",
+     "Bakteri kültürü"
+    ],
+    [
+     "Tatlı / tuzlu su",
+     "Her ikisi"
+    ],
+    [
+     "Ambalaj",
+     "50 ml – 1 l"
+    ]
+   ],
+   "images": [
+    "https://www.aquasabi.com/media/image/product/16642/lg/seachem-stability.jpg",
+    "https://www.aquasabi.com/media/image/product/16644/md/seachem-stability-250-ml.jpg",
+    "https://www.aquasabi.com/media/image/product/16645/md/seachem-stability-500-ml.jpg"
+   ]
+  },
+  {
+   "slug": "tropica-premium-nutrition",
+   "brand": "tropica",
+   "category": "bitki-co2",
+   "name": "Tropica Premium Nutrition",
+   "model": "",
+   "keywords": [
+    "tropica premium",
+    "premium nutrition"
+   ],
+   "description": "Azot ve fosfat içermeyen sıvı bitki gübresi. Demir, potasyum ve iz elementleri sağlar; azot ve fosfatı balık atıklarından karşılayan, az bitkili ve kalabalık balıklı akvaryumlar için tasarlanmıştır. Haftalık doz bitki yoğunluğuna göre ayarlanır.",
+   "facts": [
+    [
+     "Azot / fosfat",
+     "İçermez"
+    ],
+    [
+     "Doz",
+     "5 ml / 50 l, haftalık"
+    ],
+    [
+     "İçerik",
+     "K, Mg, Fe ve iz elementler"
+    ],
+    [
+     "Uygun tank",
+     "Az bitkili, kalabalık balıklı"
+    ],
+    [
+     "CO2 gerekir mi",
+     "Hayır"
+    ],
+    [
+     "Ambalaj",
+     "125 ml – 3 l"
+    ]
+   ],
+   "images": [
+    "https://www.aquasabi.com/media/image/product/3310/lg/tropica-premium-nutrition.jpg",
+    "https://www.aquasabi.com/media/image/product/3311/md/tropica-premium-nutrition-300-ml.jpg",
+    "https://www.aquasabi.com/media/image/product/26996/md/tropica-premium-nutrition-750-ml.jpg"
+   ]
+  },
+  {
+   "slug": "tropica-aquarium-soil",
+   "brand": "tropica",
+   "category": "zeminler",
+   "name": "Tropica Aquarium Soil",
+   "model": "",
+   "keywords": [
+    "tropica soil",
+    "tropica aquarium soil"
+   ],
+   "description": "Bitkili akvaryumlar için besince zengin, aktif bitki toprağı. Granül yapısı köklerin rahat yayılmasını sağlar; suyu hafifçe yumuşatıp pH'ı bir miktar düşürür. Karides ve hassas bitkilerle kurulan düzenlerde sık tercih edilir.",
+   "facts": [
+    [
+     "Tane boyu",
+     "2–3 mm"
+    ],
+    [
+     "Tür",
+     "Aktif bitki toprağı"
+    ],
+    [
+     "pH etkisi",
+     "Hafif düşürür"
+    ],
+    [
+     "Ambalaj",
+     "3 l / 9 l"
+    ]
+   ],
+   "images": [
+    "https://www.aquasabi.com/media/image/product/4932/lg/tropica-aquarium-soil.jpg",
+    "https://www.aquasabi.com/media/image/product/4933/md/tropica-aquarium-soil-3-l.jpg",
+    "https://www.aquasabi.com/media/image/product/4934/md/tropica-aquarium-soil-9-l.jpg"
+   ]
+  },
+  {
+   "slug": "api-freshwater-master-test-kit",
+   "brand": "api",
+   "category": "testler",
+   "name": "API Freshwater Master Test Kit",
+   "model": "",
+   "keywords": [
+    "api master test",
+    "api test kit",
+    "api master kit",
+    "freshwater master test kit"
+   ],
+   "description": "Tatlı su akvaryumunun temel değerlerini ölçen damla test seti. pH, yüksek pH, amonyak, nitrit ve nitratı tek kutuda toplar; renk kartı ve deney tüpleriyle gelir. Yeni tankın döngüsünü (cycling) takip etmek ve sorunları erken fark etmek için hobide en çok kullanılan setlerden biridir.",
+   "facts": [
+    [
+     "Ölçülen değerler",
+     "pH, yüksek pH, NH3/NH4, NO2, NO3"
+    ],
+    [
+     "Test türü",
+     "Damla"
+    ],
+    [
+     "İçerik",
+     "5 reaktif, 4 tüp, renk kartı"
+    ],
+    [
+     "Kullanım",
+     "Tatlı su"
+    ]
+   ],
+   "images": [
+    "https://cdn11.bigcommerce.com/s-15h88fcyw7/products/2902/images/21111/61tt9EA86lL._AC_SL1200___56737.1708615012.386.513.jpg?c=1"
+   ]
+  },
+  {
+   "slug": "tetramin-flakes",
+   "brand": "tetra",
+   "category": "yemler",
+   "name": "TetraMin",
+   "model": "",
+   "keywords": [
+    "tetramin",
+    "tetra min"
+   ],
+   "description": "Tropikal balıklar için klasik günlük pul yem. Yüzeyde kısa süre kalıp yavaşça batan pulları, yüzeyden dibe kadar farklı katmanlarda beslenen balıklara ulaşır. Prebiyotik içerir; suyu az kirletecek şekilde formüle edilmiştir.",
+   "facts": [
+    [
+     "Biçim",
+     "Pul"
+    ],
+    [
+     "Balık grubu",
+     "Tropikal topluluk balıkları"
+    ],
+    [
+     "Öne çıkan",
+     "Prebiyotik, vitamin katkılı"
+    ],
+    [
+     "Besleme",
+     "Günde 2–3 kez, birkaç dakikada bitecek kadar"
+    ]
+   ],
+   "images": [
+    "https://cdn.shopify.com/s/files/1/0376/6478/4520/files/100000152429-tetramin-flakes-fish-food-1.jpg?v=1783566274",
+    "https://checkout.petstock.com.au/cdn/shop/files/100000152430-tetramin-flakes-fish-food-1.jpg?v=1783566331&width=1946",
+    "https://checkout.petstock.com.au/cdn/shop/files/100000152429-tetramin-flakes-fish-food-2.jpg?v=1783566290&width=1946"
+   ]
+  }
+ ]
+}

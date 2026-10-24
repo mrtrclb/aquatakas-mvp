@@ -1,14 +1,14 @@
 name: Katalog görsellerini indir
 
 # scripts/katalog/gorseller.json değişince listedeki görselleri indirir, WebP'ye çevirir,
-# public/media/urun ve public/media/marka altına yazar ve aynı dala geri gönderir.
+# sonucu paket (artifact) olarak saklar; görseller yerelde indirilip commit'lenir.
 on:
   push:
     paths:
       - scripts/katalog/gorseller.json
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: katalog-gorselleri-${{ github.ref }}
@@ -28,11 +28,12 @@ jobs:
         run: pip install pillow cairosvg
       - name: Görselleri indir
         run: python3 scripts/katalog-gorsel-indir.py
-      - name: Gönder
-        run: |
-          git config user.name "Claude"
-          git config user.email "noreply@anthropic.com"
-          git add public/media scripts/katalog/indirme-raporu.json
-          if git diff --cached --quiet; then echo "Yeni görsel yok"; exit 0; fi
-          git commit -m "Katalog görselleri indirildi"
-          git push
+      - name: Sonucu paket olarak sakla (commit yerelde atılır)
+        uses: actions/upload-artifact@v4
+        with:
+          name: katalog-gorselleri
+          path: |
+            public/media/urun
+            public/media/marka
+            scripts/katalog/indirme-raporu.json
+          retention-days: 7
